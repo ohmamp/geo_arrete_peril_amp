@@ -4,14 +4,21 @@ channels:
   - defaults
 dependencies:
   - python  # cur: 3.10.4
-  - ipykernel  # jupyter nb  # cur: 6.11.0
-  - ipywidgets  # jupyter nb  # cur: 7.7.0
-  - pandas  # cur: 1.4.1
-  - pip  # cur: 22.0.4
-  - poppler  # dep(pdf2image)  # cur: 22.01.0
-  - pytesseract  # conda > pip  # cur: 0.3.10
+  - distro  # dep(tabula-py)
+  - ipykernel  # jupyter nb
+  - ipywidgets  # jupyter nb
+  - numpy >= 1.23.3
+  - ocrmypdf >= 14.0.1
+  - pandas >= 1.5.0
+  - pdfplumber >= 0.7.5
+  - pdftotext >= 2.2.2
+  - pip
+  - poppler >= 22.04.0  # dep(pdf2image)
+  - pytesseract >= 0.3.10
+  - requests >= 2.28.1
   - pip:
-    - black[jupyter]  # cur: 22.3.0
-    - dateparser  # cur: 1.1.1
-    - pdf2image  # pip > conda  # cur: 1.16.0
-    - requests  # cur: 2.27.1
+    - black[jupyter] >= 22.10.0
+    - dateparser >= 1.1.1
+    - pandera[io] >= 0.13.2
+    - pdf2image >= 1.16.0  # pdf2image
+    - tabula-py  # tabula-py

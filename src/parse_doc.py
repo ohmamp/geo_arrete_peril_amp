@@ -6,8 +6,10 @@ Découpe l'arrêté en zones.
 from pathlib import Path
 import re
 
-# header: Gardanne
+# en-tête et pied-de-page
 
+# Aix-en-Provence
+# TODO en-tête p. 2 et suivantes: numéro de page (en haut à droite)
 RE_FOOTER_AIX = r"""
 Hotel[ ]de[ ]Ville[ ]13616[ ]AIX-EN-PROVENCE[ ]CEDEX[ ]1[ ]-[ ]France[ ]-
 [ ]Tél[.][ ][+][ ]33[(]0[)]4[.]42[.]91[.]90[.]00[ ]-
@@ -15,6 +17,10 @@ Hotel[ ]de[ ]Ville[ ]13616[ ]AIX-EN-PROVENCE[ ]CEDEX[ ]1[ ]-[ ]France[ ]-
 [ ]www[.]mairie[-]aixenprovence[.]fr
 [.]
 """
+
+# Allauch
+# TODO en-tête p. 2..
+# pied-de-page p. 1
 RE_FOOTER_ALLAUCH = r"""
 Hôtel[ ]de[ ]Ville[ ][+][ ]Place[ ]Pierre[ ]Bellot[ ]e[ ]BP[ ]27[ ][+][ ]13718[ ]Allauch[ ]cedex[ ]e
 [ ]Tél[.][ ]04[ ]91[ ]10[ ]48[ ]00[ ][+]
@@ -22,22 +28,47 @@ Hôtel[ ]de[ ]Ville[ ][+][ ]Place[ ]Pierre[ ]Bellot[ ]e[ ]BP[ ]27[ ][+][ ]13718[
 \nWeb[ ][:][ ]http[:]//www[.]allauch[.]com[ ][+]
 [ ]Courriel[ ][:][ ]info@allauch[.]com
 """
+# TODO pied-de-page p. 2..
+# TODO
+
 RE_FOOTER_AUBAGNE = r"""
 Hôtel[ ]de[ ]Ville[ ]BP[ ]41465[ ]13785[ ]Aubagne[ ]Cedex
 [ ]T[ ]?04[ ]?42[ ]?18[ ]?19[ ]?19
 [ ]F[ ]?04[ ]?42[ ]?18[ ]?18[ ]?18
-[ ]www.aubagne.fr
+[ ]www[.]aubagne[.]fr
 """
+
 RE_FOOTER_AURIOL = r"""
 (Certifié[ ]exécutoire[,][ ]compte[ ]tenu[ ]de[ ]la[ ]transmission[ ]en[ ]Préfecture[ ]et[ ]de[ ]la[ ]publication[ ]le[ ][:][ ]\d{2}/\d{2}/\d{4}[ ])?
 Page[ ]\d{1,2}[ ]sur[ ]\d{1,2}
 """
-# Châteauneuf-les-Martigues: pas de footer détecté dans l'OCR d'origine ; TODO retester avec OCR refait
+
+# Châteauneuf-les-Martigues: en-tête sur p. 1, puis rien
+# FIXME modifier si on refait l'OCR
+RE_HEADER_CHATEAUNEUF_LES_MARTIGUES = r"""
+Gommune[ ]de[ ]Châteauneuf-les-Martigues[ ]-[ ]Arrondissement[ ]d'lstres[ ]-[ ]Bouches[ ]du[ ]Rhône
+"""
+
+RE_HEADER_GARDANNE = r"""
+Arrêté[ ]n°\d{4}-\d{2}-ARR-SIHI[ ]Page[ ]\d{1,2}/\d{1,2}
+"""
 # Gardanne: pas de footer
-# TODO footer RE_ISTRES
+
+# TODO RE_FOOTER_ISTRES
+
 RE_FOOTER_MARSEILLE = r"""
 Ville[ ]de[ ]Marseille[,][ ]2[ ]quai[ ]du[ ]Port[ ][–][ ]13233[ ]MARSEILLE[ ]CEDEX[ ]20
 """
+
+RE_HEADER = r"|".join(
+    r"(" + x + r")"
+    for x in [
+        RE_HEADER_CHATEAUNEUF_LES_MARTIGUES,
+        RE_HEADER_GARDANNE,
+    ]
+)
+P_HEADER = re.compile(RE_HEADER, flags=re.MULTILINE | re.VERBOSE)
+
 RE_FOOTER = (
     r"|".join(
         r"(" + x + r")"
@@ -49,7 +80,7 @@ RE_FOOTER = (
             RE_FOOTER_MARSEILLE,
         ]
     )
-    + r"[^\f]*[\f]"
+    + r"[^\f]*"
 )
 P_FOOTER = re.compile(RE_FOOTER, flags=re.MULTILINE | re.VERBOSE)
 
@@ -93,6 +124,38 @@ RE_PREAMBULE = r"""
 P_PREAMBULE = re.compile(RE_PREAMBULE, flags=re.MULTILINE | re.VERBOSE)
 
 
+def clean_page(txt: str) -> str:
+    """Nettoie une page.
+
+    Retire l'en-tête et le pied-de-page.
+
+    Parameters
+    ----------
+    txt: str
+        Texte d'origine de la page.
+
+    Returns
+    -------
+    clean_txt: str
+        Texte nettoyé.
+    """
+    # en-tête
+    m_header = P_HEADER.search(txt)
+    if m_header is not None:
+        print(m_header)
+    else:
+        print("pas d'en-tête")
+
+    # pied-de-page
+    m_footer = P_FOOTER.search(txt)
+    if m_footer is not None:
+        print(m_footer)
+    else:
+        print("pas de pied-de-page")
+
+    return txt  # FIXME retirer en-tête et pied-de-page
+
+
 def parse_arrete(fp_txt_in: Path) -> dict:
     """Analyse un arrêté pour le découper en zones.
 
@@ -106,15 +169,14 @@ def parse_arrete(fp_txt_in: Path) -> dict:
     content: dict
         Contenu du document, découpé en zones de texte.
     """
+    print(fp_txt_in.name)  # DEBUG
     # ouvrir le fichier
     with open(fp_txt_in) as f:
         txt = f.read()
-    # nettoyer en-tête et pied-de-page
-    m_footer = P_FOOTER.search(txt)
-    if m_footer is not None:
-        print(fp_txt_in.name, m_footer)
-    else:
-        print(fp_txt_in.name)
+    pages = txt.split("\f")
+    for page in pages:
+        clean_page(page)
+    raise ValueError("gne")
     # préparer le dictionnaire à renvoyer
     content = {}
     return content

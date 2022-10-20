@@ -172,9 +172,11 @@ def guess_pdf_type_and_extract_text(
 if __name__ == "__main__":
     # TODO argparse
     # dossier contenant des PDF texte et image
-    # RAW_PDF_DIR = Path("../data/raw/2022-03-08_export-actes/Export_@ctes_arretes_pdf")
-    RAW_PDF_DIR = Path(
-        "../data/raw/2022-04-13_export-actes/extraction_actes_010122_130422_pdf/extraction_actes_pdf"
+    RAW_DATA_DIR = Path("../data/raw/")
+    # RAW_PDF_DIR = RAW_DATA_DIR / "2022-03-08_export-actes/Export_@ctes_arretes_pdf"
+    RAW_PDF_DIR = (
+        RAW_DATA_DIR
+        / "2022-04-13_export-actes/extraction_actes_010122_130422_pdf/extraction_actes_pdf"
     )
     # TODO détecter les conflits de noms entre fichiers dans les sous-dossiers de raw/ avant traitement et tri vers interim/
     # dossier contenant les PDF image OCRisés

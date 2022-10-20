@@ -9,11 +9,11 @@ dependencies:
   - ipywidgets  # jupyter nb
   - numpy >= 1.23.3
   - ocrmypdf >= 14.0.1
-  - pandas >= 1.5.0
+  - pandas >= 1.5.1
   - pdfplumber >= 0.7.5
   - pdftotext >= 2.2.2
   - pip
-  - poppler >= 22.04.0  # dep(pdf2image)
+  - poppler >= 22.10.0  # dep(pdf2image)
   - pytesseract >= 0.3.10
   - requests >= 2.28.1
   - pip:

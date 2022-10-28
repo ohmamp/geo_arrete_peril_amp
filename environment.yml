@@ -13,12 +13,13 @@ dependencies:
   - pdfplumber >= 0.7.5
   - pdftotext >= 2.2.2
   - pip
-  - poppler >= 22.10.0  # dep(pdf2image)
+  - poppler >= 22.10.0  # dep(pdf2image), dep(pdftotext)?
   - pytesseract >= 0.3.10
   - requests >= 2.28.1
   - pip:
     - black[jupyter] >= 22.10.0
-    - dateparser >= 1.1.1
+    - dateparser >= 1.1.1  # 1.1.2
     - pandera[io] >= 0.13.2
+    - python-poppler >= 0.3.0  # metadata
     - pdf2image >= 1.16.0  # pdf2image
     - tabula-py  # tabula-py

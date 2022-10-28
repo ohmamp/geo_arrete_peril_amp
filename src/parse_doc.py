@@ -6,6 +6,27 @@ Découpe l'arrêté en zones.
 from pathlib import Path
 import re
 
+import pandas as pd  # tableau récapitulatif des extractions
+
+# type de données des colonnes du fichier CSV résultat
+DTYPE_PARSES = {
+    # doc
+    "filename": "string",
+    "page_num": "int64",
+    # en-tête
+    # les index de string sont des entiers, peuvent être manquants
+    # https://pandas.pydata.org/pandas-docs/stable/user_guide/integer_na.html
+    "header_beg": "Int64",
+    "header_end": "Int64",
+    "txt_header": "string",
+    # pied-de-page
+    "footer_beg": "Int64",
+    "footer_end": "Int64",
+    "txt_footer": "string",
+    # corps
+    "txt_body": "string",
+}
+
 # en-tête et pied-de-page
 
 # Aix-en-Provence
@@ -59,18 +80,25 @@ Arrêté[ ]n°\d{4}-\d{2}-ARR-SIHI[ ]Page[ ]\d{1,2}/\d{1,2}
 RE_FOOTER_MARSEILLE = r"""
 Ville[ ]de[ ]Marseille[,][ ]2[ ]quai[ ]du[ ]Port[ ][–][ ]13233[ ]MARSEILLE[ ]CEDEX[ ]20
 """
+# Marseille: PDF texte, dans lesquels les articles du code de la construction et de l'habitation sont ajoutés en annexe
+# *sous forme d'images*
 
-RE_HEADER = r"|".join(
-    r"(" + x + r")"
-    for x in [
-        RE_HEADER_CHATEAUNEUF_LES_MARTIGUES,
-        RE_HEADER_GARDANNE,
-    ]
+RE_HEADER = (
+    r"(?P<header>"
+    + r"|".join(
+        r"(" + x + r")"
+        for x in [
+            RE_HEADER_CHATEAUNEUF_LES_MARTIGUES,
+            RE_HEADER_GARDANNE,
+        ]
+    )
+    + r")"
 )
 P_HEADER = re.compile(RE_HEADER, flags=re.MULTILINE | re.VERBOSE)
 
 RE_FOOTER = (
-    r"|".join(
+    r"(?P<footer>"
+    + r"|".join(
         r"(" + x + r")"
         for x in [
             RE_FOOTER_AIX,
@@ -81,6 +109,7 @@ RE_FOOTER = (
         ]
     )
     + r"[^\f]*"
+    + r")"
 )
 P_FOOTER = re.compile(RE_FOOTER, flags=re.MULTILINE | re.VERBOSE)
 
@@ -124,10 +153,10 @@ RE_PREAMBULE = r"""
 P_PREAMBULE = re.compile(RE_PREAMBULE, flags=re.MULTILINE | re.VERBOSE)
 
 
-def clean_page(txt: str) -> str:
-    """Nettoie une page.
+def parse_page(txt: str) -> dict:
+    """Analyse une page.
 
-    Retire l'en-tête et le pied-de-page.
+    Repère l'en-tête et le pied-de-page.
 
     Parameters
     ----------
@@ -136,27 +165,44 @@ def clean_page(txt: str) -> str:
 
     Returns
     -------
-    clean_txt: str
-        Texte nettoyé.
+    content: dict
+        Contenu structuré de la page.
     """
+    content = {}
+
     # en-tête
     m_header = P_HEADER.search(txt)
-    if m_header is not None:
-        print(m_header)
+    if m_header:
+        header_beg, header_end = m_header.span()
+        txt_header = m_header.group(0)
     else:
-        print("pas d'en-tête")
+        header_beg, header_end = (None, None)
+        txt_header = None
+    content["header_beg"] = header_beg
+    content["header_end"] = header_end
+    content["txt_header"] = txt_header
 
     # pied-de-page
     m_footer = P_FOOTER.search(txt)
-    if m_footer is not None:
-        print(m_footer)
+    if m_footer:
+        footer_beg, footer_end = m_footer.span()
+        txt_footer = m_footer.group(0)
     else:
-        print("pas de pied-de-page")
+        footer_beg, footer_end = (None, None)
+        txt_footer = None
+    content["footer_beg"] = footer_beg
+    content["footer_end"] = footer_end
+    content["txt_footer"] = txt_footer
 
-    return txt  # FIXME retirer en-tête et pied-de-page
+    # corps du texte
+    # si l'en-tête et le pied de page ne devaient pas nécessairement aller jusqu'aux limites, on aurait:
+    # clean_txt = txt[:header_beg] + txt[header_end:footer_beg] + txt[footer_end:]
+    content["txt_body"] = txt[header_end:footer_beg]
+
+    return content
 
 
-def parse_arrete(fp_txt_in: Path) -> dict:
+def parse_arrete(fp_txt_in: Path) -> list:
     """Analyse un arrêté pour le découper en zones.
 
     Parameters
@@ -166,20 +212,25 @@ def parse_arrete(fp_txt_in: Path) -> dict:
 
     Returns
     -------
-    content: dict
-        Contenu du document, découpé en zones de texte.
+    doc_content: List[dict]
+        Contenu du document, par page découpée en zones de texte.
     """
     print(fp_txt_in.name)  # DEBUG
     # ouvrir le fichier
     with open(fp_txt_in) as f:
         txt = f.read()
+    doc_content = []  # valeur de retour
+    # métadonnées du document
+    mdata_doc = {
+        "filename": fp_txt_in.name,
+    }
+    # traiter les pages
     pages = txt.split("\f")
-    for page in pages:
-        clean_page(page)
-    raise ValueError("gne")
-    # préparer le dictionnaire à renvoyer
-    content = {}
-    return content
+    for i, page in enumerate(pages, start=1):
+        mdata_page = mdata_doc | {"page_num": i}
+        page_content = mdata_page | parse_page(page)
+        doc_content.append(page_content)
+    return doc_content
     # WIP
     m_preambule = P_PREAMBULE.search(txt)
     if m_preambule is not None:
@@ -227,6 +278,18 @@ def parse_arrete(fp_txt_in: Path) -> dict:
 if __name__ == "__main__":
     # TODO argparse
     INT_TXT_DIR = Path("../data/interim/txt")
+    CSV_PARSES = Path("../data/interim") / "parses.csv"
+    # stocker les champs extraits dans un tableau
+    parses = []
     for fp_txt in sorted(INT_TXT_DIR.glob("*.txt")):
         content = parse_arrete(fp_txt)
-        # print(f"{fp_txt.name}:\t{content}")
+        parses.extend(content)
+    df_parses = pd.DataFrame(parses)
+    # on force les types de colonnes (impossible dans le constructeur...)
+    df_parses = df_parses.astype(DTYPE_PARSES)
+    # TODO tests: dropna() puis:
+    # assert header_beg == 0
+    # alt: assert txt[:header_beg] == ""
+    # assert footer_end == len(txt)
+    # alt: assert txt[footer_end:] == ""
+    df_parses.to_csv(CSV_PARSES, index=False)

@@ -7,27 +7,49 @@ pour les fichiers PDF image.
 # TODO tester l'appel direct à ocrmypdf par API python
 # TODO tester "--clean" sur plusieurs PDF (aucun gain sur le pdf de test)
 # TODO ajuster le logging, remplacer des warning() par info()
+# TODO logger la sortie de ocrmypdf pour les messages sur les métadonnées
+# (ex: "Some input metadata could not be copied because it is not permitted in PDF/A. You may wish to examine the output PDF's XMP metadata.")
+# ou l'extraction (ex: "9 [tesseract] lots of diacritics - possibly poor OCR")
 
 # alternatives testées sur les PDF image OCRisés:
 # * pdftotext (xpdf/poppler) mélange le texte (comparé au fichier "sidecar" de ocrmypdf)
 # * pdf2txt (pdfminer) mélange le texte (idem)
 # * pdfplumber introduit des espaces et lignes superflus
 
+import argparse
 from importlib.metadata import version  # pour récupérer la version de pdftotext
 import logging
+from multiprocessing.sharedctypes import Value
 from pathlib import Path
 import subprocess
+from typing import Dict, List, Tuple
 
 import pandas as pd
 from poppler import load_from_file
 import pdftotext
 
+# version des bibliothèques d'extraction de contenu des PDF texte et image
 PDFTOTEXT_VERSION = version("pdftotext")
 OCRMYPDF_VERSION = (
     subprocess.run(["ocrmypdf", "--version"], capture_output=True)
     .stdout.decode()
     .strip()
 )
+
+# chemins par défaut, arborescence cookiecutter
+RAW_DATA_DIR = Path("../data/raw/")  # ici: entrée
+INT_DATA_DIR = Path("../data/interim")  # ici: sortie
+
+# lots connus: dossiers contenant des PDF texte et image
+RAW_BATCHES = {
+    "2022-03": RAW_DATA_DIR / "2022-03-08_export-actes/Export_@ctes_arretes_pdf",
+    "2022-04": (
+        RAW_DATA_DIR
+        / "2022-04-13_export-actes/extraction_actes_010122_130422_pdf/extraction_actes_pdf"
+    ),
+    # attention, dossier très volumineux
+    "2018-2021-VdM": RAW_DATA_DIR / "Arretes_2018_2021" / "12_ArretesPDF_VdM",
+}
 
 
 def convert_pdf_to_pdfa(fp_pdf_in: Path, fp_pdf_out: Path) -> int:
@@ -115,76 +137,6 @@ def extract_text_from_pdf_text(fp_pdf_in: Path, fp_txt_out: Path, page_break="")
         return 1
 
 
-# TODO renommer: ingest_pdf_file() ? ou définir ingest_* au niveau d'un dossier incluant le fichier liste ?
-# TODO redo-ocr quand le fichier source est mal océrisé par la source, ex: 99_AI-013-211300264-20220223-22_100-AI-1-1_1.pdf
-# TODO utiliser les propriétés du PDF pour détecter les vrais PDF texte
-def guess_pdf_type_and_extract_text(
-    fp_pdf_in: Path,
-    fp_pdf_out: Path,
-    fp_txt_out: Path,
-    exist_ok: bool = True,
-    overwrite: bool = False,
-) -> str:
-    """Deviner le type de PDF (image ou texte) et extraire le texte.
-
-    Si pdftotext renvoie du texte, le fichier est considéré PDF texte,
-    sinon il est considéré PDF image et OCRisé avec ocrmypdf.
-    Dans les deux cas, ocrmypdf est appelé pour créer un PDF/A.
-
-    La version actuelle est: ocrmypdf 14.0.1 / Tesseract OCR-PDF 5.2.0
-    (+ pikepdf 5.6.0).
-    On utilise "-l fra" pour améliorer la reconnaissance de: "à", "è",
-    "ê", apostrophe, "l'", "œ", "ô".
-
-    Parameters
-    ----------
-    fp_pdf_in: Path
-        Chemin du fichier PDF à traiter.
-    fp_pdf_out: Path
-        Chemin du fichier PDF converti en PDF/A (avec OCR le cas échéant).
-    fp_txt_out: Path
-        Chemin du fichier txt contenant le texte extrait.
-    exist_ok: bool, defaults to True
-        Si True, ignore les fichiers en entrée pour lesquels les fichiers de
-        sortie fp_pdf_out et fp_pdf_out existent déjà.
-    overwrite: bool, defaults to False
-        Si True, retraite le fichier d'entrée et écrase les fichiers de sortie s'ils existent.
-
-    Returns
-    -------
-    text_extractor: str
-        Extracteur utilisé pour le texte: "ocrmypdf" ou "pdftotext {version}"
-    """
-    if fp_pdf_out.is_file() and fp_txt_out.is_file():
-        if not exist_ok:
-            # émettre une erreur et sortir de la fonction
-            logging.error(
-                f"Les fichiers {fp_pdf_out} et {fp_txt_out} existent déjà mais `exist_ok=False`."
-            )
-        elif not overwrite:
-            # émettre un warning et sortir de la fonction
-            # TODO comparer les versions d'ocrmypdf/tesseract/pikepdf dans les métadonnées du PDF de sortie et les versions actuelles des dépendanecs, et si pertinent émettre un message proposant de ré-analyser le PDF ?
-            logging.warning(
-                f"Pas de traitement pour {fp_pdf_in} car les fichiers de sortie {fp_pdf_out} et {fp_txt_out} existent déjà et `overwrite=False`."
-            )
-            return
-    # 1. ouvrir le fichier PDF avec pdftotext
-    retcode = extract_text_from_pdf_text(fp_pdf_in, fp_txt_out)
-    if retcode == 0:
-        # 2. si du texte a pu être extrait directement, alors c'est un PDF texte
-        logging.warning(f"PDF texte: {fp_pdf_in}")
-        # convertir le PDF (texte) en PDF/A-2b (parallélisme des traitements)
-        convert_pdf_to_pdfa(fp_pdf_in, fp_pdf_out)
-        return f"pdftotext {PDFTOTEXT_VERSION}"
-    else:
-        # sinon c'est un PDF image
-        # ex: RAW_PDF_DIR / "99_AR-013-211300025-20220128-A_2022_136-AR-1-1_1.pdf"
-        logging.warning(f"PDF image: {fp_pdf_in}")
-        # extraire le texte par OCR et convertir le PDF (image) en PDF/A-2b
-        extract_text_from_pdf_image(fp_pdf_in, fp_txt_out, fp_pdf_out)
-        return f"ocrmypdf {OCRMYPDF_VERSION}"
-
-
 def get_pdf_info(fp_pdf_in: Path) -> dict:
     """Renvoie les infos du PDF.
 
@@ -204,7 +156,7 @@ def get_pdf_info(fp_pdf_in: Path) -> dict:
     # métadonnées: https://cbrunet.net/python-poppler/usage.html#document-properties ;
     # infos() ne les renvoie pas toutes, et nous fixons ici l'ordre des champs
     infos = {
-        "filename": fp_pdf_raw.name,  # nom du fichier
+        "filename": fp_pdf_in.name,  # nom du fichier
         "nb_pages": doc.pages,  # nombre de pages
         "producer": doc.producer,
         "creator": doc.creator,
@@ -214,66 +166,191 @@ def get_pdf_info(fp_pdf_in: Path) -> dict:
     return infos
 
 
-if __name__ == "__main__":
-    # TODO argparse
-    # dossier contenant des PDF texte et image
-    RAW_DATA_DIR = Path("../data/raw/")
-    in_dir = "2022-03"
-    if in_dir == "2022-03":
-        RAW_PDF_DIR = RAW_DATA_DIR / "2022-03-08_export-actes/Export_@ctes_arretes_pdf"
-    elif in_dir == "2022-04":
-        RAW_PDF_DIR = (
-            RAW_DATA_DIR
-            / "2022-04-13_export-actes/extraction_actes_010122_130422_pdf/extraction_actes_pdf"
-        )
-    else:
-        # attention, dossier très volumineux
-        RAW_PDF_DIR = RAW_DATA_DIR / "Arretes_2018_2021" / "12_ArretesPDF_VdM"
-    # TODO --resume: passer les fichiers déjà traités, ajouter les nouveaux fichiers aux CSV meta_raw et meta_interim
-    # TODO --redo: forcer la réextraction du texte => overwrite
-    redo = True
-    # RESUME HERE
-    # TODO détecter les conflits de noms entre fichiers dans les sous-dossiers de raw/ avant traitement et tri vers interim/
-    # dossier contenant les PDF image OCRisés
-    INT_DATA_DIR = Path("../data/interim")
-    INT_PDF_DIR = INT_DATA_DIR / "pdf"
-    INT_TXT_DIR = INT_DATA_DIR / "txt"
-    #
-    INT_PDF_DIR.mkdir(exist_ok=True)
-    INT_TXT_DIR.mkdir(exist_ok=True)
-    # fichier CSV contenant les métadonnées des documents d'origine
-    RAW_METAS_CSV = INT_DATA_DIR / "doc_metas_raw.csv"
-    # fichier CSV contenant les métadonnées des documents transformés
-    INT_METAS_CSV = INT_DATA_DIR / "doc_metas_interim.csv"
-    # end TODO argparse
+def preprocess_pdf_file(
+    fp_pdf_in: Path,
+    fp_pdf_out: Path,
+    fp_txt_out: Path,
+) -> Tuple[Dict, Dict]:
+    """Deviner le type de PDF (image ou texte) et extraire le texte.
 
-    raw_doc_metas = []
-    int_doc_metas = []
-    for fp_pdf_raw in sorted(RAW_PDF_DIR.glob("*.[Pp][Dd][Ff]")):
-        # métadonnées des fichiers PDF d'origine
-        raw_doc_meta = get_pdf_info(fp_pdf_raw)
-        raw_doc_metas.append(raw_doc_meta)
-        # fichiers produits
-        fp_pdf_mod = INT_PDF_DIR / fp_pdf_raw.name
-        fp_txt = INT_TXT_DIR / (fp_pdf_raw.stem + ".txt")
+    Si pdftotext renvoie du texte, le fichier est considéré PDF texte,
+    sinon il est considéré PDF image et OCRisé avec ocrmypdf.
+    Dans les deux cas, ocrmypdf est appelé pour créer un PDF/A.
+
+    La version actuelle est: ocrmypdf 14.0.1 / Tesseract OCR-PDF 5.2.0
+    (+ pikepdf 5.6.0).
+    On utilise "-l fra" pour améliorer la reconnaissance de: "à", "è",
+    "ê", apostrophe, "l'", "œ", "ô".
+
+    Parameters
+    ----------
+    fp_pdf_in: Path
+        Chemin du fichier PDF à traiter.
+    fp_pdf_out: Path
+        Chemin du fichier PDF converti en PDF/A (avec OCR le cas échéant).
+    fp_txt_out: Path
+        Chemin du fichier txt contenant le texte extrait.
+
+    Returns
+    -------
+    doc_meta_in: dict
+        Métadonnées du fichier PDF d'entrée
+    doc_meta_out: dict
+        Métadonnées des fichiers PDF et TXT de sortie
+    """
+    # 1. lire les métadonnées du PDF en entrée
+    doc_meta_in = get_pdf_info(fp_pdf_in)
+    # 2. ouvrir le fichier PDF avec pdftotext
+    retcode = extract_text_from_pdf_text(fp_pdf_in, fp_txt_out)
+    # 3. si du texte a pu être extrait directement, alors c'est un PDF texte,
+    # sinon c'est un PDF image
+    # TODO utiliser les propriétés du PDF pour détecter les vrais PDF texte
+    pdf_type = "pdf_txt" if retcode == 0 else "pdf_img"
+    if pdf_type == "pdf_txt":
+        # convertir le PDF (texte) en PDF/A-2b (parallélisme des traitements)
+        logging.warning(f"PDF texte: {fp_pdf_in}")
+        convert_pdf_to_pdfa(fp_pdf_in, fp_pdf_out)
+        # mémoriser la bibliothèque utilisée et sa version
+        text_extractor = f"pdftotext {PDFTOTEXT_VERSION}"
+    else:
+        # extraire le texte par OCR et convertir le PDF (image) en PDF/A-2b
+        logging.warning(f"PDF image: {fp_pdf_in}")
+        extract_text_from_pdf_image(fp_pdf_in, fp_txt_out, fp_pdf_out)
+        # mémoriser la bibliothèque utilisée et sa version
+        text_extractor = f"ocrmypdf {OCRMYPDF_VERSION}"
+    # 6.
+    doc_meta_out = get_pdf_info(fp_pdf_out)
+    doc_meta_out["text_extractor"] = text_extractor
+    return doc_meta_in, doc_meta_out
+
+
+# TODO redo='all'|'ocr'|'none' ? 'ocr' pour ré-extraire le texte quand le fichier source est mal océrisé par la source, ex: 99_AI-013-211300264-20220223-22_100-AI-1-1_1.pdf
+# TODO traiter également le fichier liste CSV s'il existe?
+def ingest_folder(
+    in_dir: Path, out_dir_pdf: Path, out_dir_txt: Path, redo: bool = False
+) -> Tuple[List[Dict[str, str | int]], List[Dict[str, str | int]]]:
+    """Ingérer un dossier: convertir les PDF en PDF/A et extraire le texte.
+
+    Parameters
+    ----------
+    in_dir: Path
+        Dossier à traiter, contenant des PDF
+    out_dir_pdf: Path
+        Dossier de sortie pour les PDF/A.
+    out_dir_txt: Path
+        Dossier de sortie pour les fichiers texte.
+    redo: bool, defaults to False
+        Si True, réanalyse les fichiers déjà traités.
+
+    Returns
+    -------
+    metas_raw: List[Dict[str, str | int]]
+        Métadonnées des fichiers d'entrée.
+    metas_int: List[Dict[str, str | int]]
+        Métadonnées des fichiers produits: PDF et TXT.
+    """
+    # lister les PDFs dans le dossier à traiter
+    pdfs_in = sorted(in_dir.glob("*.[Pp][Dd][Ff]"))
+    #
+    metas_raw = []
+    metas_int = []
+    for fp_pdf_in in pdfs_in:
+        # fichiers à produire
+        fp_pdf_out = out_pdf_dir / fp_pdf_in.name
+        fp_txt = out_txt_dir / (fp_pdf_in.stem + ".txt")
+        # si les fichiers à produire existent déjà
+        if fp_pdf_out.is_file() and fp_txt.is_file():
+            if redo:
+                # ré-exécution explicitement demandée: émettre une info et traiter le fichier
+                # TODO comparer les versions d'ocrmypdf/tesseract/pikepdf dans les métadonnées du PDF de sortie et les versions actuelles des dépendances,
+                # et si pertinent émettre un message proposant de ré-analyser le PDF ?
+                logging.info(
+                    f"Re-traitement de {fp_pdf_in}, les fichiers de sortie {fp_pdf_out} et {fp_txt} existants seront écrasés."
+                )
+            else:
+                # pas de ré-exécution demandée: émettre un warning et passer au fichier suivant
+                logging.info(
+                    f"{fp_pdf_in} est ignoré car les fichiers {fp_pdf_out} et {fp_txt} existent déjà."
+                )
+                continue
         # TODO déterminer si un document est PDF texte ou PDF image à partir des champs "Creator" et/ou "Producer" extraits par poppler,
-        # plutôt que si pdftotext parvient à extraire du texte ?
-        # Impact: ré-OCRisation des documents (mal) OCRisés, si on force (avec un warning)
+        # plutôt que si pdftotext parvient à extraire du texte ? alors si redo='ocr', ré-OCRisation des documents (mal) OCRisés (avec un warning.info)
+        #
         # extraire le texte si nécessaire, corriger et convertir le PDF d'origine en PDF/A-2b
-        text_extractor = guess_pdf_type_and_extract_text(
-            fp_pdf_raw, fp_pdf_mod, fp_txt, exist_ok=True, overwrite=redo
-        )
-        # métadonnées des fichiers PDF produits
-        int_doc_meta = get_pdf_info(fp_pdf_mod)
-        int_doc_meta["text_extractor"] = text_extractor
-        int_doc_metas.append(int_doc_meta)
+        doc_meta_in, doc_meta_out = preprocess_pdf_file(fp_pdf_in, fp_pdf_out, fp_txt)
+        # métadonnées des fichiers PDF en entrée et sortie
+        metas_raw.append(doc_meta_in)
+        metas_int.append(doc_meta_out)
+    return metas_raw, metas_int
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "in_dir", help="Nom du lot dans data/raw, ou chemin vers le dossier"
+    )
+    parser.add_argument(
+        "--out_dir",
+        default=str(INT_DATA_DIR),
+        help="Chemin vers le dossier de sortie contenant les PDF-A et le texte extrait",
+    )
+    parser.add_argument(
+        "--redo", action="store_true", help="Ré-exécuter le traitement d'un lot"
+    )
+    args = parser.parse_args()
+
+    # entrée: lot connu ou chemin vers un dossier
+    if args.in_dir in RAW_BATCHES:
+        # nom de lot connu
+        in_dir = RAW_BATCHES[args.in_dir]
+        if not in_dir.is_dir():
+            raise ValueError(f"Le lot {args.in_dir} n'est pas à l'emplacement {in_dir}")
+    else:
+        # chemin vers un dossier (nouveau lot?)
+        in_dir = Path(args.in_dir).resolve()
+        if not in_dir.is_dir():
+            raise ValueError(f"Le dossier {in_dir} n'existe pas")
+
+    # sortie: dossiers pour PDF-A et TXT
+    out_dir = Path(args.out_dir).resolve()
+    out_pdf_dir = out_dir / "pdf"
+    out_txt_dir = out_dir / "txt"
+    # on les crée si besoin
+    out_pdf_dir.mkdir(exist_ok=True)
+    out_txt_dir.mkdir(exist_ok=True)
+    # fichier CSV contenant les métadonnées des documents d'origine
+    CSV_METAS_RAW = out_dir / "metas_raw.csv"
+    # fichier CSV contenant les métadonnées des documents transformés
+    CSV_METAS_INT = out_dir / "metas_interim.csv"
+
+    # TODO détecter les conflits de noms entre fichiers dans les sous-dossiers de raw/ avant traitement et tri vers interim/
+    #
+    # traiter le dossier, contenant les PDF image OCRisés
+    metas_raw, metas_int = ingest_folder(
+        in_dir, out_pdf_dir, out_txt_dir, redo=args.redo
+    )
+
     # sauvegarder dans un fichier CSV les métadonnées des fichiers PDF en entrée: nom du fichier, nombre de pages, créateur, producteur
-    df_raw_metas = pd.DataFrame(raw_doc_metas)
-    df_raw_metas.to_csv(RAW_METAS_CSV, index=False)
-    # sauvegarder dans un fichier CSV les métadonnées des fichiers PDF produits
-    df_int_metas = pd.DataFrame(int_doc_metas)
-    df_int_metas.to_csv(INT_METAS_CSV, index=False)
+    df_metas_raw_new = pd.DataFrame(metas_raw)
+    if CSV_METAS_RAW.is_file():
+        # charger le fichier existant et concaténer les anciennes et nouvelles entrées
+        df_metas_raw_old = pd.read_csv(CSV_METAS_RAW)
+        df_metas_raw = pd.concat([df_metas_raw_old, df_metas_raw_new])
+    else:
+        df_metas_raw = df_metas_raw_new
+    df_metas_raw.to_csv(CSV_METAS_RAW, index=False)
+
+    # sauvegarder dans un fichier CSV les métadonnées des fichiers PDF produits, ainsi que les métadonnées d'extraction,
+    # incluant notamment la version d'ocrmypdf ou pdftotext
+    # TODO stocker aussi les paramètres d'appel de ces libs?
+    df_metas_int_new = pd.DataFrame(metas_int)
+    if CSV_METAS_INT.is_file():
+        # charger le fichier existant et concaténer les anciennes et nouvelles entrées
+        df_metas_int_old = pd.read_csv(CSV_METAS_INT)
+        df_metas_int = pd.concat([df_metas_int_old, df_metas_int_new])
+    else:
+        df_metas_int = df_metas_int_new
+    df_metas_int.to_csv(CSV_METAS_INT, index=False)
+
     # TODO tester si (1) la sortie de pdftotext et (2) le sidecar (sur des PDF différents) sont globalement formés de façon similaire
     # pour valider qu'on peut appliquer les mêmes regex/patterns d'extraction, ou s'il faut prévoir des variantes
-    # TODO stocker les métadonnées d'extraction (au moins colonnes, éventuellement table dédiée) incluant
-    # notamment ocrmypdf ou pdftotext (et les params?)

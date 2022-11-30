@@ -6,7 +6,7 @@ pour les fichiers PDF image.
 
 # TODO tester l'appel direct à ocrmypdf par API python
 # TODO tester "--clean" sur plusieurs PDF (aucun gain sur le pdf de test)
-# TODO ajuster le logging, remplacer des warning() par info()
+# TODO ajuster le logging
 # TODO logger la sortie de ocrmypdf pour les messages sur les métadonnées
 # (ex: "Some input metadata could not be copied because it is not permitted in PDF/A. You may wish to examine the output PDF's XMP metadata.")
 # ou l'extraction (ex: "9 [tesseract] lots of diacritics - possibly poor OCR")
@@ -17,16 +17,19 @@ pour les fichiers PDF image.
 # * pdfplumber introduit des espaces et lignes superflus
 
 import argparse
+from datetime import datetime, timedelta
 from importlib.metadata import version  # pour récupérer la version de pdftotext
 import logging
-from multiprocessing.sharedctypes import Value
 from pathlib import Path
 import subprocess
+from subprocess import PIPE, STDOUT
 from typing import Dict, List, Tuple
 
 import pandas as pd
-from poppler import load_from_file
 import pdftotext
+
+from .data_sources import INT_DATA_DIR, RAW_BATCHES
+from .pdf_metadata import get_pdf_info_pikepdf, get_pdf_info_poppler
 
 # version des bibliothèques d'extraction de contenu des PDF texte et image
 PDFTOTEXT_VERSION = version("pdftotext")
@@ -36,22 +39,8 @@ OCRMYPDF_VERSION = (
     .strip()
 )
 
-# chemins par défaut, arborescence cookiecutter
-RAW_DATA_DIR = Path("../data/raw/")  # ici: entrée
-INT_DATA_DIR = Path("../data/interim")  # ici: sortie
 
-# lots connus: dossiers contenant des PDF texte et image
-RAW_BATCHES = {
-    "2022-03": RAW_DATA_DIR / "2022-03-08_export-actes/Export_@ctes_arretes_pdf",
-    "2022-04": (
-        RAW_DATA_DIR
-        / "2022-04-13_export-actes/extraction_actes_010122_130422_pdf/extraction_actes_pdf"
-    ),
-    # attention, dossier très volumineux
-    "2018-2021-VdM": RAW_DATA_DIR / "Arretes_2018_2021" / "12_ArretesPDF_VdM",
-}
-
-
+# TODO récupérer les métadonnées du PDF perdues par ocrmypdf <https://github.com/ocrmypdf/OCRmyPDF/issues/327>
 def convert_pdf_to_pdfa(fp_pdf_in: Path, fp_pdf_out: Path) -> int:
     """Convertir un PDF en PDF/A.
 
@@ -63,8 +52,13 @@ def convert_pdf_to_pdfa(fp_pdf_in: Path, fp_pdf_out: Path) -> int:
         0 si un fichier PDF/A a été produit, 1 sinon.
     """
     compl_proc = subprocess.run(
-        ["ocrmypdf", "-l", "fra", "--skip-text", fp_pdf_in, fp_pdf_out], check=True
+        ["ocrmypdf", "-l", "fra", "--skip-text", fp_pdf_in, fp_pdf_out],
+        capture_output=True,
+        check=True,
+        text=True,
     )
+    logging.info(compl_proc.stdout)
+    logging.info(compl_proc.stderr)
     return compl_proc.returncode
 
 
@@ -92,8 +86,12 @@ def extract_text_from_pdf_image(
     # appeler ocrmypdf pour produire 2 fichiers: PDF/A-2b (inc. OCR) + sidecar (txt)
     compl_proc = subprocess.run(
         ["ocrmypdf", "-l", "fra", "--sidecar", fp_txt_out, fp_pdf_in, fp_pdf_out],
+        capture_output=True,
         check=True,
+        text=True,
     )
+    logging.info(compl_proc.stdout)
+    logging.info(compl_proc.stderr)
     return compl_proc.returncode
 
 
@@ -137,35 +135,6 @@ def extract_text_from_pdf_text(fp_pdf_in: Path, fp_txt_out: Path, page_break="")
         return 1
 
 
-def get_pdf_info(fp_pdf_in: Path) -> dict:
-    """Renvoie les infos du PDF.
-
-    Les infos sont fournies par poppler, elles incluent "Creator" et "Producer".
-
-    Parameters
-    ----------
-    fp_pdf_in: Path
-        Chemin du fichier PDF à traiter.
-
-    Returns
-    -------
-    infos: dict
-        Dictionnaire contenant les infos du PDF.
-    """
-    doc = load_from_file(fp_pdf_in)  # poppler
-    # métadonnées: https://cbrunet.net/python-poppler/usage.html#document-properties ;
-    # infos() ne les renvoie pas toutes, et nous fixons ici l'ordre des champs
-    infos = {
-        "filename": fp_pdf_in.name,  # nom du fichier
-        "nb_pages": doc.pages,  # nombre de pages
-        "producer": doc.producer,
-        "creator": doc.creator,
-        "creation_date": doc.creation_date,
-        "modification_date": doc.modification_date,
-    }
-    return infos
-
-
 def preprocess_pdf_file(
     fp_pdf_in: Path,
     fp_pdf_out: Path,
@@ -198,8 +167,28 @@ def preprocess_pdf_file(
     doc_meta_out: dict
         Métadonnées des fichiers PDF et TXT de sortie
     """
+    logging.info(f"Ouverture du fichier {fp_pdf_in}")
     # 1. lire les métadonnées du PDF en entrée
-    doc_meta_in = get_pdf_info(fp_pdf_in)
+    doc_meta_in = get_pdf_info_poppler(fp_pdf_in)
+    doc_meta_in_pike = get_pdf_info_pikepdf(fp_pdf_in)
+    try:
+        for k, v_popp in doc_meta_in.items():
+            v_pike = doc_meta_in_pike[k]
+            if k.endswith("date"):
+                assert (v_popp is None) or (abs(v_popp - v_pike) <= timedelta(hours=2))
+            elif k == "producer":
+                assert v_popp.replace("\x92", "™") == v_pike
+            else:
+                assert v_popp == v_pike
+
+    except AssertionError:
+        print("meta_poppler")
+        print(doc_meta_in)
+        print("meta_pike")
+        print(doc_meta_in_pike)
+        raise
+    return doc_meta_in, doc_meta_in
+    # WIP RESUME HERE
     # 2. ouvrir le fichier PDF avec pdftotext
     retcode = extract_text_from_pdf_text(fp_pdf_in, fp_txt_out)
     # 3. si du texte a pu être extrait directement, alors c'est un PDF texte,
@@ -208,13 +197,13 @@ def preprocess_pdf_file(
     pdf_type = "pdf_txt" if retcode == 0 else "pdf_img"
     if pdf_type == "pdf_txt":
         # convertir le PDF (texte) en PDF/A-2b (parallélisme des traitements)
-        logging.warning(f"PDF texte: {fp_pdf_in}")
+        logging.info(f"PDF texte: {fp_pdf_in}")
         convert_pdf_to_pdfa(fp_pdf_in, fp_pdf_out)
         # mémoriser la bibliothèque utilisée et sa version
         text_extractor = f"pdftotext {PDFTOTEXT_VERSION}"
     else:
         # extraire le texte par OCR et convertir le PDF (image) en PDF/A-2b
-        logging.warning(f"PDF image: {fp_pdf_in}")
+        logging.info(f"PDF image: {fp_pdf_in}")
         extract_text_from_pdf_image(fp_pdf_in, fp_txt_out, fp_pdf_out)
         # mémoriser la bibliothèque utilisée et sa version
         text_extractor = f"ocrmypdf {OCRMYPDF_VERSION}"
@@ -249,6 +238,7 @@ def ingest_folder(
     metas_int: List[Dict[str, str | int]]
         Métadonnées des fichiers produits: PDF et TXT.
     """
+    logging.info(f"Ouverture du dossier {in_dir}")
     # lister les PDFs dans le dossier à traiter
     pdfs_in = sorted(in_dir.glob("*.[Pp][Dd][Ff]"))
     #
@@ -285,6 +275,14 @@ def ingest_folder(
 
 
 if __name__ == "__main__":
+    # log
+    logging.basicConfig(
+        filename=f"preprocess_pdf_{datetime.now().isoformat()}.log",
+        encoding="utf-8",
+        level=logging.DEBUG,
+    )
+
+    # arguments de la commande exécutable
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "in_dir", help="Nom du lot dans data/raw, ou chemin vers le dossier"
@@ -302,7 +300,7 @@ if __name__ == "__main__":
     # entrée: lot connu ou chemin vers un dossier
     if args.in_dir in RAW_BATCHES:
         # nom de lot connu
-        in_dir = RAW_BATCHES[args.in_dir]
+        in_dir = RAW_BATCHES[args.in_dir].resolve()
         if not in_dir.is_dir():
             raise ValueError(f"Le lot {args.in_dir} n'est pas à l'emplacement {in_dir}")
     else:

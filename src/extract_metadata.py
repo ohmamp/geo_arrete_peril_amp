@@ -5,6 +5,7 @@ comme point de comparaison (temporaire?).
 """
 
 # TODO ajuster le logging
+# TODO détecter les fichers doublons, p. ex. "abrogation déconstruction 41 et 43 rue de la Palud 13001.pdf" et "interdiction 9 traverse Sainte Marie 13003.pdf"
 # TODO adapter pour traiter soit les fichiers d'origine, soit les fichiers PDF-A (corrigés)
 
 import argparse
@@ -44,7 +45,6 @@ def get_pdf_info_poppler(fp_pdf_in: Path) -> dict:
     # métadonnées: https://cbrunet.net/python-poppler/usage.html#document-properties ;
     # infos() ne les renvoie pas toutes, et nous fixons ici l'ordre des champs
     infos = {
-        "filename": fp_pdf_in.name,  # nom du fichier
         "nb_pages": doc.pages,  # nombre de pages
         # métadonnées PDF
         "creatortool": doc.creator,
@@ -134,7 +134,6 @@ def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose=True) -> dict:
     logging.info(f"{fp_pdf_in}: pike:finalmetadata: {meta}")
     # sélection des champs et fixation de leur ordre
     infos = {
-        "filename": fp_pdf_in.name,  # nom du fichier
         "nb_pages": len(f_pdf.pages),  # nombre de pages
         # métadonnées PDF
         "creatortool": meta.get("xmp:CreatorTool", ""),  # string
@@ -175,6 +174,13 @@ def get_pdf_info(fp_pdf: Path) -> Dict[str, str | int]:
         Informations (dont métadonnées) du fichier PDF d'entrée
     """
     logging.info(f"Ouverture du fichier {fp_pdf}")
+    pdf_info = {
+        # métadonnées du fichier lui-même
+        "filename": fp_pdf.name,  # nom du fichier
+        "fullpath": fp_pdf.resolve(),  # chemin complet
+        "filesize": fp_pdf.stat().st_size,  # taille du fichier
+        # TODO hashlib.sha1 ?
+    }
     # lire les métadonnées du PDF, avec poppler et pikepdf
     meta_poppler = get_pdf_info_poppler(fp_pdf)
     meta_pike = get_pdf_info_pikepdf(fp_pdf)
@@ -194,7 +200,8 @@ def get_pdf_info(fp_pdf: Path) -> Dict[str, str | int]:
         logging.error("Différence trop importante entre poppler et pikepdf")
         logging.warning(f"meta_poppler: {meta_poppler}")
         logging.warning(f"meta_pike: {meta_pike}")
-    pdf_info = meta_pike
+    # ajouter les métadonnées PDF à celles du fichier
+    pdf_info.update(meta_pike)
     return pdf_info
 
 
@@ -234,8 +241,9 @@ def index_folder(in_dir: Path, recursive: bool = True) -> List[Dict[str, str | i
 
 if __name__ == "__main__":
     # log
+    dir_log = Path(__file__).resolve().parents[1] / "logs"
     logging.basicConfig(
-        filename=f"pdf_metadata_{datetime.now().isoformat()}.log",
+        filename=f"{dir_log}/extract_metadata_{datetime.now().isoformat()}.log",
         encoding="utf-8",
         level=logging.DEBUG,
     )
@@ -314,3 +322,11 @@ if __name__ == "__main__":
             # sinon utiliser les seules nouvelles entrées
             df_metas = df_metas_new
         df_metas.to_csv(out_file, index=False)
+
+    # bonus: afficher des indicateurs
+    print(
+        df_metas_new[["creatortool", "producer"]]
+        .value_counts(dropna=False)
+        .to_frame("counts")
+        .reset_index()
+    )

@@ -10,6 +10,9 @@ La liste des tiers de transmission agréés pour @ctes est sur
 <https://www.collectivites-locales.gouv.fr/sites/default/files/migration/2019_09_13_liste_operateurs_transmission_0.pdf> .
 """
 
+# FIXME ? nouvelle colonne "has_bad_ocr" pour les PDF avec une mauvaise OCR, eg. "Image Capture Plus"
+
+
 import argparse
 from datetime import datetime
 import logging
@@ -245,6 +248,7 @@ if __name__ == "__main__":
     df_mmod = guess_tampon_transmission(df_mmod)
     df_mmod = guess_dernpage_transmission(df_mmod)
     df_mmod = guess_pdftext(df_mmod)
+    # FIXME ? "has_bad_ocr" pour les PDF avec une mauvaise OCR, eg. "Image Capture Plus"
     #
 
     # sauvegarder les infos extraites dans un fichier CSV

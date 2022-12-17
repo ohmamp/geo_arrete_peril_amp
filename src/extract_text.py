@@ -34,6 +34,7 @@ from subprocess import PIPE, STDOUT
 from typing import Dict, List, NamedTuple, Tuple
 
 import pandas as pd
+from ocrmypdf.exceptions import ExitCode
 import pdftotext
 
 # version des bibliothèques d'extraction de contenu des PDF texte et image
@@ -46,29 +47,60 @@ OCRMYPDF_VERSION = (
 
 
 # TODO récupérer les métadonnées du PDF perdues par ocrmypdf <https://github.com/ocrmypdf/OCRmyPDF/issues/327>
-def convert_pdf_to_pdfa(fp_pdf_in: Path, fp_pdf_out: Path) -> int:
+def convert_pdf_to_pdfa(fp_pdf_in: Path, fp_pdf_out: Path, verbose: int = 0) -> int:
     """Convertir un PDF en PDF/A.
 
     Utilise ocrmypdf sans appliquer d'OCR.
+
+    Parameters
+    ----------
+    verbose: int, defaults to 0
+        Niveau de verbosité d'ocrmypdf (-1, 0, 1, 2):
+        <https://ocrmypdf.readthedocs.io/en/latest/api.html#ocrmypdf.Verbosity>
 
     Returns
     -------
     returncode: int
         0 si un fichier PDF/A a été produit, 1 sinon.
     """
-    compl_proc = subprocess.run(
-        ["ocrmypdf", "-l", "fra", "--skip-text", fp_pdf_in, fp_pdf_out],
-        capture_output=True,
-        check=True,
-        text=True,
-    )
-    logging.info(compl_proc.stdout)
-    logging.info(compl_proc.stderr)
+    try:
+        compl_proc = subprocess.run(
+            [
+                "ocrmypdf",
+                "-l",
+                "fra",
+                "--skip-text",
+                fp_pdf_in,
+                fp_pdf_out,
+                "--verbose",
+                str(verbose),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+    finally:
+        logging.info(compl_proc.stdout)
+        logging.info(compl_proc.stderr)
+    if compl_proc.returncode == ExitCode.pdfa_conversion_failed:
+        # <https://ocrmypdf.readthedocs.io/en/latest/advanced.html#return-code-policy>
+        logging.warning(
+            f"Un PDF a été généré mais la conversion en PDF/A a échoué: {fp_pdf_out}"
+        )
+        # cela arrive quand les métadonnées du PDF contiennent des caractères que ghostscript considère incorrects
+        # "DEBUG ocrmypdf.subprocess.gs - GPL Ghostscript 9.54.0: Text string detected in DOCINFO cannot be represented in XMP for PDF/A1, discarding DOCINFO"
+        # ex: les métadonnées PDF contiennent "Microsoft® Word 2010"
+        # <https://stackoverflow.com/questions/57167784/ghostscript-wont-generate-pdf-a-with-utf16be-text-string-detected-in-docinfo>
     return compl_proc.returncode
 
 
 def extract_text_from_pdf_image(
-    fp_pdf_in: Path, fp_txt_out: Path, fp_pdf_out: Path, page_beg: int, page_end: int
+    fp_pdf_in: Path,
+    fp_txt_out: Path,
+    fp_pdf_out: Path,
+    page_beg: int,
+    page_end: int,
+    verbose: int = 0,
 ) -> int:
     """Extraire le texte d'un PDF image et convertir le fichier en PDF/A.
 
@@ -88,6 +120,9 @@ def extract_text_from_pdf_image(
         Numéro de la première page à traiter, la première page d'un PDF est supposée numérotée 1.
     page_end: int
         Numéro de la dernière page à traiter (cette page étant incluse).
+    verbose: int, defaults to 0
+        Niveau de verbosité d'ocrmypdf (-1, 0, 1, 2):
+        <https://ocrmypdf.readthedocs.io/en/latest/api.html#ocrmypdf.Verbosity>
 
     Returns
     -------
@@ -95,26 +130,39 @@ def extract_text_from_pdf_image(
         0 si deux fichiers PDF/A et TXT ont été produits, 1 sinon.
     """
     # appeler ocrmypdf pour produire 2 fichiers: PDF/A-2b (inc. OCR) + sidecar (txt)
-    compl_proc = subprocess.run(
-        [
-            "ocrmypdf",
-            # langue française
-            "-l",
-            "fra",
-            # sélection de pages
-            "--page",
-            f"{page_beg}-{page_end}",
-            "--sidecar",
-            fp_txt_out,
-            fp_pdf_in,
-            fp_pdf_out,
-        ],
-        capture_output=True,
-        check=True,
-        text=True,
-    )
-    logging.info(compl_proc.stdout)
-    logging.info(compl_proc.stderr)
+    try:
+        compl_proc = subprocess.run(
+            [
+                "ocrmypdf",
+                # langue française
+                "-l",
+                "fra",
+                # sélection de pages
+                "--page",
+                f"{page_beg}-{page_end}",
+                "--sidecar",
+                fp_txt_out,
+                fp_pdf_in,
+                fp_pdf_out,
+                "--verbose",
+                str(verbose),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+    finally:
+        logging.info(compl_proc.stdout)
+        logging.info(compl_proc.stderr)
+    if compl_proc.returncode == ExitCode.pdfa_conversion_failed:
+        # <https://ocrmypdf.readthedocs.io/en/latest/advanced.html#return-code-policy>
+        logging.warning(
+            f"Un PDF a été généré mais la conversion en PDF/A a échoué: {fp_pdf_out}"
+        )
+        # cela arrive quand les métadonnées du PDF contiennent des caractères que ghostscript considère incorrects
+        # "DEBUG ocrmypdf.subprocess.gs - GPL Ghostscript 9.54.0: Text string detected in DOCINFO cannot be represented in XMP for PDF/A1, discarding DOCINFO"
+        # ex: les métadonnées PDF contiennent "Microsoft® Word 2010"
+        # <https://stackoverflow.com/questions/57167784/ghostscript-wont-generate-pdf-a-with-utf16be-text-string-detected-in-docinfo>
     return compl_proc.returncode
 
 
@@ -155,7 +203,6 @@ def extract_text_from_pdf_text(
         pdf = pdftotext.PDF(f)
     # les numéros de page commencent à 1, mais pdftotext crée une liste de pages
     # qui commence à l'index 0
-    print(repr(pdf), repr(page_beg), repr(page_end))
     page_beg = page_beg - 1
     # le numéro de la dernière page ne doit pas être décalé car la borne sup d'un slice est exclue
     # pdftotext.PDF permet de getitem, mais pas de récupérer un slice... il faut créer un range et itérer manuellement
@@ -177,6 +224,7 @@ def preprocess_pdf_file(
     fp_pdf_out: Path,
     fp_txt_out: Path,
     redo: bool = False,
+    verbose: int = 0,
 ) -> str:
     """Deviner le type de PDF (image ou texte) et extraire le texte.
 
@@ -199,6 +247,9 @@ def preprocess_pdf_file(
         Chemin du fichier txt contenant le texte extrait.
     redo: boolean, defaults to False
         Si True, le traitement est ré-appliqué même si les fichiers de sortie existent.
+    verbose: int, defaults to 0
+        Niveau de verbosité d'ocrmypdf (-1, 0, 1, 2):
+        <https://ocrmypdf.readthedocs.io/en/latest/api.html#ocrmypdf.Verbosity>
 
     Returns
     -------
@@ -219,7 +270,7 @@ def preprocess_pdf_file(
         )
         # convertir le PDF (texte) en PDF/A-2b (parallélisme des traitements)
         logging.info(f"PDF texte: {fp_pdf_in}")
-        convert_pdf_to_pdfa(fp_pdf_in, fp_pdf_out)
+        convert_pdf_to_pdfa(fp_pdf_in, fp_pdf_out, verbose=verbose)
     elif df_row.guess_dernpage:
         # (pour les PDF du stock) la dernière page est un accusé de réception de transmission à @ctes,
         # donc les métadonnées ont été écrasées et:
@@ -234,14 +285,19 @@ def preprocess_pdf_file(
             pdf_type = "text"
             # convertir le PDF (texte) en PDF/A-2b (parallélisme des traitements)
             logging.info(f"PDF texte: {fp_pdf_in}")
-            convert_pdf_to_pdfa(fp_pdf_in, fp_pdf_out)
+            convert_pdf_to_pdfa(fp_pdf_in, fp_pdf_out, verbose=verbose)
         else:
             pdf_type = "image"
             # extraire le texte par OCR et convertir le PDF (image) en PDF/A-2b
             # sauf pour la dernière page !
             logging.info(f"PDF image: {fp_pdf_in}")
             extract_text_from_pdf_image(
-                fp_pdf_in, fp_txt_out, fp_pdf_out, page_beg=1, page_end=page_end
+                fp_pdf_in,
+                fp_txt_out,
+                fp_pdf_out,
+                page_beg=1,
+                page_end=page_end,
+                verbose=verbose,
             )
     else:
         # PDF image
@@ -250,15 +306,25 @@ def preprocess_pdf_file(
         logging.info(f"PDF image: {fp_pdf_in}")
         page_beg = 1
         page_end = df_row.nb_pages
+        # FIXME force ocr pour les PDF avec une mauvaise OCR, eg. "Image Capture Plus"
         extract_text_from_pdf_image(
-            fp_pdf_in, fp_txt_out, fp_pdf_out, page_beg=page_beg, page_end=page_end
+            fp_pdf_in,
+            fp_txt_out,
+            fp_pdf_out,
+            page_beg=page_beg,
+            page_end=page_end,
+            verbose=verbose,
         )
     return pdf_type
 
 
 # TODO redo='all'|'ocr'|'none' ? 'ocr' pour ré-extraire le texte quand le fichier source est mal océrisé par la source, ex: 99_AI-013-211300264-20220223-22_100-AI-1-1_1.pdf
 def process_files(
-    df_meta: pd.DataFrame, out_dir_pdf: Path, out_dir_txt: Path, redo: bool = False
+    df_meta: pd.DataFrame,
+    out_dir_pdf: Path,
+    out_dir_txt: Path,
+    redo: bool = False,
+    verbose: int = 0,
 ) -> pd.DataFrame:
     """Traiter un ensemble de fichiers PDF: convertir les PDF en PDF/A et extraire le texte.
 
@@ -272,6 +338,9 @@ def process_files(
         Dossier de sortie pour les fichiers texte.
     redo: bool, defaults to False
         Si True, réanalyse les fichiers déjà traités.
+    verbose: int, defaults to 0
+        Niveau de verbosité d'ocrmypdf (-1, 0, 1, 2):
+        <https://ocrmypdf.readthedocs.io/en/latest/api.html#ocrmypdf.Verbosity>
 
     Returns
     -------
@@ -303,7 +372,9 @@ def process_files(
                 )
                 continue
         # traiter le fichier: extraire le texte par OCR si nécessaire, corriger et convertir le PDF d'origine en PDF/A-2b
-        pdf_type = preprocess_pdf_file(df_row, fp_pdf_in, fp_pdf_out, fp_txt, redo=redo)
+        pdf_type = preprocess_pdf_file(
+            df_row, fp_pdf_in, fp_pdf_out, fp_txt, redo=redo, verbose=verbose
+        )
         # stocker les chemins vers les fichiers PDF/A et TXT produits
         processed_as.append(pdf_type)
         fullpath_pdfa.append(fp_pdf_out)
@@ -352,6 +423,13 @@ if __name__ == "__main__":
         action="store_true",
         help="Ajoute les métadonnées au fichier out_file s'il existe",
     )
+    parser.add_argument(
+        # <https://ocrmypdf.readthedocs.io/en/latest/api.html#ocrmypdf.Verbosity>
+        "--verbose",
+        action="store",
+        default=0,
+        help="Niveau de verbosité d'ocrmypdf (-1, 0, 1, 2)",
+    )
     args = parser.parse_args()
 
     # entrée: CSV de métadonnées enrichi
@@ -388,7 +466,9 @@ if __name__ == "__main__":
     logging.info(f"Ouverture du fichier CSV {in_file}")
     df_metas = pd.read_csv(in_file)
     # traiter les fichiers
-    df_mmod = process_files(df_metas, out_pdf_dir, out_txt_dir, redo=args.redo)
+    df_mmod = process_files(
+        df_metas, out_pdf_dir, out_txt_dir, redo=args.redo, verbose=args.verbose
+    )
     # sauvegarder les infos extraites dans un fichier CSV
     if args.append and out_file.is_file():
         # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées

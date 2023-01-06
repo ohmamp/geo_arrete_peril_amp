@@ -100,6 +100,7 @@ def extract_text_from_pdf_image(
     fp_pdf_out: Path,
     page_beg: int,
     page_end: int,
+    redo_ocr: bool = False,
     verbose: int = 0,
 ) -> int:
     """Extraire le texte d'un PDF image et convertir le fichier en PDF/A.
@@ -120,6 +121,8 @@ def extract_text_from_pdf_image(
         Numéro de la première page à traiter, la première page d'un PDF est supposée numérotée 1.
     page_end: int
         Numéro de la dernière page à traiter (cette page étant incluse).
+    redo_ocr: boolean, defaults to False
+        Si True, refait l'OCR même si une couche d'OCR est détectée sur certaines pages.
     verbose: int, defaults to 0
         Niveau de verbosité d'ocrmypdf (-1, 0, 1, 2):
         <https://ocrmypdf.readthedocs.io/en/latest/api.html#ocrmypdf.Verbosity>
@@ -130,23 +133,33 @@ def extract_text_from_pdf_image(
         0 si deux fichiers PDF/A et TXT ont été produits, 1 sinon.
     """
     # appeler ocrmypdf pour produire 2 fichiers: PDF/A-2b (inc. OCR) + sidecar (txt)
+    cmd = (
+        ["ocrmypdf"]
+        + [
+            # langue française
+            "-l",
+            "fra",
+            # sélection de pages
+            "--page",
+            f"{page_beg}-{page_end}",
+            # TXT en sortie
+            "--sidecar",
+            fp_txt_out,
+            # verbosité
+            "--verbose",
+            str(verbose),
+        ]
+        + (["--redo-ocr"] if redo_ocr else [])
+        + [
+            # PDF en entrée
+            fp_pdf_in,
+            # PDF/A en sortie
+            fp_pdf_out,
+        ]
+    )
     try:
         compl_proc = subprocess.run(
-            [
-                "ocrmypdf",
-                # langue française
-                "-l",
-                "fra",
-                # sélection de pages
-                "--page",
-                f"{page_beg}-{page_end}",
-                "--sidecar",
-                fp_txt_out,
-                fp_pdf_in,
-                fp_pdf_out,
-                "--verbose",
-                str(verbose),
-            ],
+            cmd,
             capture_output=True,
             check=False,
             text=True,
@@ -299,6 +312,27 @@ def preprocess_pdf_file(
                 page_end=page_end,
                 verbose=verbose,
             )
+    elif df_row.guess_badocr:
+        # le PDF contient une couche d'OCR produite par un logiciel moins performant: refaire l'OCR
+        #
+        # PDF image
+        pdf_type = "image"
+        # extraire le texte par OCR et convertir le PDF (image) en PDF/A-2b
+        logging.info(f"PDF image: {fp_pdf_in}")
+        page_beg = 1
+        page_end = df_row.nb_pages
+        # même extraction que pour les PDF image standard mais en indiquant explicitement à ocrmypdf qu'il doit
+        # refaire l'OCR même s'il détecte des couches OCR existantes: "--redo-ocr"
+        # (si cela ne fonctionne pas, modifier le code pour utiliser "--force-ocr" qui forcera la rasterization)
+        extract_text_from_pdf_image(
+            fp_pdf_in,
+            fp_txt_out,
+            fp_pdf_out,
+            page_beg=page_beg,
+            page_end=page_end,
+            redo_ocr=True,
+            verbose=verbose,
+        )
     else:
         # PDF image
         pdf_type = "image"

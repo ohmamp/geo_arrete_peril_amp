@@ -161,6 +161,30 @@ def guess_dernpage_transmission(df_meta: pd.DataFrame) -> pd.DataFrame:
     return df_mmod
 
 
+def guess_badocr(df_meta: pd.DataFrame) -> pd.DataFrame:
+    """Détermine si le fichier contient une couche OCR de piètre qualité.
+
+    Arrive quand le champ "creatortool" vaut "Image Capture Plus".
+
+    Parameters
+    ----------
+    df_meta: pd.DataFrame
+        Métadonnées des fichiers PDF
+
+    Returns
+    -------
+    df_mmod: pd.DataFrame
+        Métadonnées enrichies d'une nouvelle colonne "guess_badocr"
+    """
+    has_badocr = (
+        # "Image Capture Plus"
+        df_meta["creatortool"]
+        == "Image Capture Plus"
+    )
+    df_mmod = df_meta.assign(guess_badocr=has_badocr)
+    return df_mmod
+
+
 def guess_pdftext(df_meta: pd.DataFrame) -> pd.DataFrame:
     """Détermine si le fichier est un PDF texte (ou "numérique natif").
 
@@ -248,8 +272,7 @@ if __name__ == "__main__":
     df_mmod = guess_tampon_transmission(df_mmod)
     df_mmod = guess_dernpage_transmission(df_mmod)
     df_mmod = guess_pdftext(df_mmod)
-    # FIXME ? "has_bad_ocr" pour les PDF avec une mauvaise OCR, eg. "Image Capture Plus"
-    #
+    df_mmod = guess_badocr(df_mmod)
 
     # sauvegarder les infos extraites dans un fichier CSV
     if args.append and out_file.is_file():

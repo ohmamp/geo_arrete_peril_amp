@@ -130,8 +130,11 @@ def guess_tampon_transmission(df_meta: pd.DataFrame) -> pd.DataFrame:
             # tampon en haut à droite: tiers de télétransmission S2LOW (.. - 2019-02-11)
             "; modified using iText® 5.5.12 ©2000-2017 iText Group NV (AGPL-version)"
         )
+        | df_meta["producer"].str.endswith(
+            # tampon en bas à gauche (quel tiers?): "; modified using iText® 5.5.9 ©2000-2015 iText Group NV (AGPL-version)" (sans MS 365)
+            "; modified using iText® 5.5.9 ©2000-2015 iText Group NV (AGPL-version)"
+        )
     )
-    # TODO tampon en bas à gauche (quel tiers?): "; modified using iText® 5.5.9 ©2000-2015 iText Group NV (AGPL-version)" (sans MS 365)
     #
     df_mmod = df_meta.assign(guess_tampon=has_stamp)
     return df_mmod

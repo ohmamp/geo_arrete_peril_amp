@@ -9,6 +9,7 @@ Tous les fichiers PDF sont convertis en PDF/A.
 
 # TODO détecter les première et dernière page: de "nous" + vu, considérant etc jusqu'à la signature
 # pour exclure les annexes (rappel des articles du code de la construction, rapport de BE), page de garde etc.
+# => ajouter un mode "early_stopping", optionnel, à l'extraction de texte
 # TODO tester si (1) la sortie de pdftotext et (2) le sidecar (sur des PDF différents) sont globalement formés de façon similaire
 # pour valider qu'on peut appliquer les mêmes regex/patterns d'extraction, ou s'il faut prévoir des variantes
 # TODO si redo='ocr', ré-OCRisation des documents (mal) OCRisés (avec un warning.info)
@@ -18,6 +19,7 @@ Tous les fichiers PDF sont convertis en PDF/A.
 # TODO logger la sortie de ocrmypdf pour les messages sur les métadonnées
 # (ex: "Some input metadata could not be copied because it is not permitted in PDF/A. You may wish to examine the output PDF's XMP metadata.")
 # ou l'extraction (ex: "9 [tesseract] lots of diacritics - possibly poor OCR")
+# TODO examiner si tous les cas de pages "sautées" sont légitimes: grep -Ri "OCR skipped on page" ../data/interim/txt/*
 
 # alternatives testées sur les PDF image OCRisés:
 # * pdftotext (xpdf/poppler) mélange le texte (comparé au fichier "sidecar" de ocrmypdf)
@@ -270,13 +272,16 @@ def preprocess_pdf_file(
         Type de fichier PDF qui a été supposé pour extraire le texte: "text" ou "image"
     """
     logging.info(f"Ouverture du fichier {fp_pdf_in}")
+    # définir les pages à traiter
+    page_beg = 1
+    # exclure la dernière page si c'est un accusé de réception de transmission à @ctes
+    page_end = (df_row.nb_pages - 1 if df_row.guess_dernpage else df_row.nb_pages)
+    # extraire le texte avec pdftotext pour tous les fichiers
+
     # on utilise les heuristiques sur les métadonnées pour prédire si c'est un PDF texte ou image, et orienter le traitement
     if df_row.guess_pdftext:
         # forte présomption que c'est un PDF texte, d'après les métadonnées
         pdf_type = "text"
-        # on veut extraire le texte de toutes les pages
-        page_beg = 1
-        page_end = df_row.nb_pages
         # extraire le texte
         retcode = extract_text_from_pdf_text(
             fp_pdf_in, fp_txt_out, page_beg=page_beg, page_end=page_end
@@ -289,8 +294,6 @@ def preprocess_pdf_file(
         # donc les métadonnées ont été écrasées et:
         # 1. il faut exclure la dernière page (accusé de réception de la transmission) puis
         # 2. si pdftotext parvient à extraire du texte, alors c'est un PDF texte, sinon c'est un PDF image
-        page_beg = 1
-        page_end = df_row.nb_pages - 1
         retcode = extract_text_from_pdf_text(
             fp_pdf_in, fp_txt_out, page_beg=page_beg, page_end=page_end
         )
@@ -312,18 +315,17 @@ def preprocess_pdf_file(
                 page_end=page_end,
                 verbose=verbose,
             )
-    elif df_row.guess_badocr:
+    elif df_row.guess_badocr or df_row.:
         # le PDF contient une couche d'OCR produite par un logiciel moins performant: refaire l'OCR
         #
         # PDF image
         pdf_type = "image"
         # extraire le texte par OCR et convertir le PDF (image) en PDF/A-2b
         logging.info(f"PDF image: {fp_pdf_in}")
-        page_beg = 1
-        page_end = df_row.nb_pages
         # même extraction que pour les PDF image standard mais en indiquant explicitement à ocrmypdf qu'il doit
         # refaire l'OCR même s'il détecte des couches OCR existantes: "--redo-ocr"
-        # (si cela ne fonctionne pas, modifier le code pour utiliser "--force-ocr" qui forcera la rasterization)
+        # (si cela ne fonctionne pas, modifier le code pour utiliser "--force-ocr" qui forcera la rasterization
+        # des pages puis leur appliquera l'OCR)
         extract_text_from_pdf_image(
             fp_pdf_in,
             fp_txt_out,

@@ -12,79 +12,143 @@ import argparse
 from datetime import datetime
 import logging
 from pathlib import Path
+import re
 from typing import NamedTuple
 
 import pandas as pd
 
+from text_structure import M_STAMP, M_ACCUSE, M_VU, M_CONSIDERANT
 
-def parse_text_structure(
+
+def is_stamped_page(page_txt: str) -> bool:
+    """Détecte si une page contient un tampon (encadré) de transmission @actes.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient un tampon de transmission
+    """
+    return M_STAMP.search(page_txt) is not None
+
+
+def is_accusedereception_page(page_txt: str) -> bool:
+    """Détecte si une page contient un tampon (encadré) de transmission @actes.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient un tampon de transmission
+    """
+    return M_ACCUSE.search(page_txt) is not None
+
+
+def contains_vu(page_txt: str) -> bool:
+    """Détecte si une page contient un VU.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient un VU
+    """
+    return M_VU.search(page_txt) is not None
+
+
+def contains_considerant(page_txt: str) -> bool:
+    """Détecte si une page contient un CONSIDERANT.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient un CONSIDERANT
+    """
+    return M_CONSIDERANT.search(page_txt) is not None
+
+
+def spot_text_structure(
     df_row: NamedTuple,
-    latest_anno: NamedTuple | None,
-    redo: bool = False,
 ) -> pd.DataFrame:
-    """Analyse la structure d'une page d'arrêté.
+    """Détecte la présence d'éléments de structure dans une page d'arrêté.
 
-    Découpe chaque arrêté en zones:
-    * préambule (?),
-    * VUs,
-    * CONSIDERANTs,
-    * ARTICLES,
-    * postambule (?)
+    Détecte la présence de tampons, pages d'accusé de réception,
+    VU, CONSIDERANT, ARTICLE.
 
     Parameters
     ----------
     df_row: NamedTuple
         Page de document
-    last_anno: NamedTuple | None
-        Dernière annotation de structure de la page précédente, ou None si c'est la première page du document.
-    redo: bool, defaults to False
-        Si True, réanalyse les fichiers déjà traités.
 
     Returns
     -------
-    df_amod: pd.DataFrame
-        Liste d'annotations en entrée, augmentée des nouvelles annotations de structure.
+    rec_struct: dict
+        Dictionnaire de valeurs booléennes ou nulles, selon que les éléments de structure ont été détectés.
     """
+    if pd.notna(df_row.pagetxt):
+        rec_struct = {
+            "has_stamp": is_stamped_page(df_row.pagetxt),
+            "is_accusedereception_page": is_accusedereception_page(df_row.pagetxt),
+            "has_vu": contains_vu(df_row.pagetxt),
+            "has_considerant": contains_considerant(df_row.pagetxt),
+        }
+    else:
+        rec_struct = {
+            "has_stamp": None,
+            "is_accusedereception_page": None,
+            "has_vu": None,
+            "has_considerant": None,
+        }
+    return rec_struct
 
 
 def process_files(
+    df_meta: pd.DataFrame,
     df_txts: pd.DataFrame,
-    df_anno: pd.DataFrame,
-    redo: bool = False,
 ) -> pd.DataFrame:
-    """Traiter un ensemble d'arrêtés: extraire la structure des textes.
+    """Traiter un ensemble d'arrêtés: repérer des éléments de structure des textes.
 
     Parameters
     ----------
+    df_meta: pd.DataFrame
+        Liste de métadonnées des fichiers à traiter.
     df_txts: pd.DataFrame
-        Liste de documents à traiter, découpés en pages.
-    df_anno: pd.DataFrame
-        Liste d'annotations existantes, dont les empans "nettoyés"
-        sur les documents d'intérêt.
-    redo: bool, defaults to False
-        Si True, réanalyse les fichiers déjà traités.
+        Liste de pages de documents à traiter.
 
     Returns
     -------
-    df_amod: pd.DataFrame
-        Liste d'annotations en entrée, augmentée des nouvelles annotations de structure.
+    df_proc: pd.DataFrame
+        Liste de métadonnées des pages traitées, avec indications des éléments de
+        structure détectés.
     """
-    annos_new = []
+    indics_struct = []
     for df_row in df_txts.itertuples():
-        # pour chaque page de document, en extraire la structure ;
-        # si ce n'est pas la première page du document, alors la dernière zone
-        # de la page précédente peut se poursuivre sur la page courante
-        # TODO confirmer si ce contexte est suffisant
-        annos_struct = parse_text_structure(
-            df_row,
-            latest_anno=annos_new[-1] if df_row.page_num > 1 else None,
-            redo=redo,
+        # pour chaque page de document, repérer des indications de structure
+        rec_struct = spot_text_structure(df_row)
+        indics_struct.append(
+            {"filename": df_row.filename, "fullpath": df_row.fullpath}
+            | rec_struct  # python >= 3.9 (dict union)
         )
-        # stocker les nouvelles annotations de structure
-        annos_new.extend(annos_struct)
-    df_annos_new = pd.DataFrame.from_records(annos_new)
-    df_amod = df_anno.concat(df_annos_new)
-    return df_amod
+    df_indics = pd.DataFrame.from_records(indics_struct)
+    df_proc = pd.merge(df_meta, df_indics, on=["filename", "fullpath"])
+    return df_proc
 
 
 if __name__ == "__main__":
@@ -99,12 +163,16 @@ if __name__ == "__main__":
     # arguments de la commande exécutable
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "in_file",
+        "in_file_meta",
+        help="Chemin vers le fichier CSV en entrée contenant les métadonnées des fichiers PDF",
+    )
+    parser.add_argument(
+        "in_file_pages",
         help="Chemin vers le fichier CSV en entrée contenant les pages de texte",
     )
     parser.add_argument(
         "out_file",
-        help="Chemin vers le fichier CSV en sortie contenant les pages de texte annotées",
+        help="Chemin vers le fichier CSV en sortie contenant les métadonnées des fichiers PDF enrichies, par page",
     )
     group = parser.add_mutually_exclusive_group()
     # par défaut, le fichier out_file ne doit pas exister, sinon deux options mutuellement exclusives:
@@ -121,10 +189,15 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # entrée: CSV de métadonnées
+    in_file_meta = Path(args.in_file_meta).resolve()
+    if not in_file_meta.is_file():
+        raise ValueError(f"Le fichier en entrée {in_file_meta} n'existe pas.")
+
     # entrée: CSV de pages de texte
-    in_file = Path(args.in_file).resolve()
-    if not in_file.is_file():
-        raise ValueError(f"Le fichier en entrée {in_file} n'existe pas.")
+    in_file_pages = Path(args.in_file_pages).resolve()
+    if not in_file_pages.is_file():
+        raise ValueError(f"Le fichier en entrée {in_file_pages} n'existe pas.")
 
     # sortie: CSV de pages de texte annotées
     # on crée le dossier parent (récursivement) si besoin
@@ -143,14 +216,14 @@ if __name__ == "__main__":
         )
         out_dir.mkdir(exist_ok=True)
 
+    # ouvrir le fichier de métadonnées en entrée
+    logging.info(f"Ouverture du fichier CSV de métadonnées {in_file_meta}")
+    df_meta = pd.read_csv(in_file_meta)
     # ouvrir le fichier d'entrée
-    logging.info(f"Ouverture du fichier CSV {in_file}")
-    df_txts = pd.read_csv(in_file)
+    logging.info(f"Ouverture du fichier CSV de pages de texte {in_file_pages}")
+    df_txts = pd.read_csv(in_file_pages, dtype={"pagetxt": "string"})
     # traiter les documents (découpés en pages de texte)
-    df_tmod = process_files(
-        df_txts,
-        redo=args.redo,
-    )
+    df_tmod = process_files(df_meta, df_txts)
     # sauvegarder les infos extraites dans un fichier CSV
     if args.append and out_file.is_file():
         # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées

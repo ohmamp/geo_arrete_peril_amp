@@ -54,8 +54,37 @@ def create_pages_dataframe(
     """
     page_txts = []
     for df_row in df_meta.itertuples():
-        # pour chaque page de document, générer une entrée contenant le texte
-        doc_txt = load_pages_text(df_row.fullpath_txt)
+        if pd.isna(df_row.fullpath_txt):
+            # créer une entrée vide par page du PDF
+            pages = [
+                {
+                    # métadonnées de la page
+                    "pagenum": i,
+                    # texte de la page
+                    "pagetxt": None,
+                }
+                for i in range(1, df_row.nb_pages + 1)
+            ]
+        else:
+            # créer une entrée par page de texte
+            doc_txt = load_pages_text(df_row.fullpath_txt)
+            # vérifier que le fichier TXT contient autant de pages que le PDF
+            try:
+                assert len(doc_txt) == df_row.nb_pages
+            except AssertionError:
+                print(repr(df_row))
+                raise
+            # pour chaque page, charger le texte
+            pages = [
+                {
+                    # métadonnées de la page
+                    "pagenum": i,
+                    # texte de la page
+                    "pagetxt": page_txt,
+                }
+                for i, page_txt in enumerate(doc_txt, start=1)
+            ]
+        # dupliquer les métadonnées du fichier PDF et du TXT, dans chaque entrée de page
         doc_rows = [
             {
                 # métadonnées du fichier PDF et du TXT
@@ -63,15 +92,13 @@ def create_pages_dataframe(
                 "fullpath": df_row.fullpath,  # chemin PDF original
                 "fullpath_txt": df_row.fullpath_txt,  # chemin TXT
                 "nb_pages": df_row.nb_pages,  # nombre de pages
-                # métadonnées de la page
-                "pagenum": i,
-                # texte de la page
-                "pagetxt": page_txt,
             }
-            for i, page_txt in enumerate(doc_txt, start=1)
+            | page  # python >= 3.9 (dict union)
+            for page in pages
         ]
         # vérifier que le nombre de pages de texte extrait est inférieur ou égal au nombre de pages du PDF
         # (certaines pages peuvent être blanches, ne contenir que des images ou photos...)
+        # TODO vérifier redondance avec l'assertion ci-dessus?
         assert len(doc_rows) <= df_row.nb_pages
         page_txts.extend(doc_rows)
     df_txts = pd.DataFrame.from_records(page_txts)
@@ -136,7 +163,7 @@ if __name__ == "__main__":
 
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV {in_file}")
-    df_meta = pd.read_csv(in_file)
+    df_meta = pd.read_csv(in_file, dtype={"fullpath_txt": "string"})
     # traiter les documents (découpés en pages de texte)
     df_txts = create_pages_dataframe(df_meta)
     # sauvegarder les infos extraites dans un fichier CSV

@@ -36,12 +36,14 @@ PDFTOTEXT_VERSION = version("pdftotext")
 
 
 def extract_native_text_pdftotext(
-    fp_pdf_in: Path, fp_txt_out: Path, page_beg: int, page_end: int, page_break=""
+    fp_pdf_in: Path, fp_txt_out: Path, page_beg: int, page_end: int
 ) -> int:
     """Extrait le texte natif d'un PDF avec pdftotext.
 
     Si le texte extrait par pdftotext n'est pas vide alors un fichier TXT est produit,
     sinon aucun fichier TXT n'est produit et un code d'erreur est renvoyé.
+
+    Les pages sont séparées par un "form feed" ("\x0c", "\f" en python).
 
     Parameters
     ----------
@@ -53,22 +55,15 @@ def extract_native_text_pdftotext(
         Numéro de la première page à traiter, la première page d'un PDF est supposée numérotée 1.
     page_end: int, defaults to None
         Numéro de la dernière page à traiter (cette page étant incluse).
-    page_break: string, defaults to ""
-        Texte ajouté entre chaque paire de pages. Il devrait être inutile
-        d'en ajouter un car les fichiers PDF texte produits par l'export
-        direct depuis les logiciels de traitement de texte contiennent
-        déjà un "form feed" ("\f"), comme les fichiers "sidecar" produits
-        par ocrmypdf (pour les fichiers PDF image).
 
     Returns
     -------
     returncode: int
         0 si un fichier TXT a été produit, 1 sinon.
     """
-    # TODO vérifier que le texte contient bien "\f" en début ou fin de page
+    # TODO vérifier que le texte contient bien "\f" en fin de page
     with open(fp_pdf_in, "rb") as f:
         pdf = pdftotext.PDF(f)
-
     # les numéros de page commencent à 1, mais pdftotext crée une liste de pages
     # qui commence à l'index 0
     page_beg_ix = page_beg - 1
@@ -77,7 +72,7 @@ def extract_native_text_pdftotext(
 
     # pdftotext.PDF a getitem(), mais ne permet pas de récupérer un slice
     # donc il faut créer un range et itérer manuellement
-    txt = page_break.join(pdf[i] for i in range(page_beg_ix, page_end)).strip()
+    txt = "".join(pdf[i] for i in range(page_beg_ix, page_end))
     if txt:
         # stocker le texte dans un fichier .txt
         with open(fp_txt_out, "w") as f_txt:
@@ -171,11 +166,20 @@ def process_files(
                     f"{fp_pdf_in} est ignoré car le fichier {fp_txt} existe déjà."
                 )
                 continue
-        # traiter le fichier: extraire le texte par OCR si nécessaire, corriger et convertir le PDF d'origine en PDF/A-2b
-        retcode = extract_native_text(df_row, fp_pdf_in, fp_txt, redo=redo)
+        # traiter le fichier: extraire le texte natif
+        retcode = extract_native_text(df_row, fp_pdf_in, fp_txt)
+        if retcode == 1:
+            # erreur à l'ouverture du fichier PDF: aucun fichier TXT ne peut être produit
+            # ce code d'erreur est renvoyé lorsque le PDF ne contient pas de couche de texte (PDF non-natif "pur")
+            fp_txt = None
+        elif retcode not in (0, 1):
+            print(df_row)
+            print(retcode)
+            raise ValueError(f"extract_native_text: code de retour inattendu {retcode}")
         # stocker le chemin vers le fichier TXT produit
         retcodes.append(retcode)
         fullpath_txt.append(fp_txt)
+    # FIXME plante si le script tourne de nouveau sans "redo" ou "append": l'assignation est alors de longueur inférieure à celle du DataFrame(?)
     df_mmod = df_meta.assign(
         retcode_txt=retcodes,
         fullpath_txt=fullpath_txt,
@@ -187,7 +191,7 @@ if __name__ == "__main__":
     # log
     dir_log = Path(__file__).resolve().parents[1] / "logs"
     logging.basicConfig(
-        filename=f"{dir_log}/extract_text_{datetime.now().isoformat()}.log",
+        filename=f"{dir_log}/extract_native_text_{datetime.now().isoformat()}.log",
         encoding="utf-8",
         level=logging.DEBUG,
     )
@@ -243,7 +247,7 @@ if __name__ == "__main__":
         )
         out_dir.mkdir(exist_ok=True)
 
-    # sortie: dossier pour TXT
+    # sortie: dossier pour TXT natifs
     out_dir = Path(args.out_dir).resolve()
     out_txt_dir = out_dir / "txt_native"
     # on le crée si besoin
@@ -253,7 +257,7 @@ if __name__ == "__main__":
     logging.info(f"Ouverture du fichier CSV {in_file}")
     df_metas = pd.read_csv(in_file)
     # traiter les fichiers
-    df_mmod = process_files(df_metas, out_txt_dir, redo=args.redo, verbose=args.verbose)
+    df_mmod = process_files(df_metas, out_txt_dir, redo=args.redo)
     # sauvegarder les infos extraites dans un fichier CSV
     if args.append and out_file.is_file():
         # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées

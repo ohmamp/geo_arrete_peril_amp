@@ -12,14 +12,38 @@ import argparse
 from datetime import datetime
 import logging
 from pathlib import Path
-import re
 from typing import NamedTuple
 
 import pandas as pd
 
-from text_structure import M_STAMP, M_ACCUSE, M_VU, M_CONSIDERANT
+from text_structure import (
+    # @ctes
+    M_STAMP,
+    M_ACCUSE,
+    # tous arrêtés
+    M_VU,
+    M_CONSIDERANT,
+    M_ARRETE,
+    M_ARTICLE,
+    # spécifiques arrêtés
+    # - règlementaires
+    M_CGCT,
+    M_CGCT_ART,
+    M_CCH,
+    M_CCH_L511,
+    M_CCH_L521,
+    M_CCH_L541,
+    M_CCH_R511,
+    M_CC,
+    M_CC_ART,
+    # - données
+    M_PARCELLE,
+    M_SYNDIC,
+)
 
 
+# marqueurs de télétransmission à @ctes
+# TODO test: "2 rue Gasquet Trets 01.02.21.txt": les 3 pages
 def is_stamped_page(page_txt: str) -> bool:
     """Détecte si une page contient un tampon (encadré) de transmission @actes.
 
@@ -36,6 +60,7 @@ def is_stamped_page(page_txt: str) -> bool:
     return M_STAMP.search(page_txt) is not None
 
 
+# TODO test: 12 rue Parmentier Gardanne - MS.txt : dernière page (4)
 def is_accusedereception_page(page_txt: str) -> bool:
     """Détecte si une page contient un tampon (encadré) de transmission @actes.
 
@@ -52,6 +77,7 @@ def is_accusedereception_page(page_txt: str) -> bool:
     return M_ACCUSE.search(page_txt) is not None
 
 
+# structure des arrêtés
 def contains_vu(page_txt: str) -> bool:
     """Détecte si une page contient un VU.
 
@@ -84,6 +110,217 @@ def contains_considerant(page_txt: str) -> bool:
     return M_CONSIDERANT.search(page_txt) is not None
 
 
+def contains_arrete(page_txt: str) -> bool:
+    """Détecte si une page contient ARRET(E|ONS).
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient ARRET(E|ONS)
+    """
+    return M_ARRETE.search(page_txt) is not None
+
+
+def contains_article(page_txt: str) -> bool:
+    """Détecte si une page contient un Article.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient un Article
+    """
+    return M_ARTICLE.search(page_txt) is not None
+
+
+# éléments spécifiques à certains types d'arrêtés
+# - réglementaires
+def contains_cgct(page_txt: str) -> bool:
+    """Détecte si une page contient une référence au Code Général des Collectivités Territoriales.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient une référence au Code Général des Collectivités Territoriales.
+    """
+    return M_CGCT.search(page_txt) is not None
+
+
+def contains_cgct_art(page_txt: str) -> bool:
+    """Détecte si une page contient une référence à des articles du Code Général des Collectivités Territoriales.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient une référence à des articles du Code Général des Collectivités Territoriales.
+    """
+    return M_CGCT_ART.search(page_txt) is not None
+
+
+def contains_cch(page_txt: str) -> bool:
+    """Détecte si une page contient une référence au Code de la Construction et de l'Habitation.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient une référence au Code de la Construction et de l'Habitation.
+    """
+    return M_CCH.search(page_txt) is not None
+
+
+def contains_cch_L511(page_txt: str) -> bool:
+    """Détecte si une page contient une référence à l'article L511 du Code de la Construction et de l'Habitation.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient une référence à l'article L511 du Code de la Construction et de l'Habitation.
+    """
+    return M_CCH_L511.search(page_txt) is not None
+
+
+def contains_cch_L521(page_txt: str) -> bool:
+    """Détecte si une page contient une référence à l'article L521 du Code de la Construction et de l'Habitation.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient une référence à l'article L521 du Code de la Construction et de l'Habitation.
+    """
+    return M_CCH_L521.search(page_txt) is not None
+
+
+def contains_cch_L541(page_txt: str) -> bool:
+    """Détecte si une page contient une référence à l'article L541 du Code de la Construction et de l'Habitation.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient une référence à l'article L541 du Code de la Construction et de l'Habitation.
+    """
+    return M_CCH_L541.search(page_txt) is not None
+
+
+def contains_cch_R511(page_txt: str) -> bool:
+    """Détecte si une page contient une référence à l'article R511 du Code de la Construction et de l'Habitation.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient une référence à l'article R511 du Code de la Construction et de l'Habitation.
+    """
+    return M_CCH_R511.search(page_txt) is not None
+
+
+def contains_cc(page_txt: str) -> bool:
+    """Détecte si une page contient une référence au Code Civil.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient une référence au Code Civil.
+    """
+    return M_CC.search(page_txt) is not None
+
+
+def contains_cc_art(page_txt: str) -> bool:
+    """Détecte si une page contient une référence à des articles du Code Civil.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient une référence à des articles du Code Civil.
+    """
+    return M_CC_ART.search(page_txt) is not None
+
+
+# - données
+def contains_parcelle(page_txt: str) -> bool:
+    """Détecte si une page contient une référence de parcelle cadastrale.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient une référence de parcelle cadastrale.
+    """
+    return M_PARCELLE.search(page_txt) is not None
+
+
+def contains_syndic(page_txt: str) -> bool:
+    """Détecte si une page contient un nom de syndic.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient un nom de syndic.
+    """
+    return M_SYNDIC.search(page_txt) is not None
+
+
 def spot_text_structure(
     df_row: NamedTuple,
 ) -> pd.DataFrame:
@@ -104,17 +341,53 @@ def spot_text_structure(
     """
     if pd.notna(df_row.pagetxt):
         rec_struct = {
+            # @ctes
             "has_stamp": is_stamped_page(df_row.pagetxt),
             "is_accusedereception_page": is_accusedereception_page(df_row.pagetxt),
+            # tous arrêtés
             "has_vu": contains_vu(df_row.pagetxt),
             "has_considerant": contains_considerant(df_row.pagetxt),
+            "has_arrete": contains_arrete(df_row.pagetxt),
+            "has_article": contains_article(df_row.pagetxt),
+            # arrêtés spécifiques
+            # - réglementaires
+            "has_cgct": contains_cgct(df_row.pagetxt),
+            "has_cgct_art": contains_cgct_art(df_row.pagetxt),
+            "has_cch": contains_cch(df_row.pagetxt),
+            "has_cch_L511": contains_cch_L511(df_row.pagetxt),
+            "has_cch_L521": contains_cch_L521(df_row.pagetxt),
+            "has_cch_L541": contains_cch_L541(df_row.pagetxt),
+            "has_cch_R511": contains_cch_R511(df_row.pagetxt),
+            "has_cc": contains_cc(df_row.pagetxt),
+            "has_cc_art": contains_cc_art(df_row.pagetxt),
+            # - données
+            "has_parcelle": contains_parcelle(df_row.pagetxt),
+            "has_syndic": contains_syndic(df_row.pagetxt),
         }
     else:
         rec_struct = {
+            # @ctes
             "has_stamp": None,
             "is_accusedereception_page": None,
+            # tous arrêtés
             "has_vu": None,
             "has_considerant": None,
+            "has_arrete": None,
+            "has_article": None,
+            # arrêtés spécifiques
+            # - réglementaires
+            "has_cgct": None,
+            "has_cgct_art": None,
+            "has_cch": None,
+            "has_cch_L511": None,
+            "has_cch_L521": None,
+            "has_cch_L541": None,
+            "has_cch_R511": None,
+            "has_cc": None,
+            "has_cc_art": None,
+            # - données
+            "has_parcelle": None,
+            "has_syndic": None,
         }
     return rec_struct
 
@@ -143,7 +416,11 @@ def process_files(
         # pour chaque page de document, repérer des indications de structure
         rec_struct = spot_text_structure(df_row)
         indics_struct.append(
-            {"filename": df_row.filename, "fullpath": df_row.fullpath}
+            {
+                "filename": df_row.filename,
+                "fullpath": df_row.fullpath,
+                "pagenum": df_row.pagenum,
+            }
             | rec_struct  # python >= 3.9 (dict union)
         )
     df_indics = pd.DataFrame.from_records(indics_struct)
@@ -224,6 +501,23 @@ if __name__ == "__main__":
     df_txts = pd.read_csv(in_file_pages, dtype={"pagetxt": "string"})
     # traiter les documents (découpés en pages de texte)
     df_tmod = process_files(df_meta, df_txts)
+
+    # optionnel: afficher des statistiques
+    if True:  # TODO ajouter une option si utilité confirmée
+        new_cols = [
+            "has_stamp",
+            "is_accusedereception_page",
+            "has_vu",
+            "has_considerant",
+            "has_article",
+        ]
+        print(df_tmod[new_cols].value_counts())
+        # TODO écrire des expectations: cohérence entre colonnes sur le même document,
+        # AR sur la dernière page (sans doute faux dans certains cas, eg. annexes ou rapport d'expertise)
+        # page has_article=TRUE >= page has_vu, has_considerant
+        # pour tout document ayant au moins une page où has_article=TRUE, alors il existe une page has_vu=TRUE
+        # (et il existe une page où has_considerant=TRUE ?)
+
     # sauvegarder les infos extraites dans un fichier CSV
     if args.append and out_file.is_file():
         # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées

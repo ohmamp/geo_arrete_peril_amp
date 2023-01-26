@@ -32,6 +32,12 @@ def load_pages_text(fp_txt: Path, page_break: str = "\f") -> List[str]:
     """
     with open(fp_txt) as f_txt:
         doc_txt = f_txt.read().split(page_break)
+    # chaque page se termine par un séparateur de page, y compris la dernière ;
+    # split() a pour effet de créer une fausse dernière page vide
+    # on vérifie que cette fausse page vide existe et on la retire
+    assert doc_txt[-1] == ""
+    doc_txt.pop()
+    #
     return doc_txt
 
 
@@ -73,6 +79,7 @@ def create_pages_dataframe(
                 assert len(doc_txt) == df_row.nb_pages
             except AssertionError:
                 print(repr(df_row))
+                print(len(doc_txt))
                 raise
             # pour chaque page, charger le texte
             pages = [

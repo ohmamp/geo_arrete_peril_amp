@@ -323,10 +323,11 @@ if __name__ == "__main__":
             df_metas = df_metas_new
         df_metas.to_csv(out_file, index=False)
 
-    # bonus: afficher des indicateurs
-    print(
-        df_metas_new[["creatortool", "producer"]]
-        .value_counts(dropna=False)
-        .to_frame("counts")
-        .reset_index()
-    )
+    if False:
+        # bonus: afficher des indicateurs
+        print(
+            df_metas_new[["creatortool", "producer"]]
+            .value_counts(dropna=False)
+            .to_frame("counts")
+            .reset_index()
+        )

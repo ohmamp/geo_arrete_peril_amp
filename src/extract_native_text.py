@@ -171,7 +171,7 @@ def process_files(
         if retcode == 1:
             # erreur à l'ouverture du fichier PDF: aucun fichier TXT ne peut être produit
             # ce code d'erreur est renvoyé lorsque le PDF ne contient pas de couche de texte (PDF non-natif "pur")
-            fp_txt = None
+            raise ValueError(f"gne {fp_pdf_in}")
         elif retcode not in (0, 1):
             print(df_row)
             print(retcode)

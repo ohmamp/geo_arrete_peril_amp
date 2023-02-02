@@ -7,6 +7,7 @@ comme point de comparaison (temporaire?).
 # TODO ajuster le logging
 # TODO détecter les fichers doublons, p. ex. "abrogation déconstruction 41 et 43 rue de la Palud 13001.pdf" et "interdiction 9 traverse Sainte Marie 13003.pdf"
 # TODO adapter pour traiter soit les fichiers d'origine, soit les fichiers PDF-A (corrigés)
+# TODO transformer la blacklist sur les fichiers, importée de data_sources, en vrai script, exécuté en amont, pour exclure les documents non pertinents comme les diagnostics
 
 import argparse
 from datetime import datetime, timedelta
@@ -19,7 +20,7 @@ import pandas as pd
 import pikepdf
 from poppler import load_from_file
 
-from data_sources import RAW_BATCHES
+from data_sources import RAW_BATCHES, EXCLUDE_FILES
 
 
 # fuseau horaire de Paris
@@ -228,6 +229,9 @@ def index_folder(in_dir: Path, recursive: bool = True) -> List[Dict[str, str | i
         pdfs_in = sorted(in_dir.glob("*.[Pp][Dd][Ff]"))
     if not pdfs_in:
         logging.warning(f"Aucun PDF trouvé dans {in_dir}")
+    # exclure d'éventuels fichiers non pertinents
+    # TODO transformer en vrai script ; utiliser des DataFrames pour accélérer le traitement si le nombre de fichiers concernés augmente trop?
+    pdfs_in = [x for x in pdfs_in if x not in EXCLUDE_FILES]
 
     #
     pdf_infos = []

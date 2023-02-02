@@ -29,3 +29,9 @@ RAW_BATCHES = {
     # dl site VdM: dossier très volumineux, texte incomplet et à OCRiser
     "2018-2021-VdM": RAW_DATA_DIR / "Arretes_2018_2021" / "12_ArretesPDF_VdM",
 }
+
+# liste de fichiers à exclure du traitement car ils sortent du périmètre de traitement: diagnostics, rapports...
+EXCLUDE_FILES = [
+    "9, rue Tranchier MARTIGUES diag solidité.pdf",  # diagnostic
+    "péril rue de la Tour.pdf",  # rapport sur état de péril
+]

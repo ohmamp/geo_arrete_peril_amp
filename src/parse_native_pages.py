@@ -8,6 +8,10 @@ Découpe chaque arrêté en zones:
 * postambule (?)
 """
 
+# TODO repérer les rapports d'expertise (ex: "mise en sécurité 15 rue de la Mairie Peyrolles en Provence.pdf" p. 3 à 10)
+# TODO repérer les citations des textes réglementaires en annexe (ex: "mise en sécurité 15 rue de la Mairie Peyrolles en Provence.pdf" p. 11 à 15)
+# TODO mieux traiter les pages d'AR @ctes (ex: "mise en sécurité 15 rue de la Mairie Peyrolles en Provence.pdf" p. 16)
+
 import argparse
 from datetime import datetime
 import logging
@@ -30,6 +34,7 @@ from text_structure import (
     M_CGCT,
     M_CGCT_ART,
     M_CCH,
+    M_CCH_L111,
     M_CCH_L511,
     M_CCH_L521,
     M_CCH_L541,
@@ -37,7 +42,10 @@ from text_structure import (
     M_CC,
     M_CC_ART,
     # - données
+    M_MAIRE_COMMUNE,
     M_PARCELLE,
+    M_ADR_DOC,
+    M_PROPRI,
     M_SYNDIC,
 )
 
@@ -78,6 +86,23 @@ def is_accusedereception_page(page_txt: str) -> bool:
 
 
 # structure des arrêtés
+def get_commune_maire(page_txt: str) -> bool:
+    """Extrait le nom de la commune précédé de la mention du maire.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    nom_commune: str | None
+        Nom de la commune si le texte contient une mention du maire, None sinon.
+    """
+    match_mc = M_MAIRE_COMMUNE.search(page_txt)
+    return match_mc.group("commune") if match_mc is not None else None
+
+
 def contains_vu(page_txt: str) -> bool:
     """Détecte si une page contient un VU.
 
@@ -192,6 +217,22 @@ def contains_cch(page_txt: str) -> bool:
     return M_CCH.search(page_txt) is not None
 
 
+def contains_cch_L111(page_txt: str) -> bool:
+    """Détecte si une page contient une référence à l'article L111 du Code de la Construction et de l'Habitation.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    has_stamp: bool
+        True si le texte contient une référence à l'article L111 du Code de la Construction et de l'Habitation.
+    """
+    return M_CCH_L111.search(page_txt) is not None
+
+
 def contains_cch_L511(page_txt: str) -> bool:
     """Détecte si une page contient une référence à l'article L511 du Code de la Construction et de l'Habitation.
 
@@ -289,8 +330,8 @@ def contains_cc_art(page_txt: str) -> bool:
 
 
 # - données
-def contains_parcelle(page_txt: str) -> bool:
-    """Détecte si une page contient une référence de parcelle cadastrale.
+def get_parcelle(page_txt: str) -> bool:
+    """Récupère la ou les références de parcelles cadastrales.
 
     Parameters
     ----------
@@ -299,13 +340,49 @@ def contains_parcelle(page_txt: str) -> bool:
 
     Returns
     -------
-    has_stamp: bool
-        True si le texte contient une référence de parcelle cadastrale.
+    id_parcelles: str
+        Référence d'une ou plusieurs parcelles cadastrales si détectées dans le texte,
+        None sinon.
     """
-    return M_PARCELLE.search(page_txt) is not None
+    m_parc = M_PARCELLE.search(page_txt)
+    return m_parc.group("cadastre_id") if m_parc is not None else None
 
 
-def contains_syndic(page_txt: str) -> bool:
+def get_adr_doc(page_txt: str) -> bool:
+    """Détecte si une page contient l'adresse visée par le document.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    adresse: str | None
+        Adresse visée par le document si trouvée dans le texte, None sinon.
+    """
+    m_adr = M_ADR_DOC.search(page_txt)
+    return m_adr.group("adresse") if m_adr is not None else None
+
+
+def get_proprietaire(page_txt: str) -> bool:
+    """Extrait le nom et l'adresse du propriétaire.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    syndic: str
+        Nom et adresse du propriétaire si détecté, None sinon.
+    """
+    m_prop = M_PROPRI.search(page_txt)
+    return m_prop.group(0) if m_prop is not None else None
+
+
+def get_syndic(page_txt: str) -> bool:
     """Détecte si une page contient un nom de syndic.
 
     Parameters
@@ -315,10 +392,11 @@ def contains_syndic(page_txt: str) -> bool:
 
     Returns
     -------
-    has_stamp: bool
-        True si le texte contient un nom de syndic.
+    syndic: str
+        Nom de syndic si détecté, None sinon.
     """
-    return M_SYNDIC.search(page_txt) is not None
+    m_synd = M_SYNDIC.search(page_txt)
+    return m_synd.group("syndic") if m_synd is not None else None
 
 
 def spot_text_structure(
@@ -345,6 +423,7 @@ def spot_text_structure(
             "has_stamp": is_stamped_page(df_row.pagetxt),
             "is_accusedereception_page": is_accusedereception_page(df_row.pagetxt),
             # tous arrêtés
+            "commune_maire": get_commune_maire(df_row.pagetxt),
             "has_vu": contains_vu(df_row.pagetxt),
             "has_considerant": contains_considerant(df_row.pagetxt),
             "has_arrete": contains_arrete(df_row.pagetxt),
@@ -354,6 +433,7 @@ def spot_text_structure(
             "has_cgct": contains_cgct(df_row.pagetxt),
             "has_cgct_art": contains_cgct_art(df_row.pagetxt),
             "has_cch": contains_cch(df_row.pagetxt),
+            "has_cch_L111": contains_cch_L111(df_row.pagetxt),
             "has_cch_L511": contains_cch_L511(df_row.pagetxt),
             "has_cch_L521": contains_cch_L521(df_row.pagetxt),
             "has_cch_L541": contains_cch_L541(df_row.pagetxt),
@@ -361,8 +441,9 @@ def spot_text_structure(
             "has_cc": contains_cc(df_row.pagetxt),
             "has_cc_art": contains_cc_art(df_row.pagetxt),
             # - données
-            "has_parcelle": contains_parcelle(df_row.pagetxt),
-            "has_syndic": contains_syndic(df_row.pagetxt),
+            "parcelle": get_parcelle(df_row.pagetxt),
+            "adresse": get_adr_doc(df_row.pagetxt),
+            "syndic": get_syndic(df_row.pagetxt),
         }
     else:
         rec_struct = {
@@ -370,6 +451,7 @@ def spot_text_structure(
             "has_stamp": None,
             "is_accusedereception_page": None,
             # tous arrêtés
+            "commune_maire": None,
             "has_vu": None,
             "has_considerant": None,
             "has_arrete": None,
@@ -379,6 +461,7 @@ def spot_text_structure(
             "has_cgct": None,
             "has_cgct_art": None,
             "has_cch": None,
+            "has_cch_L111": None,
             "has_cch_L511": None,
             "has_cch_L521": None,
             "has_cch_L541": None,
@@ -386,8 +469,9 @@ def spot_text_structure(
             "has_cc": None,
             "has_cc_art": None,
             # - données
-            "has_parcelle": None,
-            "has_syndic": None,
+            "parcelle": None,
+            "adresse": None,
+            "syndic": None,
         }
     return rec_struct
 
@@ -427,6 +511,14 @@ def process_files(
     df_proc = pd.merge(df_meta, df_indics, on=["filename", "fullpath"])
     return df_proc
 
+
+# liste de documents pour lesquels certains champs sont nécessairement vides, car la donnée est absente du document
+# TODO transformer en script
+# - parcelle
+PARCELLE_ABS = [
+    "2 rue Lisse Bellegarde - IO 06.03.20.PDF",  # Aix-en-Provence
+    "MS 673 av Jean Monnet à Vitrolles.pdf",  # Vitrolles
+]
 
 if __name__ == "__main__":
     # log
@@ -505,14 +597,27 @@ if __name__ == "__main__":
     # optionnel: afficher des statistiques
     if True:  # TODO ajouter une option si utilité confirmée
         new_cols = [
+            # @ctes
             "has_stamp",
             "is_accusedereception_page",
-            "has_vu",
-            "has_considerant",
-            "has_article",
+            # structure générique des arrêtés
+            "commune_maire",
+            # "has_vu",
+            # "has_considerant",
+            # "has_arrete",
+            # "has_article",
+            # données à extraire
+            "parcelle",
+            # "adresse",
+            # "syndic",
         ]
-        print(df_tmod[new_cols].value_counts())
-        # TODO écrire des expectations: cohérence entre colonnes sur le même document,
+        print(
+            df_tmod.query("pagenum == 1")
+            .dropna(axis=0, how="all", subset=["has_stamp"])[new_cols]
+            .groupby("commune_maire")
+            .value_counts(dropna=False)
+        )
+        # TODO écrire des "expectations": cohérence entre colonnes sur le même document,
         # AR sur la dernière page (sans doute faux dans certains cas, eg. annexes ou rapport d'expertise)
         # page has_article=TRUE >= page has_vu, has_considerant
         # pour tout document ayant au moins une page où has_article=TRUE, alors il existe une page has_vu=TRUE

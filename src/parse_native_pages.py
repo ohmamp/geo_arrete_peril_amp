@@ -399,6 +399,35 @@ def get_syndic(page_txt: str) -> bool:
     return m_synd.group("syndic") if m_synd is not None else None
 
 
+STRUCT_COLS = [
+    # @ctes
+    "has_stamp",
+    "is_accusedereception_page",
+    # tous arrêtés
+    "commune_maire",
+    "has_vu",
+    "has_considerant",
+    "has_arrete",
+    "has_article",
+    # arrêtés spécifiques
+    # - réglementaires
+    "has_cgct",
+    "has_cgct_art",
+    "has_cch",
+    "has_cch_L111",
+    "has_cch_L511",
+    "has_cch_L521",
+    "has_cch_L541",
+    "has_cch_R511",
+    "has_cc",
+    "has_cc_art",
+    # - données
+    "parcelle",
+    "adresse",
+    "syndic",
+]
+
+
 def spot_text_structure(
     df_row: NamedTuple,
 ) -> pd.DataFrame:
@@ -446,33 +475,8 @@ def spot_text_structure(
             "syndic": get_syndic(df_row.pagetxt),
         }
     else:
-        rec_struct = {
-            # @ctes
-            "has_stamp": None,
-            "is_accusedereception_page": None,
-            # tous arrêtés
-            "commune_maire": None,
-            "has_vu": None,
-            "has_considerant": None,
-            "has_arrete": None,
-            "has_article": None,
-            # arrêtés spécifiques
-            # - réglementaires
-            "has_cgct": None,
-            "has_cgct_art": None,
-            "has_cch": None,
-            "has_cch_L111": None,
-            "has_cch_L511": None,
-            "has_cch_L521": None,
-            "has_cch_L541": None,
-            "has_cch_R511": None,
-            "has_cc": None,
-            "has_cc_art": None,
-            # - données
-            "parcelle": None,
-            "adresse": None,
-            "syndic": None,
-        }
+        # tous les champs sont vides ("None")
+        rec_struct = {x: None for x in STRUCT_COLS}
     return rec_struct
 
 
@@ -524,7 +528,7 @@ if __name__ == "__main__":
     # log
     dir_log = Path(__file__).resolve().parents[1] / "logs"
     logging.basicConfig(
-        filename=f"{dir_log}/parse_text_structure_{datetime.now().isoformat()}.log",
+        filename=f"{dir_log}/parse_native_pages_{datetime.now().isoformat()}.log",
         encoding="utf-8",
         level=logging.DEBUG,
     )

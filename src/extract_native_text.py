@@ -9,7 +9,7 @@ ou des fragments de texte issus d'ajout d'objets natifs, eg. tampon, accusé de 
 """
 
 # TODO layout sur 2 colonnes (ex: Peyrolles)
-# TODO layout sur 1 colonne mais interprétée comme 2 colonnes par pdftotext (ex: "38, rue Puget Gardanne_interdiction d_habiter.pdf")
+# TODO layout sur 1 colonne mais interprétée comme 2 colonnes par pdftotext (ex: "38, rue Puget Gardanne_interdiction d_habiter.pdf", "6, rue Aristide Briand.pdf")
 # TODO détecter les première et dernière page: de "nous" + vu, considérant etc jusqu'à la signature
 # pour exclure les annexes (rappel des articles du code de la construction, rapport de BE), page de garde etc.
 # => ajouter un mode "early_stopping", optionnel, à l'extraction de texte
@@ -26,9 +26,7 @@ from datetime import datetime
 from importlib.metadata import version  # pour récupérer la version de pdftotext
 import logging
 from pathlib import Path
-import subprocess
-from subprocess import PIPE, STDOUT
-from typing import Dict, List, NamedTuple
+from typing import NamedTuple
 
 import pandas as pd
 import pdftotext

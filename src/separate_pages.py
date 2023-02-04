@@ -116,7 +116,7 @@ if __name__ == "__main__":
     # log
     dir_log = Path(__file__).resolve().parents[1] / "logs"
     logging.basicConfig(
-        filename=f"{dir_log}/create_pages_dataframe_{datetime.now().isoformat()}.log",
+        filename=f"{dir_log}/separate_pages_{datetime.now().isoformat()}.log",
         encoding="utf-8",
         level=logging.DEBUG,
     )

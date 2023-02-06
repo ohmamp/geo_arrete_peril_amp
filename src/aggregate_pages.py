@@ -13,166 +13,181 @@ from typing import Dict, NamedTuple
 
 import pandas as pd
 
-# métadonnées à reporter telles quelles
-META_COLS = [
-    "filename",
-    "fullpath",
-    "filesize",
-    "nb_pages",
-    "creatortool",
-    "producer",
-    "createdate",
-    "modifydate",
-    "col_res",
-    "guess_tampon",
-    "guess_dernpage",
-    "guess_pdftext",
-    "guess_badocr",
-    "retcode_txt",
-    "fullpath_txt",
-]
 
-PAGES_DATA_COLS = [
+# TODO déplacer les dtypes en amont, et les importer ici (et partout où nécessaire)
+# métadonnées à reporter telles quelles
+DOC_META_COLS = {
+    "filename": "string",
+    "fullpath": "string",
+    "filesize": "Int64",  # FIXME Int16 ? (dtype à fixer en amont, avant le dump)
+    "nb_pages": "Int64",  # FIXME Int16 ? (dtype à fixer en amont, avant le dump)
+    "creatortool": "string",
+    "producer": "string",
+    "createdate": "string",
+    "modifydate": "string",
+    "col_res": "boolean",
+    "guess_tampon": "boolean",
+    "guess_dernpage": "boolean",
+    "guess_pdftext": "boolean",
+    "guess_badocr": "boolean",
+    "retcode_txt": "Int64",  # FIXME Int16 ? (dtype à fixer en amont, avant le dump)
+    "fullpath_txt": "string",
+}
+
+PAGE_DATA_COLS = {
     # @ctes
-    "has_stamp",
-    "is_accusedereception_page",
+    "has_stamp": "boolean",
+    "is_accusedereception_page": "boolean",
     # tous arrêtés
-    "commune_maire",
-    "has_vu",
-    "has_considerant",
-    "has_arrete",
-    "has_article",
+    "commune_maire": "string",
+    "has_vu": "boolean",
+    "has_considerant": "boolean",
+    "has_arrete": "boolean",
+    "has_article": "boolean",
     # spécifiques arrêtés
     # - règlementation
-    "has_cgct",
-    "has_cgct_art",
-    "has_cch",
-    "has_cch_L111",
-    "has_cch_L511",
-    "has_cch_L521",
-    "has_cch_L541",
-    "has_cch_R511",
-    "has_cc",
-    "has_cc_art",
+    "has_cgct": "boolean",
+    "has_cgct_art": "boolean",
+    "has_cch": "boolean",
+    "has_cch_L111": "boolean",
+    "has_cch_L511": "boolean",
+    "has_cch_L521": "boolean",
+    "has_cch_L541": "boolean",
+    "has_cch_R511": "boolean",
+    "has_cc": "boolean",
+    "has_cc_art": "boolean",
     # - données
-    "parcelle",
-    "adresse",
-    "syndic",
-]
+    "parcelle": "string",
+    "adresse": "string",
+    "syndic": "string",
+}
 
-DATA_COLS = [
+# colonnes de données produites, avec leur dtype
+# "boolean" est le dtype "nullable" <https://pandas.pydata.org/docs/user_guide/boolean.html>
+DOC_DATA_COLS = {
     # @ctes
-    "actes_pages_tampon",
-    "actes_pages_ar",
+    "actes_pages_tampon": "object",  # List[int]
+    "actes_pages_ar": "object",  # List[int]
     # tous arrêtés
-    "commune_maire",
-    "pages_vu",
-    "pages_considerant",
-    "pages_arrete",
-    "pages_article",
-    "pages_cgct",
-    "pages_cgct_art",
-    "pages_cch",
-    "pages_cch_L111",
-    "pages_cch_L511",
-    "pages_cch_L521",
-    "pages_cch_L541",
-    "pages_cch_R511",
-    "pages_cc",
-    "pages_cc_art",
-    "parcelle",
-    "adresse",
-    "syndic",
-]
+    "commune_maire": "object",  # List[string]
+    "pages_vu": "object",  # List[int]
+    "pages_considerant": "object",  # List[int]
+    "pages_arrete": "object",  # List[int]
+    "pages_article": "object",  # List[int]
+    "pages_cgct": "object",  # List[int]
+    "pages_cgct_art": "object",  # List[int]
+    "pages_cch": "object",  # List[int]
+    "pages_cch_L111": "object",  # List[int]
+    "pages_cch_L511": "object",  # List[int]
+    "pages_cch_L521": "object",  # List[int]
+    "pages_cch_L541": "object",  # List[int]
+    "pages_cch_R511": "object",  # List[int]
+    "pages_cc": "object",  # List[int]
+    "pages_cc_art": "object",  # List[int]
+    "parcelle": "object",  # List[string]
+    "adresse": "object",  # List[string]
+    "syndic": "object",  # List[string]
+}
 
 
-def aggregate_pages(df_grp: pd.core.groupby.DataFrameGroupBy) -> Dict:
+def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -> Dict:
     """Fusionne les champs extraits des différentes pages d'un document.
 
     Parameters
     ----------
-    df_grp: pd..core.groupby.DataFrameGroupBy
-        Groupe de pages d'un même document
+    df_grp: pd.core.groupby.DataFrame
+        Pages d'un document
+    include_actes_page_ar: boolean, defaults to False
+        Inclut la page d'accusé de réception d'@ctes.
 
     Returns
     -------
     rec_struct: dict
         Dictionnaire de valeurs de différents types ou nulles, selon que les éléments ont été détectés.
     """
-    print(df_grp)  # DEBUG
-    print(df_grp["has_stamp"])  # DEBUG
-    print(df_grp[df_grp["has_stamp"].dropna()])  # DEBUG
-    print(repr(df_grp[df_grp["has_stamp"].dropna()]["pagenum"]))  # DEBUG
-    raise ValueError("what?")  # RESUME HERE
+    # conserver uniquement les pages avec du texte ;
+    # actuellement: "has_stamp is None" implique que la page ne contient pas de texte
+    # FIXME gérer les pages sans texte en amont?
+    grp = df_grp.dropna(subset=["has_stamp"])
+    # si demandé, exclure l'éventuelle page d'accusé de réception d'actes
+    if not include_actes_page_ar:
+        grp = df_grp.query("not is_accusedereception_page")
+
+    # si le groupe est vide, renvoyer une ligne (pour le document) vide ;
+    # utile lorsque le document ne contient pas de texte, notamment les PDF non-natifs non-océrisés (ou pas encore)
+    if grp.empty:
+        rec_struct = {x: None for x in DOC_DATA_COLS}
+
+    # agréger les numéros de pages ou les valeurs extraites
     rec_struct = {
         # - métadonnées
         #   * @ctes
-        "actes_pages_tampon": df_grp[df_grp["has_stamp"]][
+        "actes_pages_tampon": grp.query("has_stamp")[
             "pagenum"
-        ],  # table: contrôle ; expectation: liste de valeurs continue (ex: 1,2,3) ou vide (all NaN)
-        "actes_pages_ar": df_grp[df_grp["is_accusedereception_page"]][
+        ].to_list(),  # table: contrôle ; expectation: liste de valeurs continue (ex: 1,2,3) ou vide (all NaN)
+        "actes_pages_ar": grp.query("is_accusedereception_page")[
             "pagenum"
-        ],  # table: contrôle ; expectation: liste vide (all NaN) ou valeur unique
+        ].to_list(),  # table: contrôle ; expectation: liste vide (all NaN) ou valeur unique
         # - tous arrêtés
         #   * champ "commune"
-        "commune_maire": df_grp[df_grp["commune_maire"]]
-        .unique()
-        .first(),  # table: ? ; expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+        "commune_maire": grp.dropna(subset=["commune_maire"])[
+            "commune_maire"
+        ].to_list(),  # TODO table: ? ; TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
         #   * champs structure de l'arrêté
-        "pages_vu": df_grp[df_grp["has_vu"]][
+        "pages_vu": grp.query("has_vu")[
             "pagenum"
-        ],  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
-        "pages_considerant": df_grp[df_grp["has_considerant"]][
+        ].to_list(),  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
+        "pages_considerant": grp.query("has_considerant")[
             "pagenum"
-        ],  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
-        "pages_arrete": df_grp[df_grp["has_arrete"]][
+        ].to_list(),  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
+        "pages_arrete": grp.query("has_arrete")[
             "pagenum"
-        ],  # table: contrôle ; expectation: valeur unique ou vide/NaN
-        "pages_article": df_grp[df_grp["has_article"]][
+        ].to_list(),  # table: contrôle ; expectation: valeur unique ou vide/NaN
+        "pages_article": grp.query("has_article")[
             "pagenum"
-        ],  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
+        ].to_list(),  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
         # arrêtés spécifiques
         # - réglementaires
-        "pages_cgct": df_grp[df_grp["has_cgct"]][
+        "pages_cgct": grp.query("has_cgct")[
             "pagenum"
-        ],  # TODO retraiter pour classer les arrêtés?  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
-        "pages_cgct_art": df_grp[df_grp["has_cgct_art"]][
+        ].to_list(),  # TODO retraiter pour classer les arrêtés?  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
+        "pages_cgct_art": grp.query("has_cgct_art")[
             "pagenum"
-        ],  # TODO retraiter pour classer les arrêtés?
-        "pages_cch": df_grp[df_grp["has_cch"]][
+        ].to_list(),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch": grp.query("has_cch")[
             "pagenum"
-        ],  # TODO retraiter pour classer les arrêtés?
-        "pages_cch_L111": df_grp[df_grp["has_cch_L111"]][
+        ].to_list(),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch_L111": grp.query("has_cch_L111")[
             "pagenum"
-        ],  # TODO retraiter pour classer les arrêtés?
-        "pages_cch_L511": df_grp[df_grp["has_cch_L511"]][
+        ].to_list(),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch_L511": grp.query("has_cch_L511")[
             "pagenum"
-        ],  # TODO retraiter pour classer les arrêtés?
-        "pages_cch_L521": df_grp[df_grp["has_cch_L521"]][
+        ].to_list(),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch_L521": grp.query("has_cch_L521")[
             "pagenum"
-        ],  # TODO retraiter pour classer les arrêtés?
-        "pages_cch_L541": df_grp[df_grp["has_cch_L541"]][
+        ].to_list(),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch_L541": grp.query("has_cch_L541")[
             "pagenum"
-        ],  # TODO retraiter pour classer les arrêtés?
-        "pages_cch_R511": df_grp[df_grp["has_cch_R511"]][
+        ].to_list(),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch_R511": grp.query("has_cch_R511")[
             "pagenum"
-        ],  # TODO retraiter pour classer les arrêtés?
-        "pages_cc": df_grp[df_grp["has_cc"]][
+        ].to_list(),  # TODO retraiter pour classer les arrêtés?
+        "pages_cc": grp.query("has_cc")[
             "pagenum"
-        ],  # TODO retraiter pour classer les arrêtés?
-        "pages_cc_art": df_grp[df_grp["has_cc_art"]][
+        ].to_list(),  # TODO retraiter pour classer les arrêtés?
+        "pages_cc_art": grp.query("has_cc_art")[
             "pagenum"
-        ],  # TODO retraiter pour classer les arrêtés?
+        ].to_list(),  # TODO retraiter pour classer les arrêtés?
         # - données
-        "parcelle": df_grp[df_grp["parcelle"]]
-        .unique()
-        .first(),  # table: ? ; expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
-        "adresse": df_grp[df_grp["adresse"]]
-        .unique()
-        .first(),  # table: ? ; expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
-        "syndic": df_grp[df_grp["syndic"]]
-        .unique()
-        .first(),  # table: ? ; expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+        "parcelle": grp.dropna(subset=["parcelle"])[
+            "parcelle"
+        ].to_list(),  # TODO table: ? ; TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+        "adresse": grp.dropna(subset=["adresse"])[
+            "adresse"
+        ].to_list(),  # TODO table: ? ; TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+        "syndic": grp.dropna(subset=["syndic"])[
+            "syndic"
+        ].to_list(),  # TODO table: ? ; TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
     return rec_struct
 
@@ -197,9 +212,12 @@ def create_docs_dataframe(
     doc_rows = []
     for _, df_grp in df_pages.groupby("fullpath_txt"):
         # reporter les métadonnées du fichier PDF et du TXT, dans chaque entrée de document
-        meta_doc = {x: df_grp[x] for x in META_COLS}
-        # rassembler les données des pages
-        data_doc = aggregate_pages(df_grp)
+        meta_doc = {
+            x: df_grp[x].to_list()[0] for x in DOC_META_COLS
+        }  # FIXME prendre les métadonnées du document dans le CSV 1 ligne par doc?
+        # rassembler les données des pages ;
+        # exclure l'éventuelle page d'accusé de réception d'actes
+        data_doc = aggregate_pages(df_grp, include_actes_page_ar=False)
         doc_rows.append(meta_doc | data_doc)  # python >= 3.9 (dict union)
     df_docs = pd.DataFrame.from_records(doc_rows)
     return df_docs
@@ -263,7 +281,7 @@ if __name__ == "__main__":
 
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV {in_file}")
-    df_meta = pd.read_csv(in_file, dtype={"fullpath_txt": "string"})
+    df_meta = pd.read_csv(in_file, dtype=(DOC_META_COLS | PAGE_DATA_COLS))
     # traiter les documents (découpés en pages de texte)
     df_txts = create_docs_dataframe(df_meta)
     # sauvegarder les infos extraites dans un fichier CSV

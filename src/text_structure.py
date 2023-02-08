@@ -161,7 +161,13 @@ RE_CLASS_MS_MOD = (
 M_CLASS_MS_MOD = re.compile(RE_CLASS_MS_MOD, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_PGI = r"""Arrêté\s+de\s+péril\s+grave\s+et\s+imminent"""
 M_CLASS_PGI = re.compile(RE_CLASS_PGI, re.MULTILINE | re.IGNORECASE)
-RE_CLASS_PGI_MOD = r"""Arrêté\s+de\s+péril\s+grave\s+et\s+imminent\s+modificatif"""
+RE_CLASS_PGI_MOD = (
+    r"""("""
+    + r"""Arrêté\s+de\s+péril\s+grave\s+et\s+imminent\s+modificatif"""
+    + r"""|"""
+    + r"""Modification\s+de\s+l'\s+arrêté\s+de\s+péril\s+grave\s+et\s+imminent"""
+    + r""")"""
+)
 M_CLASS_PGI_MOD = re.compile(RE_CLASS_PGI_MOD, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_MSU = r"""Arrêté\s+de\s+mise\s+en\s+sécurité\s+-\s+procédure\s+urgente"""
 M_CLASS_MSU = re.compile(RE_CLASS_MSU, re.MULTILINE | re.IGNORECASE)
@@ -169,9 +175,9 @@ RE_CLASS_MSU_MOD = (
     r"""Arrêté\s+de\s+mise\s+en\s+sécurité\s+modificatif\s+-\s+procédure\s+urgente"""
 )
 M_CLASS_MSU_MOD = re.compile(RE_CLASS_MSU_MOD, re.MULTILINE | re.IGNORECASE)
-RE_CLASS_ML = r"""Arrêté\s+de\s+mainlevée"""
+RE_CLASS_ML = r"""Arrêté(?:\s+de)?\s+mainlevée"""
 M_CLASS_ML = re.compile(RE_CLASS_ML, re.MULTILINE | re.IGNORECASE)
-RE_CLASS_ML_PA = r"""Arrêté\s+de\s+mainlevée\s+partielle"""
+RE_CLASS_ML_PA = r"""Arrêté(?:\s+de)?\s+mainlevée\s+partielle"""
 M_CLASS_ML_PA = re.compile(RE_CLASS_ML_PA, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_DE = r"""Arrêté\s+de\s+(déconstruction|démolition)"""
 M_CLASS_DE = re.compile(RE_CLASS_DE, re.MULTILINE | re.IGNORECASE)
@@ -231,10 +237,41 @@ RE_SYNDIC = (
 )
 M_SYNDIC = re.compile(RE_SYNDIC, re.MULTILINE | re.IGNORECASE)
 # date de l'arrêté
-RE_DATE = r"""Fait\s+à\s+\S+[,]?\s+le\s+(?P<arr_date>[^\n]+)]"""
+RE_MOIS = (
+    r"""(?:"""
+    + r"""janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre"""
+    + r"""|"""
+    + r"""jan|f[ée]v|mars|avr|mai|juin|juil|aou|sep|oct|nov|d[ée]c"""
+    + r""")"""
+)
+RE_DATE = (
+    r"""(?:"""
+    + r"""^Fait\s+à\s+\S+[,]?\s+le|"""  # Roquevaire (fin)
+    + r"""^Fait à Aix-en-Provence, en l'Hôtel de Ville,\nle|"""  # Aix-en-Provence (fin)
+    + r"""^Gardanne, le|"""  # Gardanne
+    + r"""Arrêté\s+n°[\s\S]+?\s+du"""  # Peyrolles-en-Provence (en-tête), Martigues (fin)
+    + r""")"""
+    + r"""\s+(?P<arr_date>"""
+    + r"""(?:"""
+    + r"""\d{2}[.]\d{2}[.]\d{4}|"""  # Peyrolles-en-Provence (en-tête)
+    + r"""\d{2}/\d{2}/\d{4}|"""  # ?
+    + r"""\d{1,2} """
+    + rf"""{RE_MOIS}"""
+    + r""" \d{4}"""  # Roquevaire (fin), Martigues (fin)
+    + r""")"""
+    + r""")"""
+)
 M_DATE = re.compile(RE_DATE, re.MULTILINE | re.IGNORECASE)
 # numéro de l'arrêté
-RE_NUM = r"""(?:Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°|Réf\s+:|Arrêté\s+n°|ARRETE\s+N°)\s+(?P<arr_num>[^\n(]+)"""
+RE_NUM = (
+    r"""(?:"""
+    + r"""Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°|"""
+    + r"""Réf\s+:|"""
+    + r"""Arrêté\s+n°|"""  # en-tête Peyrolles-en-Provence
+    + r"""ARRETE\s+N°"""
+    + r""")"""
+    + r"""\s*(?P<arr_num>[^\n(]+)"""
+)
 M_NUM = re.compile(RE_NUM, re.MULTILINE | re.IGNORECASE)
 # nom de l'arrêté
 RE_NOM = r"""Objet:\s+(?P<arr_nom>[^\n]+)"""

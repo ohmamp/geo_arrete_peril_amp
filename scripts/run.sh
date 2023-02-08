@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 DATA_RAW=data/raw
 DATA_INT=data/interim
+DATA_PRO=data/processed
 #
 DIR_IN=${DATA_RAW}/arretes_peril_hors_marseille_2018_2022
 BATCH=hors_marseille_2018_2022
@@ -30,4 +31,6 @@ python src/aggregate_pages.py ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv ${DATA_INT
 # python src/parse_text_structure.py ${DATA_INT}/${BATCH}_meta_otxt.csv ${DATA_INT}/${BATCH}_meta_pars.csv ${DATA_INT}/${BATCH}_stru.csv
 # 9. extraire les champs voulus et générer les 4 tables pour l'intégration au SIG
 # (2 entrées: CSV de métadonnées)
-# python src/parse_data.py ${DATA_INT}/${BATCH}_meta_pars.csv ${DATA_INT}/${BATCH}_stru.csv ${DATA_INT}/${BATCH}_data.csv
+python src/extract_data.py ${DATA_INT}/${BATCH}_meta_ntxt_doc.csv ${DATA_INT}/${BATCH}_data.csv
+# 10. exporter les données en 4 fichiers CSV pour l'intégration au SIG
+python src/export_data.py ${DATA_INT}/${BATCH}_data.csv ${DATA_PRO}/${BATCH}

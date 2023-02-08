@@ -20,6 +20,7 @@ from typing import NamedTuple
 
 import pandas as pd
 
+from separate_pages import DTYPE_META_NTXT, DTYPE_NTXT_PAGES
 from text_structure import (
     # @ctes
     M_STAMP,
@@ -47,6 +48,70 @@ from text_structure import (
     M_ADR_DOC,
     M_PROPRI,
     M_SYNDIC,
+    M_DATE,
+    M_NUM,
+    M_NOM,
+    #   * classification + procédure d'urgence
+    M_CLASS_PS_PO,
+    M_CLASS_PS_PO_MOD,
+    M_CLASS_MS,
+    M_CLASS_MS_MOD,
+    M_CLASS_PGI,
+    M_CLASS_PGI_MOD,
+    M_CLASS_MSU,
+    M_CLASS_MSU_MOD,
+    M_CLASS_ML,
+    M_CLASS_ML_PA,
+    M_CLASS_DE,
+    M_CLASS_ABRO_DE,
+    M_CLASS_INS,
+    M_CLASS_INT,
+    M_CLASS_ABRO_INT,
+)
+
+
+# dtypes des champs extraits
+DTYPE_PARSE = {
+    # @ctes
+    "has_stamp": "boolean",
+    "is_accusedereception_page": "boolean",
+    # tous arrêtés
+    "commune_maire": "string",
+    "has_vu": "boolean",
+    "has_considerant": "boolean",
+    "has_arrete": "boolean",
+    "has_article": "boolean",
+    # arrêtés spécifiques
+    # - réglementaires
+    "has_cgct": "boolean",
+    "has_cgct_art": "boolean",
+    "has_cch": "boolean",
+    "has_cch_L111": "boolean",
+    "has_cch_L511": "boolean",
+    "has_cch_L521": "boolean",
+    "has_cch_L541": "boolean",
+    "has_cch_R511": "boolean",
+    "has_cc": "boolean",
+    "has_cc_art": "boolean",
+    # - données
+    #   * parcelle
+    "parcelle": "string",
+    #   * adresse
+    "adresse": "string",
+    #   * notifiés
+    # "proprietaire": "string",
+    "syndic": "string",
+    #   * arrêté
+    "date": "string",
+    "arr_num": "string",
+    "arr_nom": "string",
+    "arr_classification": "string",
+    "arr_proc_urgence": "string",
+}
+
+# dtype du fichier de sortie
+DTYPE_META_NTXT_PROC = (
+    DTYPE_META_NTXT | {"pagenum": DTYPE_NTXT_PAGES["pagenum"]} | DTYPE_PARSE
 )
 
 
@@ -399,33 +464,140 @@ def get_syndic(page_txt: str) -> bool:
     return m_synd.group("syndic") if m_synd is not None else None
 
 
-STRUCT_COLS = [
-    # @ctes
-    "has_stamp",
-    "is_accusedereception_page",
-    # tous arrêtés
-    "commune_maire",
-    "has_vu",
-    "has_considerant",
-    "has_arrete",
-    "has_article",
-    # arrêtés spécifiques
-    # - réglementaires
-    "has_cgct",
-    "has_cgct_art",
-    "has_cch",
-    "has_cch_L111",
-    "has_cch_L511",
-    "has_cch_L521",
-    "has_cch_L541",
-    "has_cch_R511",
-    "has_cc",
-    "has_cc_art",
-    # - données
-    "parcelle",
-    "adresse",
-    "syndic",
-]
+def get_date(page_txt: str) -> bool:
+    """Récupère la date de l'arrêté.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    doc_date: str
+        Date du document si trouvée, None sinon.
+    """
+    m_date = M_DATE.search(page_txt)
+    return m_date.group("arr_date") if m_date is not None else None
+
+
+def get_num(page_txt: str) -> bool:
+    """Récupère le numéro de l'arrêté.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    doc_num: str
+        Numéro de l'arrêté si trouvé, None sinon.
+    """
+    m_num = M_NUM.search(page_txt)
+    return m_num.group("arr_num") if m_num is not None else None
+
+
+def get_nom(page_txt: str) -> bool:
+    """Récupère le nom de l'arrêté.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    doc_nom: str
+        Nom de l'arrêté si trouvé, None sinon.
+    """
+    if m_nom := M_NOM.search(page_txt):
+        return m_nom.group("arr_nom")
+    else:
+        return None
+
+
+def get_classification(page_txt: str) -> bool:
+    """Récupère la classification de l'arrêté.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    doc_class: str
+        Classification de l'arrêté si trouvé, None sinon.
+    """
+    if (
+        M_CLASS_PS_PO_MOD.search(page_txt)
+        or M_CLASS_MS_MOD.search(page_txt)
+        or M_CLASS_PGI_MOD.search(page_txt)
+        or M_CLASS_MSU_MOD.search(page_txt)
+        or M_CLASS_ML_PA.search(page_txt)
+    ):
+        return "Arrêté de mise en sécurité modificatif"
+    elif (
+        M_CLASS_PS_PO.search(page_txt)
+        or M_CLASS_MS.search(page_txt)
+        or M_CLASS_PGI.search(page_txt)
+        or M_CLASS_MSU.search(page_txt)
+        or M_CLASS_DE.search(page_txt)
+        or M_CLASS_INS.search(page_txt)
+        or M_CLASS_INT.search(page_txt)
+    ):
+        return "Arrêté de mise en sécurité"
+    elif (
+        M_CLASS_ML.search(page_txt)
+        or M_CLASS_ABRO_DE.search(page_txt)
+        or M_CLASS_ABRO_INT.search(page_txt)
+    ):
+        return "Arrêté de mainlevée"
+    else:
+        return None
+
+
+def get_urgence(page_txt: str) -> bool:
+    """Récupère le caractère d'urgence de l'arrêté.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    doc_class: str
+        Classification de l'arrêté si trouvé, None sinon.
+    """
+    if (
+        M_CLASS_PS_PO.search(page_txt)
+        or M_CLASS_PS_PO_MOD.search(page_txt)
+        or M_CLASS_MS.search(page_txt)
+        or M_CLASS_MS_MOD.search(page_txt)
+    ):
+        return "non"
+    elif (
+        M_CLASS_PGI.search(page_txt)
+        or M_CLASS_PGI_MOD.search(page_txt)
+        or M_CLASS_MSU.search(page_txt)
+        or M_CLASS_MSU_MOD.search(page_txt)
+    ):
+        return "oui"
+    elif (
+        M_CLASS_ML_PA.search(page_txt)
+        or M_CLASS_DE.search(page_txt)
+        or M_CLASS_ABRO_DE.search(page_txt)
+        or M_CLASS_INS.search(page_txt)
+        or M_CLASS_INT.search(page_txt)
+    ):
+        # FIXME ajouter la prise en compte des articles cités pour déterminer l'urgence
+        return "oui ou non"
+    elif M_CLASS_ML.search(page_txt) or M_CLASS_ABRO_INT.search(page_txt):
+        return "/"
+    else:
+        return None
 
 
 def spot_text_structure(
@@ -445,6 +617,8 @@ def spot_text_structure(
     -------
     rec_struct: dict
         Dictionnaire de valeurs booléennes ou nulles, selon que les éléments de structure ont été détectés.
+        Les clés et les types de valeurs sont spécifiés dans `DTYPE_PARSE`.
+        Si df_row ne contient pas de texte, toutes les valeurs de sortie sont None.
     """
     if pd.notna(df_row.pagetxt):
         rec_struct = {
@@ -470,13 +644,18 @@ def spot_text_structure(
             "has_cc": contains_cc(df_row.pagetxt),
             "has_cc_art": contains_cc_art(df_row.pagetxt),
             # - données
-            "parcelle": get_parcelle(df_row.pagetxt),
             "adresse": get_adr_doc(df_row.pagetxt),
+            "parcelle": get_parcelle(df_row.pagetxt),
             "syndic": get_syndic(df_row.pagetxt),
+            "date": get_date(df_row.pagetxt),
+            "arr_num": get_num(df_row.pagetxt),
+            "arr_nom": get_nom(df_row.pagetxt),
+            "arr_classification": get_classification(df_row.pagetxt),
+            "arr_proc_urgence": get_urgence(df_row.pagetxt),
         }
     else:
         # tous les champs sont vides ("None")
-        rec_struct = {x: None for x in STRUCT_COLS}
+        rec_struct = {x: None for x in DTYPE_PARSE}
     return rec_struct
 
 
@@ -513,6 +692,7 @@ def process_files(
         )
     df_indics = pd.DataFrame.from_records(indics_struct)
     df_proc = pd.merge(df_meta, df_indics, on=["filename", "fullpath"])
+    df_proc = df_proc.astype(dtype=DTYPE_META_NTXT_PROC)
     return df_proc
 
 
@@ -591,10 +771,10 @@ if __name__ == "__main__":
 
     # ouvrir le fichier de métadonnées en entrée
     logging.info(f"Ouverture du fichier CSV de métadonnées {in_file_meta}")
-    df_meta = pd.read_csv(in_file_meta)
+    df_meta = pd.read_csv(in_file_meta, dtype=DTYPE_META_NTXT)
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV de pages de texte {in_file_pages}")
-    df_txts = pd.read_csv(in_file_pages, dtype={"pagetxt": "string"})
+    df_txts = pd.read_csv(in_file_pages, dtype=DTYPE_NTXT_PAGES)
     # traiter les documents (découpés en pages de texte)
     df_tmod = process_files(df_meta, df_txts)
 
@@ -630,7 +810,7 @@ if __name__ == "__main__":
     # sauvegarder les infos extraites dans un fichier CSV
     if args.append and out_file.is_file():
         # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées
-        df_tmod_old = pd.read_csv(out_file)
+        df_tmod_old = pd.read_csv(out_file, dtype=DTYPE_META_NTXT_PROC)
         df_proc = pd.concat([df_tmod_old, df_tmod])
     else:
         # sinon utiliser les seules nouvelles entrées

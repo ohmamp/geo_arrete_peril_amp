@@ -31,8 +31,17 @@ from typing import NamedTuple
 import pandas as pd
 import pdftotext
 
+from process_metadata import DTYPE_META_PROC
+
 # version des bibliothèques d'extraction de contenu des PDF texte et image
 PDFTOTEXT_VERSION = version("pdftotext")
+
+# schéma des données en entrée
+
+DTYPE_META_NTXT = DTYPE_META_PROC | {
+    "retcode_txt": "Int64",  # FIXME Int16 ? (dtype à fixer ici, avant le dump)
+    "fullpath_txt": "string",
+}
 
 
 def extract_native_text_pdftotext(
@@ -184,6 +193,8 @@ def process_files(
         retcode_txt=retcodes,
         fullpath_txt=fullpath_txt,
     )
+    # forcer les types des nouvelles colonnes
+    df_mmod = df_mmod.astype(dtype=DTYPE_META_NTXT)
     return df_mmod
 
 
@@ -255,13 +266,13 @@ if __name__ == "__main__":
 
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV {in_file}")
-    df_metas = pd.read_csv(in_file)
+    df_metas = pd.read_csv(in_file, dtype=DTYPE_META_PROC)
     # traiter les fichiers
     df_mmod = process_files(df_metas, out_txt_dir, redo=args.redo)
     # sauvegarder les infos extraites dans un fichier CSV
     if args.append and out_file.is_file():
         # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées
-        df_mmod_old = pd.read_csv(out_file)
+        df_mmod_old = pd.read_csv(out_file, dtype=DTYPE_META_NTXT)
         df_proc = pd.concat([df_mmod_old, df_mmod])
     else:
         # sinon utiliser les seules nouvelles entrées

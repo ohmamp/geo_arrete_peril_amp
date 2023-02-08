@@ -11,6 +11,18 @@ from typing import List
 
 import pandas as pd
 
+from extract_native_text import DTYPE_META_NTXT
+
+# champs des documents copiés pour les pages: métadonnées du fichier PDF et du TXT
+# nom du fichier, chemin PDF original, chemin TXT, nombre de pages
+COLS_DOC = ["filename", "fullpath", "fullpath_txt", "nb_pages"]
+
+# format des données de sortie
+DTYPE_NTXT_PAGES = {x: DTYPE_META_NTXT[x] for x in COLS_DOC} | {
+    "pagenum": "Int64",  # Int16?
+    "pagetxt": "string",
+}
+
 
 def load_pages_text(fp_txt: Path, page_break: str = "\f") -> List[str]:
     """Charge le texte d'un document, découpé en pages.
@@ -93,13 +105,7 @@ def create_pages_dataframe(
             ]
         # dupliquer les métadonnées du fichier PDF et du TXT, dans chaque entrée de page
         doc_rows = [
-            {
-                # métadonnées du fichier PDF et du TXT
-                "filename": df_row.filename,  # nom du fichier
-                "fullpath": df_row.fullpath,  # chemin PDF original
-                "fullpath_txt": df_row.fullpath_txt,  # chemin TXT
-                "nb_pages": df_row.nb_pages,  # nombre de pages
-            }
+            {x: getattr(df_row, x) for x in COLS_DOC}
             | page  # python >= 3.9 (dict union)
             for page in pages
         ]
@@ -109,6 +115,7 @@ def create_pages_dataframe(
         assert len(doc_rows) <= df_row.nb_pages
         page_txts.extend(doc_rows)
     df_txts = pd.DataFrame.from_records(page_txts)
+    df_txts = df_txts.astype(dtype=DTYPE_NTXT_PAGES)
     return df_txts
 
 
@@ -170,13 +177,13 @@ if __name__ == "__main__":
 
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV {in_file}")
-    df_meta = pd.read_csv(in_file, dtype={"fullpath_txt": "string"})
+    df_meta = pd.read_csv(in_file, dtype=DTYPE_META_NTXT)
     # traiter les documents (découpés en pages de texte)
     df_txts = create_pages_dataframe(df_meta)
     # sauvegarder les infos extraites dans un fichier CSV
     if args.append and out_file.is_file():
         # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées
-        df_txts_old = pd.read_csv(out_file)
+        df_txts_old = pd.read_csv(out_file, dtype=DTYPE_NTXT_PAGES)
         df_txts = pd.concat([df_txts_old, df_txts])
     else:
         # sinon utiliser les seules nouvelles entrées

@@ -31,6 +31,8 @@ Date de réception préfecture : {RE_DATE_SL}
 RE_STAMP = rf"(?:(?:{RE_STAMP_1})|(?:{RE_STAMP_2}))"
 M_STAMP = re.compile(RE_STAMP, re.MULTILINE)
 
+# TODO motif complet sur l'accusé de réception ; parsing dédié pour vérifier/croiser avec les données extraites dans le reste du document
+# "Objet acte:" (page d'accusé de réception de transmission @actes)
 # TODO récupérer les champs?
 # ex:
 # Accusé de réception
@@ -146,6 +148,46 @@ RE_ABF = r"""[Aa]rchitecte\s+des\s+[Bb]âtiments\s+de\s+France"""
 M_ABF = re.compile(RE_ABF, re.MULTILINE | re.IGNORECASE)
 
 # éléments à extraire
+# - classification des arrêtés
+RE_CLASS_PS_PO = r"""Arrêté\s+de\s+péril\s+(simple|ordinaire)"""
+M_CLASS_PS_PO = re.compile(RE_CLASS_PS_PO, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_PS_PO_MOD = r"""Arrêté\s+de\s+péril\s+(simple|ordinaire)\s+modificatif"""
+M_CLASS_PS_PO_MOD = re.compile(RE_CLASS_PS_PO_MOD, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_MS = r"""Arrêté\s+de\s+mise\s+en\s+sécurité\s+-\s+procédure\s+ordinaire"""
+M_CLASS_MS = re.compile(RE_CLASS_MS, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_MS_MOD = (
+    r"""Arrêté\s+de\s+mise\s+en\s+sécurité\s+modificatif\s+-\s+procédure\s+ordinaire"""
+)
+M_CLASS_MS_MOD = re.compile(RE_CLASS_MS_MOD, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_PGI = r"""Arrêté\s+de\s+péril\s+grave\s+et\s+imminent"""
+M_CLASS_PGI = re.compile(RE_CLASS_PGI, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_PGI_MOD = r"""Arrêté\s+de\s+péril\s+grave\s+et\s+imminent\s+modificatif"""
+M_CLASS_PGI_MOD = re.compile(RE_CLASS_PGI_MOD, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_MSU = r"""Arrêté\s+de\s+mise\s+en\s+sécurité\s+-\s+procédure\s+urgente"""
+M_CLASS_MSU = re.compile(RE_CLASS_MSU, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_MSU_MOD = (
+    r"""Arrêté\s+de\s+mise\s+en\s+sécurité\s+modificatif\s+-\s+procédure\s+urgente"""
+)
+M_CLASS_MSU_MOD = re.compile(RE_CLASS_MSU_MOD, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_ML = r"""Arrêté\s+de\s+mainlevée"""
+M_CLASS_ML = re.compile(RE_CLASS_ML, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_ML_PA = r"""Arrêté\s+de\s+mainlevée\s+partielle"""
+M_CLASS_ML_PA = re.compile(RE_CLASS_ML_PA, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_DE = r"""Arrêté\s+de\s+(déconstruction|démolition)"""
+M_CLASS_DE = re.compile(RE_CLASS_DE, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_DE = r"""Arrêté\s+de\s+(déconstruction|démolition)"""
+M_CLASS_DE = re.compile(RE_CLASS_DE, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_ABRO_DE = r"""Abrogation\s+de\s+l'arrêté\s+de\s+(déconstruction|démolition)"""
+M_CLASS_ABRO_DE = re.compile(RE_CLASS_ABRO_DE, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_INS = r"""Arrêté\s+d'\s*insécurité\s+des\s+équipements\s+communs"""
+M_CLASS_INS = re.compile(RE_CLASS_INS, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_INT = r"""Arrêté\s+d'\s*interdiction\s+d'\s*occuper"""
+M_CLASS_INT = re.compile(RE_CLASS_INT, re.MULTILINE | re.IGNORECASE)
+RE_CLASS_ABRO_INT = (
+    r"""Arrêté\s+d'\s*abrogation\s+de\s+l'\s*interdiction\s+d'\s*occuper"""
+)
+M_CLASS_ABRO_INT = re.compile(RE_CLASS_ABRO_INT, re.MULTILINE | re.IGNORECASE)
+
 # - commune
 # capture: Peyrolles-en-Provence, Gignac-la-Nerthe, GEMENOS, Roquevaire, Gardanne
 RE_MAIRE_COMM_DE = r"Maire\s+(?:de\s+la\s+Commune\s+)?(?:de\s+|d')"
@@ -159,20 +201,20 @@ RE_CAD_SECNUM = rf"""(?:(?:(?:n°\s?){RE_CAD_SEC}\s?{RE_CAD_NUM})|(?:{RE_CAD_SEC
 RE_PARCELLE = rf"""(?:cadastré(?:e|es)(?:\s+section)?|référence(?:s)?\s+cadastrale(?:s)?|parcelle(?:s)?)\s+(?P<cadastre_id>{RE_CAD_SECNUM}((,|\s+et)\s+{RE_CAD_SECNUM})*)"""
 M_PARCELLE = re.compile(RE_PARCELLE, re.MULTILINE | re.IGNORECASE)
 # - adresse
-# contextes: "objet:" (objet de l'arrêté), "Objet acte:" (page d'accusé de réception de transmission @actes)
-# TODO ajouter du contexte pour être plus précis? "désordres sur le bâtiment sis... ?"
 RE_NUM_VOIE = r"""\d+(?:\s?(?:A|bis|ter))?"""
 RE_TYP_VOIE = r"""(?:avenue|boulevard|cours|impasse|place|rue)"""
 RE_NOM_VOIE = r"""(?:[^,:–(]+)"""
 RE_CP = r"""\d{5}"""
 RE_COMMUNE = r"""\w+(?:[\s-]+\w+){0,3}?"""
+# contextes: "objet:" (objet de l'arrêté),
+# TODO ajouter du contexte pour être plus précis? "désordres sur le bâtiment sis... ?"
 RE_ADRESSE = (
     rf"""(?:(?P<num_voie>{RE_NUM_VOIE})[,]?\s+)?(?P<type_voie>{RE_TYP_VOIE})\s+(?P<nom_voie>{RE_NOM_VOIE})"""
     + rf"""(?:[\s–]+(?:(?P<code_postal>{RE_CP})\s+)?(?P<commune>{RE_COMMUNE}))?"""
 )
 # adresse du bâtiment visé par l'arrêté
 RE_ADR_DOC = (
-    rf"""(?:situé\s+au|désordres\s+sur\s+le\s+bâtiment\s+sis|immeuble\s+du|sis[e]?(?:\s+à)?|Objet\s?:)\s+"""
+    rf"""(?:situ[ée](?:\s+au)?|désordres\s+sur\s+le\s+bâtiment\s+sis|immeuble\s+(?:du|numéroté)|sis[e]?(?:\s+à)?|Objet\s?:)\s+"""
     + rf"""(?P<adresse>{RE_ADRESSE})"""  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     + r"""(?:\s+(?:(?:[,:–-]\s+)|[(]?)?(?:susceptible|parcelle|référence|concernant))?"""
 )
@@ -188,3 +230,12 @@ RE_SYNDIC = (
     r"""(?:syndic(?:\s+de\s+copropriété)?)\s+(?P<syndic>.+?)(?:[,.]|[,]?\s+sis)"""
 )
 M_SYNDIC = re.compile(RE_SYNDIC, re.MULTILINE | re.IGNORECASE)
+# date de l'arrêté
+RE_DATE = r"""Fait\s+à\s+\S+[,]?\s+le\s+(?P<arr_date>[^\n]+)]"""
+M_DATE = re.compile(RE_DATE, re.MULTILINE | re.IGNORECASE)
+# numéro de l'arrêté
+RE_NUM = r"""(?:Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°|Réf\s+:|Arrêté\s+n°|ARRETE\s+N°)\s+(?P<arr_num>[^\n(]+)"""
+M_NUM = re.compile(RE_NUM, re.MULTILINE | re.IGNORECASE)
+# nom de l'arrêté
+RE_NOM = r"""Objet:\s+(?P<arr_nom>[^\n]+)"""
+M_NOM = re.compile(RE_NOM, re.MULTILINE | re.IGNORECASE)

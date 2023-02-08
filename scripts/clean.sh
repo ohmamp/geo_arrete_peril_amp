@@ -7,3 +7,4 @@ BATCH=hors_marseille_2018_2022
 #
 rm data/interim/${BATCH}_*.csv
 rm -Rf data/interim/txt_native/*.txt
+rm -Rf data/processed/${BATCH}/*.csv

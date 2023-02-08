@@ -27,6 +27,19 @@ from data_sources import RAW_BATCHES, EXCLUDE_FILES
 TZ_FRA = tz.gettz("Europe/Paris")
 
 
+# format de sortie
+DTYPE_META_BASE = {
+    "filename": "string",
+    "fullpath": "string",
+    "filesize": "Int64",  # FIXME Int16 ? (dtype à fixer en amont, avant le dump)
+    "nb_pages": "Int64",  # FIXME Int16 ? (dtype à fixer en amont, avant le dump)
+    "creatortool": "string",
+    "producer": "string",
+    "createdate": "string",
+    "modifydate": "string",
+}
+
+
 def get_pdf_info_poppler(fp_pdf_in: Path) -> dict:
     """Renvoie les infos du PDF en utilisant poppler.
 
@@ -318,9 +331,10 @@ if __name__ == "__main__":
     # sauvegarder les infos extraites dans un fichier CSV
     if pdf_infos:
         df_metas_new = pd.DataFrame(pdf_infos)
+        df_metas_new = df_metas_new.astype(dtype=DTYPE_META_BASE)
         if args.append and out_file.is_file():
             # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées
-            df_metas_old = pd.read_csv(out_file)
+            df_metas_old = pd.read_csv(out_file, dtype=DTYPE_META_BASE)
             df_metas = pd.concat([df_metas_old, df_metas_new])
         else:
             # sinon utiliser les seules nouvelles entrées

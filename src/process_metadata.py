@@ -10,9 +10,6 @@ La liste des tiers de transmission agréés pour @ctes est sur
 <https://www.collectivites-locales.gouv.fr/sites/default/files/migration/2019_09_13_liste_operateurs_transmission_0.pdf> .
 """
 
-# FIXME ? nouvelle colonne "has_bad_ocr" pour les PDF avec une mauvaise OCR, eg. "Image Capture Plus"
-
-
 import argparse
 from datetime import datetime
 import logging
@@ -20,6 +17,17 @@ from pathlib import Path
 from typing import List
 
 import pandas as pd
+
+from extract_metadata import DTYPE_META_BASE
+
+# format des données en sortie
+DTYPE_META_PROC = DTYPE_META_BASE | {
+    "col_res": "boolean",
+    "guess_tampon": "boolean",
+    "guess_dernpage": "boolean",
+    "guess_pdftext": "boolean",
+    "guess_badocr": "boolean",
+}
 
 
 def _guess_duplicates(
@@ -269,18 +277,20 @@ if __name__ == "__main__":
         out_dir.mkdir(exist_ok=True)
 
     # ouvrir le fichier d'entrée
-    df_metas = pd.read_csv(in_file)
+    df_metas = pd.read_csv(in_file, dtype=DTYPE_META_BASE)
     # détecter les doublons
     df_mmod = guess_duplicates_meta(df_metas)
     df_mmod = guess_tampon_transmission(df_mmod)
     df_mmod = guess_dernpage_transmission(df_mmod)
     df_mmod = guess_pdftext(df_mmod)
     df_mmod = guess_badocr(df_mmod)
+    # garantir le typage des (nouvelles) colonnes avant l'export
+    df_mmod = df_mmod.astype(dtype=DTYPE_META_PROC)
 
     # sauvegarder les infos extraites dans un fichier CSV
     if args.append and out_file.is_file():
         # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées
-        df_mmod_old = pd.read_csv(out_file)
+        df_mmod_old = pd.read_csv(out_file, dtype=DTYPE_META_PROC)
         df_proc = pd.concat([df_mmod_old, df_mmod])
     else:
         # sinon utiliser les seules nouvelles entrées

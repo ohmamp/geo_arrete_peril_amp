@@ -159,7 +159,12 @@ RE_CLASS_MS_MOD = (
     r"""Arrêté\s+de\s+mise\s+en\s+sécurité\s+modificatif\s+-\s+procédure\s+ordinaire"""
 )
 M_CLASS_MS_MOD = re.compile(RE_CLASS_MS_MOD, re.MULTILINE | re.IGNORECASE)
-RE_CLASS_PGI = r"""Arrêté\s+de\s+péril\s+grave\s+et\s+imminent"""
+RE_CLASS_PGI = (
+    r"""(?:"""
+    + r"""Arr[êe]t[ée]\s+de\s+p[ée]ril\s+grave\s+et\s+imminent|"""
+    + r"""Arr[êe]t[ée]\s+portant\s+proc[ée]dure\s+de\s+p[ée]ril(?:\s+grave\s+et)?\s+imminent"""
+    + r""")"""
+)
 M_CLASS_PGI = re.compile(RE_CLASS_PGI, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_PGI_MOD = (
     r"""("""

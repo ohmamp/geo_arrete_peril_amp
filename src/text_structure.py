@@ -203,42 +203,69 @@ M_CLASS_ABRO_INT = re.compile(RE_CLASS_ABRO_INT, re.MULTILINE | re.IGNORECASE)
 # capture: Peyrolles-en-Provence, Gignac-la-Nerthe, GEMENOS, Roquevaire, Gardanne
 RE_MAIRE_COMM_DE = r"Maire\s+(?:de\s+la\s+Commune\s+)?(?:de\s+|d')"
 # "Nous[,.]": gestion d'erreur d'OCR ("." reconnu au lieu de ",")
-RE_MAIRE_COMMUNE = rf"""(?:Le\s+{RE_MAIRE_COMM_DE}|Nous[,.]\s+(?:[^,]+,\s+)?{RE_MAIRE_COMM_DE})(?P<commune>[^,\n]+)"""
+RE_MAIRE_COMMUNE = rf"""(?:Le\s+{RE_MAIRE_COMM_DE}|Nous[,.]\s+(?:[^,]+,\s+)?{RE_MAIRE_COMM_DE})(?P<commune>[^,;]+)"""
 M_MAIRE_COMMUNE = re.compile(RE_MAIRE_COMMUNE, re.MULTILINE | re.IGNORECASE)
 # - parcelle cadastrale
 RE_CAD_SEC = r"""[A-Z]{1,2}"""
 RE_CAD_NUM = r"""\d{1,4}"""
 RE_CAD_SECNUM = rf"""(?:(?:(?:n°\s?){RE_CAD_SEC}\s?{RE_CAD_NUM})|(?:{RE_CAD_SEC}\sn°\s?{RE_CAD_NUM})|(?:{RE_CAD_SEC}\s?{RE_CAD_NUM}))"""
-RE_PARCELLE = rf"""(?:cadastré(?:e|es)(?:\s+section)?|référence(?:s)?\s+cadastrale(?:s)?|parcelle(?:s)?)\s+(?P<cadastre_id>{RE_CAD_SECNUM}((,|\s+et)\s+{RE_CAD_SECNUM})*)"""
+RE_PARCELLE = (
+    r"""(?:"""
+    + r"""cadastré(?:e|es)(?:\s+section)?|référence(?:s)?\s+cadastrale(?:s)?|parcelle(?:s)?"""
+    + r""")\s+"""
+    + r"""(?P<cadastre_id>"""
+    + rf"""{RE_CAD_SECNUM}"""
+    + rf"""((,|\s+et)\s+{RE_CAD_SECNUM})*"""
+    + r""")"""
+)
 M_PARCELLE = re.compile(RE_PARCELLE, re.MULTILINE | re.IGNORECASE)
 # - adresse
-RE_NUM_VOIE = r"""\d+(?:\s?(?:A|bis|ter))?"""
+RE_NUM_IND_VOIE = r"""(?P<num_voie>\d+)""" + r"""(?:\s?(?P<ind_voie>A|bis|ter))?"""
 RE_TYP_VOIE = r"""(?:avenue|boulevard|cours|impasse|place|rue)"""
-RE_NOM_VOIE = r"""(?:[^,:–(]+)"""
+RE_NOM_VOIE = r"""(?:[^,;:–(]+)"""
 RE_CP = r"""\d{5}"""
-RE_COMMUNE = r"""\w+(?:[\s-]+\w+){0,3}?"""
+RE_COMMUNE = r"""\w+(?:[\s-]+[^,;:–(]+){0,3}?"""
 # contextes: "objet:" (objet de l'arrêté),
 # TODO ajouter du contexte pour être plus précis? "désordres sur le bâtiment sis... ?"
 RE_ADRESSE = (
-    rf"""(?:(?P<num_voie>{RE_NUM_VOIE})[,]?\s+)?(?P<type_voie>{RE_TYP_VOIE})\s+(?P<nom_voie>{RE_NOM_VOIE})"""
-    + rf"""(?:[\s–]+(?:(?P<code_postal>{RE_CP})\s+)?(?P<commune>{RE_COMMUNE}))?"""
+    r"""(?:"""
+    + rf"""(?P<num_ind_voie>{RE_NUM_IND_VOIE})[,]?\s+)?"""
+    + rf"""(?P<type_voie>{RE_TYP_VOIE})"""
+    + rf"""\s+(?P<nom_voie>{RE_NOM_VOIE})"""
+    # TODO complément d'adresse ?
+    + r"""(?:"""
+    + r"""\s+"""
+    + r"""(?:[–à]\s+)?"""
+    + r"""(?:"""
+    + rf"""(?P<code_postal>{RE_CP})"""
+    + r"""\s+)?"""
+    + rf"""(?P<commune>{RE_COMMUNE})"""
+    + r""")?"""
 )
+M_ADRESSE = re.compile(RE_ADRESSE, re.MULTILINE | re.IGNORECASE)
 # adresse du bâtiment visé par l'arrêté
 RE_ADR_DOC = (
-    rf"""(?:situ[ée](?:\s+au)?|désordres\s+sur\s+le\s+bâtiment\s+sis|immeuble\s+(?:du|numéroté)|sis[e]?(?:\s+à)?|Objet\s?:)\s+"""
+    r"""(?:situ[ée](?:\s+au)?|désordres\s+sur\s+le\s+bâtiment\s+sis|immeuble\s+(?:du|numéroté)|sis[e]?(?:\s+à)?|Objet\s?:)\s+"""
     + rf"""(?P<adresse>{RE_ADRESSE})"""  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     + r"""(?:\s+(?:(?:[,:–-]\s+)|[(]?)?(?:susceptible|parcelle|référence|concernant))?"""
 )
 M_ADR_DOC = re.compile(RE_ADR_DOC, re.MULTILINE | re.IGNORECASE)
 # - propriétaire
-RE_PROPRI = rf"""(?:à\s+la\s+)(?P<propri>Société\s+Civile\s+Immobilière\s+.+)[,]?\s+sise\s+(?P<prop_adr>{RE_ADRESSE})"""
+RE_PROPRI = (
+    r"""(?:à\s+la\s+)"""
+    + r"""(?P<propri>Société\s+Civile\s+Immobilière\s+.+)"""
+    + r"""[,]?\s+sise\s+"""
+    + rf"""(?P<prop_adr>{RE_ADRESSE})"""
+)
 M_PROPRI = re.compile(RE_PROPRI, re.MULTILINE | re.IGNORECASE)
 # - syndic
 # TODO syndic judiciaire?
 # TODO M. ... en qualité de syndic?
 # TODO administrateur?
 RE_SYNDIC = (
-    r"""(?:syndic(?:\s+de\s+copropriété)?)\s+(?P<syndic>.+?)(?:[,.]|[,]?\s+sis)"""
+    r"""(?:agence|le syndic(?:\s+de\s+copropriété)?|syndic\s+:)\s+"""
+    + r"""(?P<syndic>.+?)"""
+    + r"""(?:[,.]|[,]?\s+sis)"""
 )
 M_SYNDIC = re.compile(RE_SYNDIC, re.MULTILINE | re.IGNORECASE)
 # date de l'arrêté
@@ -275,7 +302,7 @@ RE_NUM = (
     + r"""Arrêté\s+n°|"""  # en-tête Peyrolles-en-Provence
     + r"""ARRETE\s+N°"""
     + r""")"""
-    + r"""\s*(?P<arr_num>[^\n(]+)"""
+    + r"""\s*(?P<arr_num>[^,;\n(]+)"""
 )
 M_NUM = re.compile(RE_NUM, re.MULTILINE | re.IGNORECASE)
 # nom de l'arrêté

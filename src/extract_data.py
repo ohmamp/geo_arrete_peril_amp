@@ -13,10 +13,12 @@ from datetime import datetime
 import logging
 from pathlib import Path
 import re
+from typing import Dict
 
 import pandas as pd
 
 from aggregate_pages import DTYPE_META_NTXT_DOC
+from text_structure import M_ADRESSE
 
 
 DTYPE_DATA = {
@@ -67,8 +69,100 @@ def normalize_string(raw_str: str) -> str:
     nor_str: str
         Chaîne de caractères normalisée
     """
-    nor_str = re.sub(r"\s+", " ", raw_str, flags=re.MULTILINE)
+    nor_str = re.sub(r"\s+", " ", raw_str, flags=re.MULTILINE).strip()
     return nor_str
+
+
+def create_adresse_normalisee(adr_fields: Dict, adr_commune_maire: str) -> str:
+    """Créer une adresse normalisée.
+
+    L'adresse normalisée rassemble les champs extraits de l'adresse brute, et
+    la commune extraite par ailleurs, qui doivent être cohérents.
+
+    Parameters
+    ----------
+    adr_fields: dict
+        Champs de l'adresse, extraits de l'adresse brute
+    adr_commune_maire: str
+        Commune de l'arrêté
+
+    Returns
+    -------
+    adr_norm: str
+        Adresse normalisée
+    """
+    adr_commune_brute = adr_fields["adr_commune"]
+    # TODO retenir la graphie standard, prise par exemple dans la table des codes INSEE ?
+    # croisement entre la commune qui prend l'arrêté et l'éventuelle commune extraite de l'adresse brute
+    if (adr_commune_brute is None) and (adr_commune_maire is None):
+        # pas de commune  # TODO émettre un warning?
+        commune = None
+    elif adr_commune_brute is None:
+        commune = adr_commune_maire  # TODO normaliser?
+    elif adr_commune_maire is None:
+        commune = adr_commune_brute  # TODO normaliser?
+    elif (adr_commune_brute is not None) and (adr_commune_maire is not None):
+        # deux mentions potentiellement différentes de la commune ; normalement de simples variantes de graphie
+        # pour le moment on retient la commune qui prend l'arrêté (commune_maire)
+        # TODO comparer les graphies, définir et retenir une forme canonique
+        commune = adr_commune_maire  # TODO normaliser?
+
+    adr_norm_parts = [
+        adr_fields["adr_num"],
+        adr_fields["adr_ind"],
+        adr_fields["adr_voie"],
+        adr_fields["adr_compl"],
+        adr_fields["adr_cpostal"],
+        commune,
+    ]
+    adr_norm = " ".join(
+        x for x in adr_norm_parts if x is not None
+    )  # TODO normaliser la graphie?
+    adr_norm = normalize_string(adr_norm)
+    return adr_norm
+
+
+def process_adresse_brute(adr_ad_brute: str) -> Dict:
+    """Extraire les différents champs d'une adresse brute.
+
+    Parameters
+    ----------
+    adr_ad_brute: str
+        Adresse brute
+
+    Returns
+    -------
+    adr_fields: dict
+        Champs d'adresse
+    """
+    if (adr_ad_brute is not None) and (m_adresse := M_ADRESSE.search(adr_ad_brute)):
+        m_dict = m_adresse.groupdict()
+        # traitement spécifique pour la voie: type + nom
+        adr_voie = " ".join(
+            m_dict[x] for x in ["type_voie", "nom_voie"] if m_dict[x] is not None
+        ).strip()
+        if adr_voie == "":
+            adr_voie = None
+        #
+        adr_fields = {
+            "adr_num": m_adresse["num_voie"],
+            "adr_ind": m_adresse["ind_voie"],
+            "adr_voie": adr_voie,
+            "adr_compl": None,  # TODO ajouter la détection du complément d'adresse dans la regex?
+            "adr_cpostal": m_adresse["code_postal"],
+            "adr_commune": m_adresse["commune"],
+        }
+        return adr_fields
+    else:
+        adr_fields = {
+            "adr_num": None,
+            "adr_ind": None,
+            "adr_voie": None,
+            "adr_compl": None,
+            "adr_cpostal": None,
+            "adr_commune": None,
+        }
+        return adr_fields
 
 
 def create_docs_dataframe(
@@ -90,8 +184,10 @@ def create_docs_dataframe(
     """
     doc_rows = []
     for i, df_row in enumerate(df_agg.itertuples()):
-        doc_data = {
+        doc_idu = {
             "idu": f"id_{i:04}",  # FIXME identifiant unique
+        }
+        doc_arr = {
             # arrêté
             "arr_date": (
                 normalize_string(getattr(df_row, "arr_date"))
@@ -124,30 +220,46 @@ def create_docs_dataframe(
             # (métadonnées du doc)
             "arr_nom_pdf": getattr(df_row, "filename"),
             "arr_url": getattr(df_row, "fullpath"),  # TODO URL localhost?
+        }
+        # adresse
+        # - nettoyer a minima de l'adresse brute
+        adr_ad_brute = (
+            normalize_string(getattr(df_row, "adresse_brute"))
+            if pd.notna(getattr(df_row, "adresse_brute"))
+            else None
+        )
+        # - extraire les éléments d'adresse en traitant l'adresse brute
+        adr_fields = process_adresse_brute(adr_ad_brute)
+        # - nettoyer a minima la commune extraite des en-tête ou pied-de-page ou de la mention du maire signataire
+        adr_commune_maire = (
+            normalize_string(getattr(df_row, "commune_maire"))
+            if pd.notna(getattr(df_row, "commune_maire"))
+            else None
+        )
+        # - créer une adresse normalisée ; la cohérence des champs est vérifiée
+        adr_adresse = create_adresse_normalisee(adr_fields, adr_commune_maire)
+        # - rassembler les champs
+        doc_adr = {
             # adresse
-            "adr_ad_brute": (
-                normalize_string(getattr(df_row, "adresse_brute"))
-                if pd.notna(getattr(df_row, "adresse_brute"))
-                else None
-            ),  # adresse brute
-            "adr_adresse": "TODO_adresse",  # adresse normalisée
-            "adr_num": "TODO_adr_num",  # numéro de la voie
-            "adr_ind": "TODO_adr_ind",  # indice de répétition
-            "adr_voie": "TODO_adr_voie",  # nom de la voie
-            "adr_compl": "TODO_adr_compl",  # complément d'adresse
-            "adr_cpostal": "TODO_adr_cpostal",  # code postal
-            "adr_ville": (
-                normalize_string(getattr(df_row, "commune_maire"))
-                if pd.notna(getattr(df_row, "commune_maire"))
-                else None
-            ),  # ville
-            "adr_codeinsee": "TODO_adr_codeinsee",  # code insee (5 chars)
+            "adr_ad_brute": adr_ad_brute,  # adresse brute
+            "adr_adresse": adr_adresse,  # adresse normalisée
+            "adr_num": adr_fields["adr_num"],  # numéro de la voie
+            "adr_ind": adr_fields["adr_ind"],  # indice de répétition
+            "adr_voie": adr_fields["adr_voie"],  # nom de la voie
+            "adr_compl": adr_fields["adr_compl"],  # complément d'adresse
+            "adr_cpostal": adr_fields["adr_cpostal"],  # code postal
+            "adr_ville": adr_commune_maire,  # ville
+            "adr_codeinsee": None,  # code insee (5 chars)  # complété en aval par "enrichi"
+        }
+        doc_par = {
             # parcelle
             "par_ref_cad": (
                 normalize_string(getattr(df_row, "parcelle"))
                 if pd.notna(getattr(df_row, "parcelle"))
                 else None
             ),  # référence cadastrale
+        }
+        doc_not = {
             # notifié
             "not_nom_propri": "TODO_proprietaire",  # nom des propriétaries
             "not_ide_syndic": (
@@ -158,6 +270,7 @@ def create_docs_dataframe(
             "not_nom_syndic": "TODO_syndic",  # nom du syndic
             "not_ide_gestio": "TODO_gestio",  # identification du gestionnaire
         }
+        doc_data = doc_idu | doc_arr | doc_adr | doc_par | doc_not
         doc_rows.append(doc_data)
     df_docs = pd.DataFrame.from_records(doc_rows)
     df_docs = df_docs.astype(dtype=DTYPE_DATA)

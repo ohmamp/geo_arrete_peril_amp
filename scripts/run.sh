@@ -29,8 +29,11 @@ python src/aggregate_pages.py ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv ${DATA_INT
 # 8. extraire la structure du texte: en-têtes, pieds-de-pages, VUs, CONSIDERANTs, ARTICLEs etc.
 # (1 entrée: CSV de métadonnées ; 2 sorties: CSV de métadonnées enrichies (?) et CSV d'annotations de structure)
 # python src/parse_text_structure.py ${DATA_INT}/${BATCH}_meta_otxt.csv ${DATA_INT}/${BATCH}_meta_pars.csv ${DATA_INT}/${BATCH}_stru.csv
-# 9. extraire les champs voulus et générer les 4 tables pour l'intégration au SIG
-# (2 entrées: CSV de métadonnées)
+# 9. extraire les champs voulus
+# (1 entrée: CSV de métadonnées et données ; 1 sortie: CSV de métadonnées et données)
 python src/extract_data.py ${DATA_INT}/${BATCH}_meta_ntxt_doc.csv ${DATA_INT}/${BATCH}_data.csv
-# 10. exporter les données en 4 fichiers CSV pour l'intégration au SIG
-python src/export_data.py ${DATA_INT}/${BATCH}_data.csv ${DATA_PRO}/${BATCH}
+# 10. enrichir les données avec des bases externes
+# (1 entrée: CSV de métadonnées et données ; 1 sortie: CSV de métadonnées et données)
+python src/enrich_data.py ${DATA_INT}/${BATCH}_data.csv ${DATA_INT}/${BATCH}_data_enr.csv
+# 11. exporter les données en 4 fichiers CSV pour l'intégration au SIG
+python src/export_data.py ${DATA_INT}/${BATCH}_data_enr.csv ${DATA_PRO}/${BATCH}

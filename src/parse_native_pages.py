@@ -16,6 +16,7 @@ import argparse
 from datetime import datetime
 import logging
 from pathlib import Path
+import re
 from typing import NamedTuple
 
 import pandas as pd
@@ -43,9 +44,11 @@ from text_structure import (
     M_CC,
     M_CC_ART,
     # - données
+    RE_COMMUNE,
     M_MAIRE_COMMUNE,
     M_PARCELLE,
     M_ADR_DOC,
+    RE_ADRESSE,  # pour le nettoyage de l'adresse récupérée
     M_PROPRI,
     M_SYNDIC,
     M_DATE,
@@ -151,6 +154,20 @@ def is_accusedereception_page(page_txt: str) -> bool:
 
 
 # structure des arrêtés
+
+# - extraction de la commune prenant l'arrêté, à partir de la mention du maire
+
+# il peut être nécessaire de nettoyer la zone extraite pour enlever le contexte droit (reconnaissance trop étendue)
+RE_MAIRE_COMMUNE_CLEANUP = (
+    rf"""(?P<commune>{RE_COMMUNE})"""
+    + r"""\s+"""
+    + r"""(?:(CB|JFF) Accusé de réception)"""
+)
+M_MAIRE_COMMUNE_CLEANUP = re.compile(
+    RE_MAIRE_COMMUNE_CLEANUP, re.MULTILINE | re.IGNORECASE
+)
+
+
 def get_commune_maire(page_txt: str) -> bool:
     """Extrait le nom de la commune précédé de la mention du maire.
 
@@ -164,8 +181,14 @@ def get_commune_maire(page_txt: str) -> bool:
     nom_commune: str | None
         Nom de la commune si le texte contient une mention du maire, None sinon.
     """
-    match_mc = M_MAIRE_COMMUNE.search(page_txt)
-    return match_mc.group("commune") if match_mc is not None else None
+    if match_mc := M_MAIRE_COMMUNE.search(page_txt):
+        com_maire = match_mc.group("commune")
+        # nettoyage de la valeur récupérée
+        if m_com_cln := M_MAIRE_COMMUNE_CLEANUP.search(com_maire):
+            com_maire = m_com_cln.group("maire_commune")
+        return com_maire
+    else:
+        return None
 
 
 def contains_vu(page_txt: str) -> bool:
@@ -413,8 +436,26 @@ def get_parcelle(page_txt: str) -> bool:
     return m_parc.group("cadastre_id") if m_parc is not None else None
 
 
+# nettoyage de l'adresse récupérée: on supprime le contexte droit
+RE_ADR_CLEANUP = (
+    # rf"""(?P<adresse>{RE_ADRESSE})"""
+    r"""(?:\s*[-–,])?\s+"""
+    + r"""(?:"""
+    + r"""parcelle|section|référence|(?:cadastr[ée])"""
+    + r"""|copropriété"""
+    + r"""|susceptible|concernant"""
+    + r"""|(?:est\s+à\s+l['’]état)|(?:jusqu'à\s+nouvel\s+ordre)"""
+    + r"""|(?:est\s+strictement\s+interdit)|(?:et\s+[àà]\s+en\s+interdire)"""
+    + r"""|(?:pour$)"""
+    + r"""|(?:^consid[ée]rant)|(?:^vu)"""
+    + r""")"""
+    + r"""[\s\S]*"""
+)
+# M_ADR_CLEANUP = re.compile(RE_ADR_CLEANUP, re.MULTILINE | re.IGNORECASE)
+
+
 def get_adr_doc(page_txt: str) -> bool:
-    """Détecte si une page contient l'adresse visée par le document.
+    """Extrait l'adresse visée par le document.
 
     Parameters
     ----------
@@ -426,8 +467,13 @@ def get_adr_doc(page_txt: str) -> bool:
     adresse: str | None
         Adresse visée par le document si trouvée dans le texte, None sinon.
     """
-    m_adr = M_ADR_DOC.search(page_txt)
-    return m_adr.group("adresse") if m_adr is not None else None
+    if m_adr := M_ADR_DOC.search(page_txt):
+        adr = m_adr.group("adresse")
+        # nettoyage de la valeur récupérée
+        adr = re.sub(RE_ADR_CLEANUP, "", adr, flags=(re.MULTILINE | re.IGNORECASE))
+        return adr
+    else:
+        return None
 
 
 def get_proprietaire(page_txt: str) -> bool:

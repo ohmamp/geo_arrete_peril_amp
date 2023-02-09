@@ -57,10 +57,10 @@ Nom émetteur: [^\n]+
 N° de SIREN: \d{9}
 Numéro Acte de la collectivité locale: [^\n]+
 Objet acte: (?:[\s\S]+?)
-Nature de l'acte: (?P<nature_acte>Actes (individuels|réglementaires))
+Nature de l'acte: (?P<nature_acte>Actes individuels|Actes réglementaires|Autres)
 Matière: \d[.]\d-[^\n]+
-Identifiant Acte: \d{3}-\d{9}-\d{8}-[^-]+-(?P<nature_abr>AI|AR)"""
-# actes individuels: ...-AI, actes réglementaires: ...-AR
+Identifiant Acte: \d{3}-\d{9}-\d{8}-[^-]+-(?P<nature_abr>AI|AR|AU)"""
+# actes individuels: ...-AI, actes réglementaires: ...-AR, autres: ...-AU
 # (?P<nature_acte>Actes individuels|Actes réglementaires)\n
 # (?P<nature_abr>[^\n]+)
 M_ACCUSE = re.compile(RE_ACCUSE, re.MULTILINE)
@@ -199,11 +199,21 @@ RE_CLASS_ABRO_INT = (
 )
 M_CLASS_ABRO_INT = re.compile(RE_CLASS_ABRO_INT, re.MULTILINE | re.IGNORECASE)
 
+# regex générique pour ce qu'on considérera comme un "token" (plus ou moins, un mot)
+RE_TOK = r"""[^,;:–(\s]+"""
+
 # - commune
 # capture: Peyrolles-en-Provence, Gignac-la-Nerthe, GEMENOS, Roquevaire, Gardanne
 RE_MAIRE_COMM_DE = r"Maire\s+(?:de\s+la\s+Commune\s+)?(?:de\s+|d')"
+RE_COMMUNE = rf"""{RE_TOK}"""  # r"""[^,;]+"""
 # "Nous[,.]": gestion d'erreur d'OCR ("." reconnu au lieu de ",")
-RE_MAIRE_COMMUNE = rf"""(?:Le\s+{RE_MAIRE_COMM_DE}|Nous[,.]\s+(?:[^,]+,\s+)?{RE_MAIRE_COMM_DE})(?P<commune>[^,;]+)"""
+RE_MAIRE_COMMUNE = (
+    r"""(?:"""
+    + rf"""Le\s+{RE_MAIRE_COMM_DE}"""
+    + rf"""|Nous[,.]\s+(?:[^,]+,\s+)?{RE_MAIRE_COMM_DE}"""
+    + r""")"""
+    + rf"""(?P<commune>{RE_COMMUNE})"""
+)
 M_MAIRE_COMMUNE = re.compile(RE_MAIRE_COMMUNE, re.MULTILINE | re.IGNORECASE)
 # - parcelle cadastrale
 RE_CAD_SEC = r"""[A-Z]{1,2}"""
@@ -222,9 +232,9 @@ M_PARCELLE = re.compile(RE_PARCELLE, re.MULTILINE | re.IGNORECASE)
 # - adresse
 RE_NUM_IND_VOIE = r"""(?P<num_voie>\d+)""" + r"""(?:\s?(?P<ind_voie>A|bis|ter))?"""
 RE_TYP_VOIE = r"""(?:avenue|boulevard|cours|impasse|place|rue)"""
-RE_NOM_VOIE = r"""(?:[^,;:–(]+)"""
+RE_NOM_VOIE = rf"""(?:{RE_TOK}(?:\s+{RE_TOK})*)"""
 RE_CP = r"""\d{5}"""
-RE_COMMUNE = r"""\w+(?:[\s-]+[^,;:–(]+){0,3}?"""
+RE_COMMUNE_ADR = rf"""{RE_TOK}"""
 # contextes: "objet:" (objet de l'arrêté),
 # TODO ajouter du contexte pour être plus précis? "désordres sur le bâtiment sis... ?"
 RE_ADRESSE = (
@@ -234,20 +244,30 @@ RE_ADRESSE = (
     + rf"""\s+(?P<nom_voie>{RE_NOM_VOIE})"""
     # TODO complément d'adresse ?
     + r"""(?:"""
+    + r"""(?:(?:\s*[,–])|(?:\s+à))?"""  # ex: 2 rue xxx[,] 13420 GEMENOS
     + r"""\s+"""
-    + r"""(?:[–à]\s+)?"""
     + r"""(?:"""
     + rf"""(?P<code_postal>{RE_CP})"""
     + r"""\s+)?"""
-    + rf"""(?P<commune>{RE_COMMUNE})"""
+    + rf"""(?P<commune>{RE_COMMUNE_ADR})"""
     + r""")?"""
 )
 M_ADRESSE = re.compile(RE_ADRESSE, re.MULTILINE | re.IGNORECASE)
 # adresse du bâtiment visé par l'arrêté
 RE_ADR_DOC = (
-    r"""(?:situ[ée](?:\s+au)?|désordres\s+sur\s+le\s+bâtiment\s+sis|immeuble\s+(?:du|numéroté)|sis[e]?(?:\s+à)?|Objet\s?:)\s+"""
+    r"""(?:situ[ée](?:\s+au)?"""
+    + r"""|désordres\s+sur\s+le\s+bâtiment\s+sis"""
+    + r"""|immeuble\s+(?:du|numéroté)"""
+    + r"""|sis[e]?(?:\s+à)?"""
+    + r"""|Objet\s?:"""
+    + r""")\s+"""
     + rf"""(?P<adresse>{RE_ADRESSE})"""  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
-    + r"""(?:\s+(?:(?:[,:–-]\s+)|[(]?)?(?:susceptible|parcelle|référence|concernant))?"""
+    + r"""(?:\s+"""
+    + r"""(?:"""
+    + r"""(?:[,:–-]\s+)|[(]"""
+    + r""")?"""
+    + r"""(?:susceptible|parcelle|référence|concernant)"""
+    + r""")?"""
 )
 M_ADR_DOC = re.compile(RE_ADR_DOC, re.MULTILINE | re.IGNORECASE)
 # - propriétaire

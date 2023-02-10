@@ -17,8 +17,9 @@ from typing import Dict
 
 import pandas as pd
 
+from adresse import M_ADRESSE
 from aggregate_pages import DTYPE_META_NTXT_DOC
-from text_structure import M_ADRESSE, RE_MOIS
+from str_date import RE_MOIS
 
 
 DTYPE_DATA = {

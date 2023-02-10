@@ -12,6 +12,7 @@ from typing import NamedTuple
 
 import pandas as pd
 
+from adresse import CP_MARSEILLE
 from extract_data import DTYPE_DATA
 from knowledge_bases import load_codes_insee_amp
 
@@ -42,9 +43,6 @@ COM2INSEE = {
     simplify_commune(com): insee for com, insee in DF_INSEE.itertuples(index=False)
 }
 
-# codes postaux de Marseille
-# FIXME refactoriser-déplacer vers adresse
-CP_MARSEILLE = [f"130{i:02}" for i in range(1, 17)]
 
 # TODO fuzzyjoin ?
 def fill_code_insee(df_row: NamedTuple) -> str:

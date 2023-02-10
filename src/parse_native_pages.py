@@ -21,18 +21,9 @@ from typing import NamedTuple
 
 import pandas as pd
 
-from separate_pages import DTYPE_META_NTXT, DTYPE_NTXT_PAGES
-from text_structure import (
-    # @ctes
-    M_STAMP,
-    M_ACCUSE,
-    # tous arrêtés
-    M_VU,
-    M_CONSIDERANT,
-    M_ARRETE,
-    M_ARTICLE,
-    # spécifiques arrêtés
-    # - règlementaires
+from actes import M_STAMP, M_ACCUSE
+from cadastre import M_PARCELLE
+from cadre_reglementaire import (
     M_CGCT,
     M_CGCT_ART,
     M_CCH,
@@ -43,17 +34,9 @@ from text_structure import (
     M_CCH_R511,
     M_CC,
     M_CC_ART,
-    # - données
-    RE_COMMUNE,
-    M_MAIRE_COMMUNE,
-    M_PARCELLE,
-    M_ADR_DOC,
-    RE_ADRESSE,  # pour le nettoyage de l'adresse récupérée
-    M_PROPRI,
-    M_SYNDIC,
-    M_DATE_DOC,
-    M_NUM,
-    M_NOM,
+)
+
+from typologie_securite import (
     #   * classification + procédure d'urgence
     M_CLASS_PS_PO,
     M_CLASS_PS_PO_MOD,
@@ -76,6 +59,26 @@ from text_structure import (
     M_DEMOL_DECONST,
     #   * équipements communs
     M_EQUIPEMENTS_COMMUNS,
+)
+
+from separate_pages import DTYPE_META_NTXT, DTYPE_NTXT_PAGES
+from text_structure import (
+    # tous arrêtés
+    M_NUM,  # numéro/identifiant de l'arrêté
+    M_NOM,  # nom/objet de l'arrêté
+    M_VU,
+    M_CONSIDERANT,
+    M_ARRETE,
+    M_ARTICLE,
+    # spécifiques arrêtés
+    # - données
+    RE_COMMUNE,
+    M_MAIRE_COMMUNE,
+    M_ADR_DOC,
+    RE_ADRESSE,  # pour le nettoyage de l'adresse récupérée
+    M_PROPRI,
+    M_SYNDIC,
+    M_DATE_DOC,
 )
 
 

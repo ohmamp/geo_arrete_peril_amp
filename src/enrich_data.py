@@ -7,12 +7,14 @@ import argparse
 from datetime import datetime
 import logging
 from pathlib import Path
+import re
 from typing import NamedTuple
 
 import pandas as pd
 
 from extract_data import DTYPE_DATA
 from knowledge_bases import load_codes_insee_amp
+
 
 # charger la table des codes INSEE des communes
 DF_INSEE = load_codes_insee_amp()
@@ -40,6 +42,9 @@ COM2INSEE = {
     simplify_commune(com): insee for com, insee in DF_INSEE.itertuples(index=False)
 }
 
+# codes postaux de Marseille
+# FIXME refactoriser-déplacer vers adresse
+CP_MARSEILLE = [f"130{i:02}" for i in range(1, 17)]
 
 # TODO fuzzyjoin ?
 def fill_code_insee(df_row: NamedTuple) -> str:
@@ -58,11 +63,85 @@ def fill_code_insee(df_row: NamedTuple) -> str:
     com = df_row.adr_ville
     if pd.isna(com):
         codeinsee = None
+    elif pd.notna(df_row.adr_cpostal) and (df_row.adr_cpostal in CP_MARSEILLE):
+        # TODO expectation: aucun codeinsee 13055 dans le dataset final
+        codeinsee = "132" + df_row.adr_cpostal[-2:]
     else:
         codeinsee = COM2INSEE.get(
             simplify_commune(com), None
         )  # TODO robuste  # TODO code postal pour les arrondissements de Marseille
     df_row_enr = df_row._replace(adr_codeinsee=codeinsee)
+    return df_row_enr
+
+
+# FIXME déplacer+refactoriser vers un module spécifique cadastre
+RE_CAD_ARRT_QUAR = (
+    r"""(?P<arrt>2[01]\d)"""  # 3 derniers chiffres du code INSEE de l'arrondissement
+    + r"""\s*"""
+    + r"""(?P<quar>\d{3})"""  # code quartier
+)
+# toutes communes: section et numéro
+RE_CAD_SEC = r"""(?P<sec>[A-Z]{1,2})"""
+RE_CAD_NUM = r"""(?P<num>\d{1,4})"""
+# expression complète
+# - Marseille
+RE_CAD_MARSEILLE = rf"""(?:(?:n°\s?){RE_CAD_ARRT_QUAR}\s+{RE_CAD_SEC}\s?{RE_CAD_NUM})"""
+M_CAD_MARSEILLE = re.compile(RE_CAD_MARSEILLE, re.MULTILINE | re.IGNORECASE)
+# - autres communes
+RE_CAD_AUTRES = rf"""(?:(?:n°\s?)?{RE_CAD_SEC}(?:\sn°)?\s?{RE_CAD_NUM})"""
+M_CAD_AUTRES = re.compile(RE_CAD_AUTRES, re.MULTILINE | re.IGNORECASE)
+
+
+def generate_refcadastrale_norm(df_row: NamedTuple) -> str:
+    """Génère une référence cadastrale normalisée à une entrée.
+
+    Nécessite le code INSEE de la commune.
+
+    Parameters
+    ----------
+    df_row: NamedTuple
+        Entrée contenant la commune et son code INSEE.
+
+    Returns
+    -------
+    df_row_enr: NamedTuple
+        Entrée enrichie de la référence cadastrale normalisée.
+    """
+    # ajouter le préfixe du code insee
+    # TODO cas particulier pour Marseille: code commune par ardt + code quartier
+    codeinsee = df_row.adr_codeinsee
+    if pd.isna(codeinsee):
+        codeinsee = ""  # TODO vérifier si le comportement qui en découle est ok (identifiant court, à compléter manuellement par le code insee)
+
+    # prendre la référence locale (commune)
+    refcad = df_row.par_ref_cad
+    if pd.isna(refcad):
+        refcad = None
+    elif m_mars := M_CAD_MARSEILLE.match(refcad):
+        # match(): on ne garde que le 1er match
+        # TODO gérer 2 ou plusieurs références cadastrales
+        m_dict = m_mars.groupdict()
+        arrt = m_dict["arrt"]
+        if codeinsee and codeinsee != "13055":
+            try:
+                assert codeinsee[-3:] == arrt
+            except AssertionError:
+                # FIXME améliorer le warning ; écrire une expectation sur le dataset final
+                logging.warning(
+                    f"{df_row.arr_nom_pdf}: conflit entre code INSEE ({codeinsee}, via code postal {df_row.adr_cpostal}) et référence cadastrale {arrt}"
+                )
+        else:
+            codeinsee = f"13{arrt}"
+        # Marseille: code insee arrondissement + code quartier (3 chiffres) + section + parcelle
+        refcad = f"{codeinsee}{m_dict['quar']}{m_dict['sec']:02}{m_dict['num']:04}"
+    elif m_autr := M_CAD_AUTRES.match(refcad):
+        m_dict = m_autr.groupdict()
+        # hors Marseille: code insee commune + 000 + section + parcelle
+        codequartier = "000"
+        refcad = f"{codeinsee}{codequartier}{m_dict['sec']:02}{m_dict['num']:04}"
+    else:
+        refcad = None
+    df_row_enr = df_row._replace(par_ref_cad=refcad)
     return df_row_enr
 
 
@@ -86,6 +165,7 @@ def create_docs_dataframe(
     doc_rows = []
     for i, df_row in enumerate(df_agg.itertuples()):
         df_row_enr = fill_code_insee(df_row)
+        df_row_enr = generate_refcadastrale_norm(df_row_enr)
         doc_rows.append(df_row_enr)
     df_docs = pd.DataFrame(doc_rows)
     df_docs = df_docs.astype(dtype=DTYPE_DATA)

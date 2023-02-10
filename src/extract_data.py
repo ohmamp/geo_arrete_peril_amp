@@ -18,7 +18,7 @@ from typing import Dict
 import pandas as pd
 
 from aggregate_pages import DTYPE_META_NTXT_DOC
-from text_structure import M_ADRESSE
+from text_structure import M_ADRESSE, RE_MOIS
 
 
 DTYPE_DATA = {
@@ -165,6 +165,72 @@ def process_adresse_brute(adr_ad_brute: str) -> Dict:
         return adr_fields
 
 
+# date: extraction précise des champs
+# FIXME refactoriser-déplacer vers un module dédié aux dates
+RE_DATE_PREC = (
+    # jour
+    r"""(?P<dd>\d{1,2})"""
+    + r"""[\s./-]"""
+    # mois, en nombre, lettres abrégées ou toutes lettres
+    + r"""(?P<mm>"""
+    + r"""\d{2}"""
+    + rf"""|{RE_MOIS}"""
+    + r""")"""
+    + r"""[\s./-]"""
+    + r"""(?P<yyyy>\d{4})"""  # Peyrolles-en-Provence (en-tête)
+)
+M_DATE_PREC = re.compile(RE_DATE_PREC, re.MULTILINE | re.IGNORECASE)
+
+MAP_MOIS = {
+    "janvier": "01",
+    "jan": "01",
+    "fevrier": "02",
+    "fev": "02",
+    "mars": "03",
+    # "mar": "03",
+    "avril": "04",
+    "avr": "04",
+    "mai": "05",
+    "juin": "06",
+    "juillet": "07",
+    "juil": "07",  # jul?
+    "aout": "08",
+    "aou": "08",
+    "septembre": "09",
+    "sept": "09",  # sep?
+    "octobre": "10",
+    "oct": "10",
+    "novembre": "11",
+    "nov": "11",
+    "decembre": "12",
+    "dec": "12",
+}
+
+
+def process_date_brute(arr_date: str) -> Dict:
+    """Extraire les différents champs d'une date brute et la normaliser.
+
+    Parameters
+    ----------
+    arr_date: str
+        Date brute
+
+    Returns
+    -------
+    arr_date_norm: str
+        Date normalisée dd/mm/yyyy
+    """
+    if m_date_p := M_DATE_PREC.search(arr_date):
+        m_dict = m_date_p.groupdict()
+        # traitement spécifique pour le mois, qui peut être écrit en lettres
+        mm_norm = MAP_MOIS.get(
+            m_dict["mm"].lower().replace("é", "e").replace("û", "u"), m_dict["mm"]
+        )
+        return f"{m_dict['dd']}/{mm_norm}/{m_dict['yyyy']}"
+    else:
+        return None
+
+
 def create_docs_dataframe(
     df_agg: pd.DataFrame,
 ) -> pd.DataFrame:
@@ -190,7 +256,7 @@ def create_docs_dataframe(
         doc_arr = {
             # arrêté
             "arr_date": (
-                normalize_string(getattr(df_row, "arr_date"))
+                process_date_brute(getattr(df_row, "arr_date"))
                 if pd.notna(getattr(df_row, "arr_date"))
                 else None
             ),
@@ -214,9 +280,21 @@ def create_docs_dataframe(
                 if pd.notna(getattr(df_row, "arr_proc_urgence"))
                 else None
             ),
-            "arr_demolition": "TODO_demol",  # RESUME HERE
-            "arr_interdiction": "TODO_inter",  # RESUME HERE
-            "arr_equipcomm": "TODO_equip",  # RESUME HERE
+            "arr_demolition": (
+                normalize_string(getattr(df_row, "arr_demolition"))
+                if pd.notna(getattr(df_row, "arr_demolition"))
+                else None
+            ),  # TODO affiner
+            "arr_interdiction": (
+                normalize_string(getattr(df_row, "arr_interdiction"))
+                if pd.notna(getattr(df_row, "arr_interdiction"))
+                else None
+            ),  # TODO affiner
+            "arr_equipcomm": (
+                normalize_string(getattr(df_row, "arr_equipcomm"))
+                if pd.notna(getattr(df_row, "arr_equipcomm"))
+                else None
+            ),  # TODO affiner
             # (métadonnées du doc)
             "arr_nom_pdf": getattr(df_row, "filename"),
             "arr_url": getattr(df_row, "fullpath"),  # TODO URL localhost?
@@ -251,16 +329,17 @@ def create_docs_dataframe(
             "adr_ville": adr_commune_maire,  # ville
             "adr_codeinsee": None,  # code insee (5 chars)  # complété en aval par "enrichi"
         }
+        # parcelle cadastrale
+        ref_cad = (
+            normalize_string(getattr(df_row, "parcelle"))
+            if pd.notna(getattr(df_row, "parcelle"))
+            else None
+        )
         doc_par = {
-            # parcelle
-            "par_ref_cad": (
-                normalize_string(getattr(df_row, "parcelle"))
-                if pd.notna(getattr(df_row, "parcelle"))
-                else None
-            ),  # référence cadastrale
+            "par_ref_cad": ref_cad,  # référence cadastrale
         }
+        # notifiés
         doc_not = {
-            # notifié
             "not_nom_propri": "TODO_proprietaire",  # nom des propriétaries
             "not_ide_syndic": (
                 normalize_string(getattr(df_row, "syndic"))

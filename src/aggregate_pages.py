@@ -44,9 +44,9 @@ DTYPE_PARSE_AGG = {
     # "arrete_nom": "object",  # List[string]
     "arr_classification": "string",
     "arr_proc_urgence": "string",
-    # "arrete_demolition": "object",  # List[string]
-    # "arrete_interdiction": "object",  # List[string]
-    # "arrete_equipcomm": "object",  # List[string]
+    "arr_demolition": "string",
+    "arr_interdiction": "string",
+    "arr_equipcomm": "string",
     # - adresse
     "adresse_brute": "string",
     # - parcelle
@@ -191,6 +191,21 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
         "arr_proc_urgence": (
             grp.dropna(subset=["arr_proc_urgence"])["arr_proc_urgence"].to_list()[0]
             if not grp.dropna(subset=["arr_proc_urgence"]).empty
+            else None
+        ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+        "arr_demolition": (
+            grp.dropna(subset=["arr_demolition"])["arr_demolition"].to_list()[0]
+            if not grp.dropna(subset=["arr_demolition"]).empty
+            else None
+        ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+        "arr_interdiction": (
+            grp.dropna(subset=["arr_interdiction"])["arr_interdiction"].to_list()[0]
+            if not grp.dropna(subset=["arr_interdiction"]).empty
+            else None
+        ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+        "arr_equipcomm": (
+            grp.dropna(subset=["arr_equipcomm"])["arr_equipcomm"].to_list()[0]
+            if not grp.dropna(subset=["arr_equipcomm"]).empty
             else None
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }

@@ -186,8 +186,6 @@ RE_CLASS_ML_PA = r"""Arrêté(?:\s+de)?\s+mainlevée\s+partielle"""
 M_CLASS_ML_PA = re.compile(RE_CLASS_ML_PA, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_DE = r"""Arrêté\s+de\s+(déconstruction|démolition)"""
 M_CLASS_DE = re.compile(RE_CLASS_DE, re.MULTILINE | re.IGNORECASE)
-RE_CLASS_DE = r"""Arrêté\s+de\s+(déconstruction|démolition)"""
-M_CLASS_DE = re.compile(RE_CLASS_DE, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_ABRO_DE = r"""Abrogation\s+de\s+l'arrêté\s+de\s+(déconstruction|démolition)"""
 M_CLASS_ABRO_DE = re.compile(RE_CLASS_ABRO_DE, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_INS = r"""Arrêté\s+d'\s*insécurité\s+des\s+équipements\s+communs"""
@@ -198,6 +196,48 @@ RE_CLASS_ABRO_INT = (
     r"""Arrêté\s+d'\s*abrogation\s+de\s+l'\s*interdiction\s+d'\s*occuper"""
 )
 M_CLASS_ABRO_INT = re.compile(RE_CLASS_ABRO_INT, re.MULTILINE | re.IGNORECASE)
+# toutes classes
+RE_CLASS_ALL = r"|".join(
+    [
+        RE_CLASS_PGI_MOD,
+        RE_CLASS_PGI,
+        RE_CLASS_PS_PO_MOD,
+        RE_CLASS_PS_PO,
+        RE_CLASS_MSU_MOD,
+        RE_CLASS_MSU,
+        RE_CLASS_MS_MOD,
+        RE_CLASS_MS,
+        RE_CLASS_ML_PA,
+        RE_CLASS_ML,
+        RE_CLASS_ABRO_DE,
+        RE_CLASS_DE,
+        RE_CLASS_ABRO_INT,
+        RE_CLASS_INT,
+        RE_CLASS_INS,
+    ]
+)
+M_CLASS_ALL = re.compile(RE_CLASS_ALL, re.MULTILINE | re.IGNORECASE)
+
+# interdiction d'habiter
+RE_INTERDICT_HABIT = (
+    r"""(?:"""
+    + r"""interdiction\s+d'habiter\s+et\s+d'occuper"""
+    + r"""|interdiction\s+d'habiter\s+l'appartement"""
+    + r""")"""
+)
+M_INTERDICT_HABIT = re.compile(RE_INTERDICT_HABIT, re.MULTILINE | re.IGNORECASE)
+
+# démolition / déconstruction
+# TODO à affiner: démolition d'un mur? déconstruction et reconstruction? etc
+# TODO filtrer les pages copiées des textes réglementaires
+RE_DEMOL_DECONST = (
+    r"""(?:""" + r"""démolir""" + r"""|démolition""" + r"""|déconstruction""" + r""")"""
+)
+M_DEMOL_DECONST = re.compile(RE_DEMOL_DECONST, re.MULTILINE | re.IGNORECASE)
+
+# (insécurité des) équipements communs
+RE_EQUIPEMENTS_COMMUNS = r"""sécurité(?:\s+imminente)\s+des\s+équipements\s+communs"""
+M_EQUIPEMENTS_COMMUNS = re.compile(RE_EQUIPEMENTS_COMMUNS, re.MULTILINE | re.IGNORECASE)
 
 # regex générique pour ce qu'on considérera comme un "token" (plus ou moins, un mot)
 RE_TOK = r"""[^,;:–(\s]+"""
@@ -215,23 +255,51 @@ RE_MAIRE_COMMUNE = (
     + rf"""(?P<commune>{RE_COMMUNE})"""
 )
 M_MAIRE_COMMUNE = re.compile(RE_MAIRE_COMMUNE, re.MULTILINE | re.IGNORECASE)
+
 # - parcelle cadastrale
+# Marseille: préfixe = arrondissement + quartier
+RE_CAD_ARRT_QUAR = (
+    r"""(2[01]\d)"""  # 3 derniers chiffres du code INSEE de l'arrondissement
+    + r"""\s*"""
+    + r"""(\d{3})"""  # code quartier
+)
+# toutes communes: section et numéro
 RE_CAD_SEC = r"""[A-Z]{1,2}"""
 RE_CAD_NUM = r"""\d{1,4}"""
-RE_CAD_SECNUM = rf"""(?:(?:(?:n°\s?){RE_CAD_SEC}\s?{RE_CAD_NUM})|(?:{RE_CAD_SEC}\sn°\s?{RE_CAD_NUM})|(?:{RE_CAD_SEC}\s?{RE_CAD_NUM}))"""
+# expression complète
+# - Marseille
+RE_CAD_MARSEILLE = rf"""(?:(?:n°\s?){RE_CAD_ARRT_QUAR}\s+{RE_CAD_SEC}\s?{RE_CAD_NUM})"""
+M_CAD_MARSEILLE = re.compile(RE_CAD_MARSEILLE, re.MULTILINE | re.IGNORECASE)
+# - autres communes
+RE_CAD_AUTRES = rf"""(?:(?:n°\s?)?{RE_CAD_SEC}(?:\sn°)?\s?{RE_CAD_NUM})"""
+M_CAD_AUTRES = re.compile(RE_CAD_AUTRES, re.MULTILINE | re.IGNORECASE)
+# Marseille ou autres communes
+RE_CAD_SECNUM = (
+    r"""(?:""" + rf"""{RE_CAD_MARSEILLE}""" + rf"""|{RE_CAD_AUTRES}""" + r""")"""
+)
+# avec le contexte gauche
 RE_PARCELLE = (
     r"""(?:"""
-    + r"""cadastré(?:e|es)(?:\s+section)?|référence(?:s)?\s+cadastrale(?:s)?|parcelle(?:s)?"""
+    + r"""cadastré(?:e|es)(?:\s+section)?"""
+    + r"""|référence(?:s)?\s+cadastrale(?:s)?"""
+    + r"""|parcelle(?:s)?"""
     + r""")\s+"""
     + r"""(?P<cadastre_id>"""
     + rf"""{RE_CAD_SECNUM}"""
-    + rf"""((,|\s+et)\s+{RE_CAD_SECNUM})*"""
+    + r"""("""
+    + r"""(?:,|\s+et|\s+[-])\s+"""
+    + rf"""{RE_CAD_SECNUM}"""
+    + r""")*"""
     + r""")"""
 )
 M_PARCELLE = re.compile(RE_PARCELLE, re.MULTILINE | re.IGNORECASE)
 # - adresse
-RE_NUM_IND_VOIE = r"""(?P<num_voie>\d+)""" + r"""(?:\s?(?P<ind_voie>A|bis|ter))?"""
-RE_TYP_VOIE = r"""(?:avenue|boulevard|cours|impasse|place|rue)"""
+# TODO comment gérer plusieurs numéros? ex: "10-12-14 boulevard ...""
+# pour le moment on ne garde que le premier
+RE_NUM_IND_VOIE = (
+    r"""(?P<num_voie>\d+)([-/]\d+)*""" + r"""(?:\s?(?P<ind_voie>A|bis|ter))?"""
+)
+RE_TYP_VOIE = r"""(?:avenue|boulevard|cours|impasse|place|rue|traverse)"""
 RE_NOM_VOIE = rf"""(?:{RE_TOK}(?:\s+{RE_TOK})*)"""
 RE_CP = r"""\d{5}"""
 RE_COMMUNE_ADR = rf"""{RE_TOK}"""
@@ -259,7 +327,10 @@ RE_ADR_DOC = (
     + r"""|désordres\s+sur\s+le\s+bâtiment\s+sis"""
     + r"""|immeuble\s+(?:du|numéroté)"""
     + r"""|sis[e]?(?:\s+à)?"""
-    + r"""|Objet\s?:"""
+    + r"""|(?:"""
+    + r"""Objet\s*:"""
+    + rf"""(?:\s+{RE_CLASS_ALL}\s*[,:–-]?)?"""
+    + r""")"""
     + r""")\s+"""
     + rf"""(?P<adresse>{RE_ADRESSE})"""  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     + r"""(?:\s+"""
@@ -296,7 +367,18 @@ RE_MOIS = (
     + r"""jan|f[ée]v|mars|avr|mai|juin|juil|aou|sep|oct|nov|d[ée]c"""
     + r""")"""
 )
+
 RE_DATE = (
+    r"""(?:"""
+    + r"""\d{2}[.]\d{2}[.]\d{4}|"""  # Peyrolles-en-Provence (en-tête)
+    + r"""\d{2}/\d{2}/\d{4}|"""  # ?
+    + r"""\d{1,2} """
+    + rf"""{RE_MOIS}"""
+    + r""" \d{4}"""  # Roquevaire (fin), Martigues (fin)
+    + r""")"""
+)
+
+RE_DATE_DOC = (
     r"""(?:"""
     + r"""^Fait\s+à\s+\S+[,]?\s+le|"""  # Roquevaire (fin)
     + r"""^Fait à Aix-en-Provence, en l'Hôtel de Ville,\nle|"""  # Aix-en-Provence (fin)
@@ -304,23 +386,20 @@ RE_DATE = (
     + r"""Arrêté\s+n°[\s\S]+?\s+du"""  # Peyrolles-en-Provence (en-tête), Martigues (fin)
     + r""")"""
     + r"""\s+(?P<arr_date>"""
-    + r"""(?:"""
-    + r"""\d{2}[.]\d{2}[.]\d{4}|"""  # Peyrolles-en-Provence (en-tête)
-    + r"""\d{2}/\d{2}/\d{4}|"""  # ?
-    + r"""\d{1,2} """
-    + rf"""{RE_MOIS}"""
-    + r""" \d{4}"""  # Roquevaire (fin), Martigues (fin)
-    + r""")"""
+    + rf"""{RE_DATE}"""
     + r""")"""
 )
-M_DATE = re.compile(RE_DATE, re.MULTILINE | re.IGNORECASE)
+M_DATE_DOC = re.compile(RE_DATE_DOC, re.MULTILINE | re.IGNORECASE)
+
+
 # numéro de l'arrêté
 RE_NUM = (
     r"""(?:"""
-    + r"""Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°|"""
-    + r"""Réf\s+:|"""
-    + r"""Arrêté\s+n°|"""  # en-tête Peyrolles-en-Provence
-    + r"""ARRETE\s+N°"""
+    + r"""Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°"""
+    + r"""|Réf\s+:"""
+    + r"""|Arrêté\s+n°"""  # en-tête Peyrolles-en-Provence
+    + r"""|ARRETE\s+N°"""
+    + r"""|^N°"""
     + r""")"""
     + r"""\s*(?P<arr_num>[^,;\n(]+)"""
 )

@@ -51,7 +51,7 @@ from text_structure import (
     RE_ADRESSE,  # pour le nettoyage de l'adresse récupérée
     M_PROPRI,
     M_SYNDIC,
-    M_DATE,
+    M_DATE_DOC,
     M_NUM,
     M_NOM,
     #   * classification + procédure d'urgence
@@ -70,6 +70,12 @@ from text_structure import (
     M_CLASS_INS,
     M_CLASS_INT,
     M_CLASS_ABRO_INT,
+    #   * interdiction d'habiter
+    M_INTERDICT_HABIT,
+    #   * démolition et déconstruction
+    M_DEMOL_DECONST,
+    #   * équipements communs
+    M_EQUIPEMENTS_COMMUNS,
 )
 
 
@@ -108,8 +114,12 @@ DTYPE_PARSE = {
     "date": "string",
     "arr_num": "string",
     "arr_nom": "string",
+    # type d'arrêté
     "arr_classification": "string",
     "arr_proc_urgence": "string",
+    "arr_demolition": "string",
+    "arr_interdiction": "string",
+    "arr_equipcomm": "string",
 }
 
 # dtype du fichier de sortie
@@ -446,8 +456,9 @@ RE_ADR_CLEANUP = (
     + r"""|susceptible|concernant"""
     + r"""|(?:est\s+à\s+l['’]état)|(?:jusqu'à\s+nouvel\s+ordre)"""
     + r"""|(?:est\s+strictement\s+interdit)|(?:et\s+[àà]\s+en\s+interdire)"""
+    + r"""|ainsi|situé"""  # Marseille
     + r"""|(?:pour$)"""
-    + r"""|(?:^consid[ée]rant)|(?:^vu)"""
+    + r"""|(?:^Nous,\s+Maire)|(?:^vu)|(?:^consid[ée]rant)|(?:^article)"""
     + r""")"""
     + r"""[\s\S]*"""
 )
@@ -523,8 +534,10 @@ def get_date(page_txt: str) -> bool:
     doc_date: str
         Date du document si trouvée, None sinon.
     """
-    m_date = M_DATE.search(page_txt)
-    return m_date.group("arr_date") if m_date is not None else None
+    if m_date_d := M_DATE_DOC.search(page_txt):
+        return m_date_d.group("arr_date")
+    else:
+        return None
 
 
 def get_num(page_txt: str) -> bool:
@@ -646,6 +659,69 @@ def get_urgence(page_txt: str) -> bool:
         return None
 
 
+def get_interdiction_habiter(page_txt: str) -> bool:
+    """Détermine si l'arrêté porte interdiction d'habiter et d'occuper.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    doc_equip_comm: str
+        Classification de l'arrêté si trouvé, None sinon.
+    """
+    if page_txt is None:
+        return None
+    elif M_INTERDICT_HABIT.search(page_txt):
+        return "oui"
+    else:
+        return "non"
+
+
+def get_demol_deconst(page_txt: str) -> bool:
+    """Détermine si l'arrêté porte une démolition ou déconstruction.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    doc_demol_deconst: str
+        Classification de l'arrêté si trouvé, None sinon.
+    """
+    if page_txt is None:
+        return None
+    elif M_DEMOL_DECONST.search(page_txt):
+        return "oui"
+    else:
+        return "non"
+
+
+def get_equipements_communs(page_txt: str) -> bool:
+    """Détermine si l'arrêté porte sur la sécurité des équipements communs.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    doc_equip_comm: str
+        Classification de l'arrêté si trouvé, None sinon.
+    """
+    if page_txt is None:
+        return None
+    elif M_EQUIPEMENTS_COMMUNS.search(page_txt):
+        return "oui"
+    else:
+        return "non"
+
+
 def spot_text_structure(
     df_row: NamedTuple,
 ) -> pd.DataFrame:
@@ -694,10 +770,14 @@ def spot_text_structure(
             "parcelle": get_parcelle(df_row.pagetxt),
             "syndic": get_syndic(df_row.pagetxt),
             "date": get_date(df_row.pagetxt),
+            #   * arrêté
             "arr_num": get_num(df_row.pagetxt),
             "arr_nom": get_nom(df_row.pagetxt),
             "arr_classification": get_classification(df_row.pagetxt),
             "arr_proc_urgence": get_urgence(df_row.pagetxt),
+            "arr_demolition": get_demol_deconst(df_row.pagetxt),
+            "arr_interdiction": get_interdiction_habiter(df_row.pagetxt),
+            "arr_equipcomm": get_equipements_communs(df_row.pagetxt),
         }
     else:
         # tous les champs sont vides ("None")

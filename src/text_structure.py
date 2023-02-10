@@ -92,10 +92,20 @@ M_PROPRI = re.compile(RE_PROPRI, re.MULTILINE | re.IGNORECASE)
 # TODO syndic judiciaire?
 # TODO M. ... en qualité de syndic?
 # TODO administrateur?
+# ex: "Considérant que le syndicat des copropriétaires de cet immeuble est pris en la personne du Cabinet xxxx syndic, domicilié 11, avenue du Dol - 13001 MARSEILLE,"
 RE_SYNDIC = (
-    r"""(?:agence|le syndic(?:\s+de\s+copropriété)?|syndic\s+:)\s+"""
+    r"""(?:"""
+    + r"""agence"""
+    + r"""|le syndic(?:\s+de\s+copropriété)?"""
+    + r"""|syndic\s+:"""
+    + r"""|syndicat\s+des\s+copropriétaires(?:\s+de\s+(?:cet\s+|l'\s*)immeuble)?(?:\s+est)?\s+pris\s+en\s+la\s+personne\s+(?:du|de)"""
+    + r""")\s+"""
     + r"""(?P<syndic>.+?)"""
-    + r"""(?:[,.]|[,]?\s+sis)"""
+    + r"""(?:"""
+    + r"""[,.]"""
+    + r"""|[,]?\s+(?:sis|domicilié)\s+"""
+    + rf"""{RE_ADRESSE}"""
+    + r""")"""
 )
 M_SYNDIC = re.compile(RE_SYNDIC, re.MULTILINE | re.IGNORECASE)
 

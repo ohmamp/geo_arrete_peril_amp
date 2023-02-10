@@ -17,8 +17,11 @@ RE_CLASS_MS_MOD = (
 M_CLASS_MS_MOD = re.compile(RE_CLASS_MS_MOD, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_PGI = (
     r"""(?:"""
-    + r"""Arr[êe]t[ée]\s+de\s+p[ée]ril\s+grave\s+et\s+imminent|"""
-    + r"""Arr[êe]t[ée]\s+portant\s+proc[ée]dure\s+de\s+p[ée]ril(?:\s+grave\s+et)?\s+imminent"""
+    + r"""Arr[êe]t[ée]"""
+    + r"""(?:\s+portant\s+proc[ée]dure)"""
+    + r"""\s+de\s+p[ée]ril"""
+    + r"""(?:\s+grave(?:\s+et)?)?"""
+    + r"""\s+imminent"""
     + r""")"""
 )
 M_CLASS_PGI = re.compile(RE_CLASS_PGI, re.MULTILINE | re.IGNORECASE)

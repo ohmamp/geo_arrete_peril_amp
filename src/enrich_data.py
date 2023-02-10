@@ -131,12 +131,12 @@ def generate_refcadastrale_norm(df_row: NamedTuple) -> str:
         else:
             codeinsee = f"13{arrt}"
         # Marseille: code insee arrondissement + code quartier (3 chiffres) + section + parcelle
-        refcad = f"{codeinsee}{m_dict['quar']}{m_dict['sec']:02}{m_dict['num']:04}"
+        refcad = f"{codeinsee}{m_dict['quar']}{m_dict['sec']:>02}{m_dict['num']:>04}"
     elif m_autr := M_CAD_AUTRES.match(refcad):
         m_dict = m_autr.groupdict()
         # hors Marseille: code insee commune + 000 + section + parcelle
         codequartier = "000"
-        refcad = f"{codeinsee}{codequartier}{m_dict['sec']:02}{m_dict['num']:04}"
+        refcad = f"{codeinsee}{codequartier}{m_dict['sec']:>02}{m_dict['num']:>04}"
     else:
         refcad = None
     df_row_enr = df_row._replace(par_ref_cad=refcad)

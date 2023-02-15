@@ -19,6 +19,11 @@ RE_STAMP_1 = rf"""Envoyé en préfecture le {RE_DATE_SL}
 Reçu en préfecture le {RE_DATE_SL}
 Affiché le
 ID : {RE_ACTES_ID}"""
+
+# autre tampon?
+# Auriol, footer p.1: "99_AR-013-211300074-20220106-AR-2022-02-AR-1-1_1.PDF"
+# r"""(Certifié\s+exécutoire,\s+compte\s+tenu\s+de\s+la\s+transmission\s+en\s+Préfecture\s+et\s+de\s+la\s+publication\s+le\s+[:]\s+\d{2}/\d{2}/\d{4}\s+)?"""
+
 # ex:
 # Accusé de réception en préfecture
 # 013-211300561-20211025-RA21_23060-AR

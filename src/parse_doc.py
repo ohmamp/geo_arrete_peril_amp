@@ -1,6 +1,7 @@
 """Analyse le document dans son ensemble.
 
-Découpe l'arrêté en zones.
+Extrait des empans de texte correspondant aux en-têtes, pieds-de-page,
+autorité, vus, correspondants, articles, signature...
 """
 
 from pathlib import Path
@@ -8,149 +9,32 @@ import re
 
 import pandas as pd  # tableau récapitulatif des extractions
 
+from doc_template import P_HEADER, P_FOOTER
+from text_structure import (
+    RE_MAIRE_COMMUNE,
+    M_MAIRE_COMMUNE,
+    RE_VU,
+    M_VU,
+    RE_CONSIDERANT,
+    M_CONSIDERANT,
+)
+
 # type de données des colonnes du fichier CSV résultat
 DTYPE_PARSES = {
     # doc
     "filename": "string",
+    # page
     "page_num": "int64",
-    # en-tête
-    # les index de string sont des entiers, peuvent être manquants
-    # https://pandas.pydata.org/pandas-docs/stable/user_guide/integer_na.html
-    "header_beg": "Int64",
-    "header_end": "Int64",
-    "txt_header": "string",
-    # pied-de-page
-    "footer_beg": "Int64",
-    "footer_end": "Int64",
-    "txt_footer": "string",
-    # corps
-    "txt_body": "string",
+    # pour chaque empan repéré: position et texte
+    "span_beg": "int64",
+    "span_end": "int64",
+    "span_txt": "string",
+    "span_typ": "string",  # header, footer, ...  # TODO ensemble fermé?
 }
 
-# en-tête et pied-de-page
 
-# Aix-en-Provence
-# TODO en-tête p. 2 et suivantes: numéro de page (en haut à droite)
-RE_FOOTER_AIX = r"""
-Hotel[ ]de[ ]Ville[ ]13616[ ]AIX-EN-PROVENCE[ ]CEDEX[ ]1[ ]-[ ]France[ ]-
-[ ]Tél[.][ ][+][ ]33[(]0[)]4[.]42[.]91[.]90[.]00[ ]-
-[ ]Télécopie[ ][+][ ]33[(]0[)]4[.]42[.]91[.]94[.]92[ ]-
-[ ]www[.]mairie[-]aixenprovence[.]fr
-[.]
-"""
-
-# Allauch
-# TODO en-tête p. 2..
-# pied-de-page p. 1
-RE_FOOTER_ALLAUCH = r"""
-Hôtel[ ]de[ ]Ville[ ][+][ ]Place[ ]Pierre[ ]Bellot[ ]e[ ]BP[ ]27[ ][+][ ]13718[ ]Allauch[ ]cedex[ ]e
-[ ]Tél[.][ ]04[ ]91[ ]10[ ]48[ ]00[ ][+]
-[ ]Fax[ ]04[ ]91[ ]10[ ]48[ ]23
-\nWeb[ ][:][ ]http[:]//www[.]allauch[.]com[ ][+]
-[ ]Courriel[ ][:][ ]info@allauch[.]com
-"""
-# TODO pied-de-page p. 2..
-# TODO
-
-RE_FOOTER_AUBAGNE = r"""
-Hôtel[ ]de[ ]Ville[ ]BP[ ]41465[ ]13785[ ]Aubagne[ ]Cedex
-[ ]T[ ]?04[ ]?42[ ]?18[ ]?19[ ]?19
-[ ]F[ ]?04[ ]?42[ ]?18[ ]?18[ ]?18
-[ ]www[.]aubagne[.]fr
-"""
-
-RE_FOOTER_AURIOL = r"""
-(Certifié[ ]exécutoire[,][ ]compte[ ]tenu[ ]de[ ]la[ ]transmission[ ]en[ ]Préfecture[ ]et[ ]de[ ]la[ ]publication[ ]le[ ][:][ ]\d{2}/\d{2}/\d{4}[ ])?
-Page[ ]\d{1,2}[ ]sur[ ]\d{1,2}
-"""
-
-# Châteauneuf-les-Martigues: en-tête sur p. 1, puis rien
-# FIXME modifier si on refait l'OCR
-RE_HEADER_CHATEAUNEUF_LES_MARTIGUES = r"""
-Gommune[ ]de[ ]Châteauneuf-les-Martigues[ ]-[ ]Arrondissement[ ]d'lstres[ ]-[ ]Bouches[ ]du[ ]Rhône
-"""
-
-RE_HEADER_GARDANNE = r"""
-Arrêté[ ]n°\d{4}-\d{2}-ARR-SIHI[ ]Page[ ]\d{1,2}/\d{1,2}
-"""
-# Gardanne: pas de footer
-
-# TODO RE_FOOTER_ISTRES
-
-RE_FOOTER_MARSEILLE = r"""
-Ville[ ]de[ ]Marseille[,][ ]2[ ]quai[ ]du[ ]Port[ ][–][ ]13233[ ]MARSEILLE[ ]CEDEX[ ]20
-"""
 # Marseille: PDF texte, dans lesquels les articles du code de la construction et de l'habitation sont ajoutés en annexe
 # *sous forme d'images*
-
-RE_HEADER = (
-    r"(?P<header>"
-    + r"|".join(
-        r"(" + x + r")"
-        for x in [
-            RE_HEADER_CHATEAUNEUF_LES_MARTIGUES,
-            RE_HEADER_GARDANNE,
-        ]
-    )
-    + r")"
-)
-P_HEADER = re.compile(RE_HEADER, flags=re.MULTILINE | re.VERBOSE)
-
-RE_FOOTER = (
-    r"(?P<footer>"
-    + r"|".join(
-        r"(" + x + r")"
-        for x in [
-            RE_FOOTER_AIX,
-            RE_FOOTER_ALLAUCH,
-            RE_FOOTER_AUBAGNE,
-            RE_FOOTER_AURIOL,
-            RE_FOOTER_MARSEILLE,
-        ]
-    )
-    + r"[^\f]*"
-    + r")"
-)
-P_FOOTER = re.compile(RE_FOOTER, flags=re.MULTILINE | re.VERBOSE)
-
-RE_AUTORITE = (
-    r"\s*(?P<autorite>"
-    + r"("
-    + r"("
-    + r"|".join(
-        [
-            r"(NOUS,[ ]MAIRE D')",  # AIX-EN-PROVENCE
-            r"(Nous,[ ]Maire[ ]de[ ])",  # Marseille
-            r"(NOUS,[ ](?P<autorite_nom>.*),[ ]Maire[ ]de[ ]la[ ]commune[ ]d')",  # Allauch
-            r"(Le[ ]Maire[ ]de[ ]la[ ]Commune[ ]d['’])",  # ISTRES, Auriol, Aubagne (certains)
-            r"(Le[ ]Maire[ ]de[ ]la[ ]Ville[ ]de[ ])",  # Châteauneuf-les-Martigues
-            r"(Le[ ]Maire[ ]de[ ])",  # Gardanne
-        ]
-    )
-    + r")"
-    + r"(?P<commune>.+)"
-    + r")"
-    # + r"|(Le Maire)"  # fallback, utile pour certains arrêtés d'Aubagne
-    + r")"
-)
-P_AUTORITE = re.compile(RE_AUTORITE, re.MULTILINE | re.VERBOSE)
-
-RE_VU = r"^\s*(?P<vu>V[Uu][, ](.+))"
-P_VU = re.compile(RE_VU, flags=re.MULTILINE | re.VERBOSE)
-
-RE_CONSIDERANT = r"^\s*(?P<considerant>(Considérant|CONSIDERANT)[, ](.+))"
-P_CONSIDERANT = re.compile(RE_CONSIDERANT, flags=re.MULTILINE | re.VERBOSE)
-
-RE_ARRETE = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
-P_ARRETE = re.compile(RE_ARRETE, flags=re.MULTILINE | re.VERBOSE)
-
-RE_PREAMBULE = r"""
-{re_autorite}\n
-(^\s*$)*
-""".format(
-    re_autorite=RE_AUTORITE
-)
-P_PREAMBULE = re.compile(RE_PREAMBULE, flags=re.MULTILINE | re.VERBOSE)
 
 
 def parse_page(txt: str) -> dict:
@@ -168,37 +52,52 @@ def parse_page(txt: str) -> dict:
     content: dict
         Contenu structuré de la page.
     """
-    content = {}
+    content = []
 
     # en-tête
-    m_header = P_HEADER.search(txt)
-    if m_header:
-        header_beg, header_end = m_header.span()
-        txt_header = m_header.group(0)
-    else:
-        header_beg, header_end = (None, None)
-        txt_header = None
-    content["header_beg"] = header_beg
-    content["header_end"] = header_end
-    content["txt_header"] = txt_header
+    # TODO expectation: n=0..2 par page
+    if m_headers := P_HEADER.finditer(txt):
+        for match in m_headers:
+            content.append(
+                {
+                    "span_beg": match.span()[0],
+                    "span_end": match.span()[1],
+                    "span_txt": match.group(0),
+                    "span_typ": "header",
+                }
+            )
 
     # pied-de-page
-    m_footer = P_FOOTER.search(txt)
-    if m_footer:
-        footer_beg, footer_end = m_footer.span()
-        txt_footer = m_footer.group(0)
-    else:
-        footer_beg, footer_end = (None, None)
-        txt_footer = None
-    content["footer_beg"] = footer_beg
-    content["footer_end"] = footer_end
-    content["txt_footer"] = txt_footer
+    # TODO expectation: n=0..2 par page
+    if m_footers := P_FOOTER.finditer(txt):
+        for match in m_footers:
+            content.append(
+                {
+                    "span_beg": match.span()[0],
+                    "span_end": match.span()[1],
+                    "span_txt": match.group(0),
+                    "span_typ": "footer",
+                }
+            )
 
     # corps du texte
+    body_beg = max(
+        list(x["span_end"] for x in content if x["span_typ"] == "header"), default=0
+    )
+    body_end = min(
+        list(x["span_beg"] for x in content if x["span_typ"] == "footer"),
+        default=len(txt),
+    )
     # si l'en-tête et le pied de page ne devaient pas nécessairement aller jusqu'aux limites, on aurait:
     # clean_txt = txt[:header_beg] + txt[header_end:footer_beg] + txt[footer_end:]
-    content["txt_body"] = txt[header_end:footer_beg]
-
+    content.append(
+        {
+            "span_beg": body_beg,
+            "span_end": body_end,
+            "span_txt": txt[body_beg:body_end],
+            "span_typ": "body",
+        }
+    )
     return content
 
 
@@ -228,7 +127,7 @@ def parse_arrete(fp_txt_in: Path) -> list:
     pages = txt.split("\f")
     for i, page in enumerate(pages, start=1):
         mdata_page = mdata_doc | {"page_num": i}
-        page_content = mdata_page | parse_page(page)
+        page_content = mdata_page | {"content": parse_page(page)}
         doc_content.append(page_content)
     return doc_content
     # WIP
@@ -237,7 +136,7 @@ def parse_arrete(fp_txt_in: Path) -> list:
         print(fp_txt_in.name, "\tPREAMBULE ", m_preambule)
     else:
         for line in txt.split("\n"):
-            m_autorite = P_AUTORITE.match(line)
+            m_autorite = M_MAIRE_COMMUNE.match(line)
             if m_autorite is not None:
                 print(fp_txt_in.name, "\tAUTORITE  ", m_autorite)
                 break
@@ -255,7 +154,7 @@ def parse_arrete(fp_txt_in: Path) -> list:
     # entete
     # objet
     # autorite
-    m_autorite = P_AUTORITE.search(txt)
+    m_autorite = M_MAIRE_COMMUNE.search(txt)
     if m_autorite is not None:
         content["autorite"] = m_autorite.group(0)
     # vus

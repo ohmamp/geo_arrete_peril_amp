@@ -227,7 +227,7 @@ def process_date_brute(arr_date: str) -> Dict:
         mm_norm = MAP_MOIS.get(
             m_dict["mm"].lower().replace("é", "e").replace("û", "u"), m_dict["mm"]
         )
-        return f"{m_dict['dd']}/{mm_norm}/{m_dict['yyyy']}"
+        return f"{m_dict['dd']:>02}/{mm_norm:>02}/{m_dict['yyyy']}"
     else:
         return None
 

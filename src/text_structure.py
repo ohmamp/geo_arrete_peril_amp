@@ -28,12 +28,15 @@ M_NOM = re.compile(RE_NOM, re.MULTILINE | re.IGNORECASE)
 
 # tous arrêtés
 RE_VU = r"""^\s*V(U|u) [^\n]+"""
-M_VU = re.compile(RE_VU, re.MULTILINE)
+# RE_VU = r"^\s*(?P<vu>V[Uu][, ](.+))"
+M_VU = re.compile(RE_VU, re.MULTILINE)  # re.VERBOSE ?
 
 RE_CONSIDERANT = r"""^CONSID[EÉ]RANT [^\n]+"""
+# RE_CONSIDERANT = r"^\s*(?P<considerant>(Considérant|CONSIDERANT)[, ](.+))"
 M_CONSIDERANT = re.compile(RE_CONSIDERANT, re.MULTILINE | re.IGNORECASE)
 
 RE_ARRETE = r"""^ARR[ÊE]T(?:E|ONS)"""
+# RE_ARRETE = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
 M_ARRETE = re.compile(RE_ARRETE, re.MULTILINE | re.IGNORECASE)
 
 RE_ARTICLE = r"""^ARTICLE \d+"""
@@ -46,12 +49,16 @@ M_ABF = re.compile(RE_ABF, re.MULTILINE | re.IGNORECASE)
 # éléments à extraire
 # - commune
 # capture: Peyrolles-en-Provence, Gignac-la-Nerthe, GEMENOS, Roquevaire, Gardanne
-RE_MAIRE_COMM_DE = r"Maire\s+(?:de\s+la\s+Commune\s+)?(?:de\s+|d')"
+RE_MAIRE_COMM_DE = (
+    r"Maire\s+" + r"(?:de\s+la\s+(?:Commune|Ville)\s+)?" + r"(?:de\s+|d['’]\s*)"
+)
 # "Nous[,.]": gestion d'erreur d'OCR ("." reconnu au lieu de ",")
 RE_MAIRE_COMMUNE = (
-    r"""(?:"""
-    + rf"""Le\s+{RE_MAIRE_COMM_DE}"""
-    + rf"""|Nous[,.]\s+(?:[^,]+,\s+)?{RE_MAIRE_COMM_DE}"""
+    r"""(?P<autorite>"""
+    + r"""^Le\s+"""
+    + rf"""{RE_MAIRE_COMM_DE}"""
+    + r"""|^Nous[,.]\s+(?P<autorite_nom>[^,]+,\s+)?"""
+    + rf"""{RE_MAIRE_COMM_DE}"""
     + r""")"""
     + rf"""(?P<commune>{RE_COMMUNE})"""
 )
@@ -112,10 +119,11 @@ M_SYNDIC = re.compile(RE_SYNDIC, re.MULTILINE | re.IGNORECASE)
 # date de l'arrêté
 RE_DATE_DOC = (
     r"""(?:"""
-    + r"""^Fait\s+à\s+\S+[,]?\s+le|"""  # Roquevaire (fin)
-    + r"""^Fait à Aix-en-Provence, en l'Hôtel de Ville,\nle|"""  # Aix-en-Provence (fin)
-    + r"""^Gardanne, le|"""  # Gardanne
-    + r"""Arrêté\s+n°[\s\S]+?\s+du"""  # Peyrolles-en-Provence (en-tête), Martigues (fin)
+    + r"""^Fait\s+à\s+\S+[,]?\s+le"""  # Roquevaire (fin)
+    + r"""|^Fait à Aix-en-Provence, en l'Hôtel de Ville,\nle"""  # Aix-en-Provence (fin)
+    + r"""|^Gardanne, le"""  # Gardanne
+    + r"""|^Signé\s+le\s*:\s+"""
+    + r"""|Arrêté\s+n°[\s\S]+?\s+du"""  # Peyrolles-en-Provence (en-tête), Martigues (fin)
     + r""")"""
     + r"""\s+(?P<arr_date>"""
     + rf"""{RE_DATE}"""

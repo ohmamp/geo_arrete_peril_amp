@@ -18,11 +18,11 @@ BATCH=arretes_peril_compil
 # 5. analyser le texte natif des PDF (pages vides, tampons, accusés de réception), pour déterminer si l'OCR doit être faite (ou refaite)
 # (2 entrées: CSV de métadonnées 1 ligne par fichier + CSV de pages de texte 1 ligne par page ;
 # 1 sortie: CSV de métadonnées enrichies et données, 1 ligne par page)
-# python src/parse_native_pages.py ${DATA_INT}/${BATCH}_meta_ntxt.csv ${DATA_INT}/${BATCH}_ntxt_pages.csv ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv
+python src/parse_native_pages.py ${DATA_INT}/${BATCH}_meta_ntxt.csv ${DATA_INT}/${BATCH}_ntxt_pages.csv ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv
 # 6. rassembler les données extraites dans chaque document
 # 1 entrée: CSV de métadonnées enrichies et données, 1 ligne par page
 # 1 sortie: CSV de métadonnées et données 1 ligne par document
-# python src/aggregate_pages.py ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv ${DATA_INT}/${BATCH}_meta_ntxt_doc.csv
+python src/aggregate_pages.py ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv ${DATA_INT}/${BATCH}_meta_ntxt_doc.csv
 # RESUME HERE
 # 7. extraire le texte des PDF par OCR si pertinent, et convertir les PDF originaux en PDF/A archivables contenant du texte natif
 # (1 entrée: CSV de métadonnées ; 2 sorties: CSV de métadonnées enrichies (PDF/A et OCR) + dossier pour les fichiers (PDF/A et TXT sidecar OCR))

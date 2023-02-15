@@ -34,4 +34,26 @@ RAW_BATCHES = {
 EXCLUDE_FILES = [
     "9, rue Tranchier MARTIGUES diag solidité.pdf",  # diagnostic
     "péril rue de la Tour.pdf",  # rapport sur état de péril
+    "10 bld de la liberté rue Lafayette annexe 1.pdf",  # annexe
+    "10, rue des Bons enfants annexe 2 13006.pdf",  # annexe: plan périmètre de sécurité
+    "modif 10 rue des Bons Enfants 13006 annexe.pdf",  # annexe
+    "81, rue Curiol - annexe plan.pdf",  # annexe
+    "4 chemin du Pont annexe 13007.pdf",  # annexe
+    "GRAVE 29, rue Nau annexe .pdf",  # annexe
+    "20, rue Corneille annexe 2 .pdf",  # annexe
+    "60a, rue d'aubagne annexe 1 .pdf",  # annexe
+    "6, traverse Bernabo annexe 2.pdf",  # annexe
+    "131 133 rue du Rouet annexe 2.pdf",  # annexe
+    "275 rue Saint Pierre annexe 2.pdf",  # annexe
+    "72, rue Saint Pierre annexe 2 pdf.pdf",  # annexe: courrier ABF
+    "73, rue Clovis Hugues annexe 1 .pdf",  # annexe: plan périmètre de sécurité
+    "37 rue Fernand Pauriol annexes.pdf",  # annexe: plan périmètre de sécurité
+    "mainlevée rue Fortin annexe 2.pdf",  # annexe: courrier ABF
+    "62 rue Sainte Cécile annexe 13005.pdf",  # annexe: tableau des copropriétaires
+    "26 bld de la Liberation annexe 2.pdf",  # annexe: plan périmètre de sécurité
+    "28 bld de la Liberation annexe 2.pdf",  # annexe: plan périmètre de sécurité
+    "péril 32, rue Fongate annexe 2 .pdf",  # annexe: courrier ABF
+    "20, rue d'Anvers péril annexe 1.pdf",  # annexe: plan périmètre de sécurité
+    "32, avenue de Saint Just annexe 13004.pdf",  # annexe: plan périmètre de sécurité
+    "St Pierre de Mézoargues annexe.pdf",  # annexe: plan périmètre de sécurité
 ]

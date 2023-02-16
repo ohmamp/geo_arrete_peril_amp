@@ -45,6 +45,7 @@ RE_FOOTERS = [
         "Marseille",
         r"""^Ville\s+de\s+Marseille,\s+2\s+quai\s+du\s+Port\s+–\s+13233\s+MARSEILLE\s+CEDEX\s+20""",
     ),  #
+    ("Marseille", r"""^\d{1,2}/\d{1,2}$"""),  # numéro de page
     (
         "Aix-en-Provence",
         r"""^Hotel\s+de\s+Ville\s+13616\s+AIX-EN-PROVENCE\s+CEDEX\s+1\s+-\s+France\s+-\s+"""

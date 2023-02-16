@@ -6,10 +6,13 @@ autorité, vus, correspondants, articles, signature...
 
 from pathlib import Path
 import re
+from typing import Optional, Tuple
 
 import pandas as pd  # tableau récapitulatif des extractions
 
-from doc_template import P_HEADER, P_FOOTER
+from actes import M_STAMP  # tampon
+from doc_template import P_HEADER, P_FOOTER  # en-tête et pied-de-page
+from separate_pages import load_pages_text
 from text_structure import (
     RE_MAIRE_COMMUNE,
     M_MAIRE_COMMUNE,
@@ -37,10 +40,10 @@ DTYPE_PARSES = {
 # *sous forme d'images*
 
 
-def parse_page(txt: str) -> dict:
-    """Analyse une page.
+def parse_page_template(txt: str) -> Tuple[list, str]:
+    """Analyse une page pour repérer le template.
 
-    Repère l'en-tête et le pied-de-page.
+    Repère les en-têtes, pieds-de-page, tampons.
 
     Parameters
     ----------
@@ -49,8 +52,13 @@ def parse_page(txt: str) -> dict:
 
     Returns
     -------
-    content: dict
-        Contenu structuré de la page.
+    content: list
+        Liste d'empans repérés sur la page.
+    txt_body: string
+        Corps de texte, défini comme le texte en entrée
+        dans lequel les empans d'en-têtes, pieds-de-page et tampons
+        de `content` ont été effacés (remplacés par des espaces de
+        même longueur).
     """
     content = []
 
@@ -80,25 +88,52 @@ def parse_page(txt: str) -> dict:
                 }
             )
 
+    # tampon de transmission à actes
+    if m_stamps := M_STAMP.finditer(txt):
+        for match in m_stamps:
+            m_beg, m_end = match.span()
+            content.append(
+                {
+                    "span_beg": m_beg,
+                    "span_end": m_end,
+                    "span_txt": match.group(0),
+                    "span_typ": "stamp",
+                }
+            )
+
     # corps du texte
-    body_beg = max(
-        list(x["span_end"] for x in content if x["span_typ"] == "header"), default=0
-    )
-    body_end = min(
-        list(x["span_beg"] for x in content if x["span_typ"] == "footer"),
-        default=len(txt),
-    )
-    # si l'en-tête et le pied de page ne devaient pas nécessairement aller jusqu'aux limites, on aurait:
-    # clean_txt = txt[:header_beg] + txt[header_end:footer_beg] + txt[footer_end:]
-    content.append(
-        {
-            "span_beg": body_beg,
-            "span_end": body_end,
-            "span_txt": txt[body_beg:body_end],
-            "span_typ": "body",
-        }
-    )
-    return content
+    # défini comme le texte d'origine, dans lequel on a effacé les empans repérés
+    # (en-têtes, pieds-de-page, tampons) ;
+    # remplacer les empans par des espaces permet de conserver les indices d'origine
+    # et éviter les décalages
+    spans = list((x["span_beg"], x["span_end"]) for x in content)
+    txt_body = txt[:]
+    for sp_beg, sp_end in spans:
+        txt_body = txt_body[:sp_beg] + " " * (sp_end - sp_beg) + txt_body[sp_end:]
+
+    return content, txt_body
+
+
+def parse_page_content(pg_txt_body: str, i: int, latest_span: Optional[dict]) -> list:
+    """Analyse une page pour repérer les zones de contenus.
+
+    Parameters
+    ----------
+    pg_txt_body: string
+        Corps de texte de la page à analyser
+    i: int
+        Numéro de la page
+    latest_span: dict
+        Dernier empan de contenu repéré sur la page précédente
+
+    Returns
+    -------
+    pg_content: list
+        Liste d'empans de contenu
+    """
+    pg_content = []
+    # RESUME HERE: écrire la logique de repérage de: autorité, vu, considérant, arrête, articles
+    return pg_content
 
 
 def parse_arrete(fp_txt_in: Path) -> list:
@@ -114,20 +149,26 @@ def parse_arrete(fp_txt_in: Path) -> list:
     doc_content: List[dict]
         Contenu du document, par page découpée en zones de texte.
     """
-    print(fp_txt_in.name)  # DEBUG
-    # ouvrir le fichier
-    with open(fp_txt_in) as f:
-        txt = f.read()
     doc_content = []  # valeur de retour
     # métadonnées du document
     mdata_doc = {
         "filename": fp_txt_in.name,
     }
+    print(fp_txt_in.name)  # DEBUG
     # traiter les pages
-    pages = txt.split("\f")
+    pages = load_pages_text(fp_txt_in)
+    latest_span = None  # init
     for i, page in enumerate(pages, start=1):
         mdata_page = mdata_doc | {"page_num": i}
-        page_content = mdata_page | {"content": parse_page(page)}
+        pg_template, pg_txt_body = parse_page_template(page)
+        pg_content = parse_page_content(pg_txt_body, i, latest_span)
+        # RESUME HERE
+        # TODO latest_span = ... (pour l'itération suivante)
+        page_content = mdata_page | {
+            "template": pg_template,
+            "body": pg_txt_body,
+            "content": pg_content,
+        }
         doc_content.append(page_content)
     return doc_content
     # WIP

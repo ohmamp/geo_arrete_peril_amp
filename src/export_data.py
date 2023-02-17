@@ -138,6 +138,7 @@ if __name__ == "__main__":
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV {in_file}")
     df_meta = pd.read_csv(in_file, dtype=DTYPE_DATA)
+    # TODO générer URL stable pour arr_url: https://sig.ampmetropole.fr/geodata/geo_arretes/peril/aaaa/xxxx.pdf
     # sauvegarder les infos extraites dans un fichier CSV
     for out_key, out_file in out_files.items():
         # sélectionner les données

@@ -21,7 +21,7 @@ from typing import NamedTuple
 
 import pandas as pd
 
-from actes import M_STAMP, M_ACCUSE
+from actes import P_STAMP, M_ACCUSE
 from cadastre import M_PARCELLE
 from cadre_reglementaire import (
     M_CGCT,
@@ -64,16 +64,16 @@ from typologie_securite import (
 from separate_pages import DTYPE_META_NTXT, DTYPE_NTXT_PAGES
 from text_structure import (
     # tous arrêtés
-    M_NUM,  # numéro/identifiant de l'arrêté
-    M_NOM,  # nom/objet de l'arrêté
-    M_VU,
-    M_CONSIDERANT,
+    P_ARR_NUM,  # numéro/identifiant de l'arrêté
+    P_ARR_OBJET,  # nom/objet de l'arrêté
+    P_VU,
+    P_CONSIDERANT,
     M_ARRETE,
     M_ARTICLE,
     # spécifiques arrêtés
     # - données
     RE_COMMUNE,
-    M_MAIRE_COMMUNE,
+    P_MAIRE_COMMUNE,
     M_ADR_DOC,
     RE_ADRESSE,  # pour le nettoyage de l'adresse récupérée
     M_PROPRI,
@@ -146,7 +146,7 @@ def is_stamped_page(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient un tampon de transmission
     """
-    return M_STAMP.search(page_txt) is not None
+    return P_STAMP.search(page_txt) is not None
 
 
 # TODO test: 12 rue Parmentier Gardanne - MS.txt : dernière page (4)
@@ -194,7 +194,7 @@ def get_commune_maire(page_txt: str) -> bool:
     nom_commune: str | None
         Nom de la commune si le texte contient une mention du maire, None sinon.
     """
-    if match_mc := M_MAIRE_COMMUNE.search(page_txt):
+    if match_mc := P_MAIRE_COMMUNE.search(page_txt):
         com_maire = match_mc.group("commune")
         # nettoyage de la valeur récupérée
         if m_com_cln := M_MAIRE_COMMUNE_CLEANUP.search(com_maire):
@@ -217,7 +217,7 @@ def contains_vu(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient un VU
     """
-    return M_VU.search(page_txt) is not None
+    return P_VU.search(page_txt) is not None
 
 
 def contains_considerant(page_txt: str) -> bool:
@@ -233,7 +233,7 @@ def contains_considerant(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient un CONSIDERANT
     """
-    return M_CONSIDERANT.search(page_txt) is not None
+    return P_CONSIDERANT.search(page_txt) is not None
 
 
 def contains_arrete(page_txt: str) -> bool:
@@ -556,7 +556,7 @@ def get_num(page_txt: str) -> bool:
     doc_num: str
         Numéro de l'arrêté si trouvé, None sinon.
     """
-    m_num = M_NUM.search(page_txt)
+    m_num = P_ARR_NUM.search(page_txt)
     return m_num.group("arr_num") if m_num is not None else None
 
 
@@ -573,7 +573,7 @@ def get_nom(page_txt: str) -> bool:
     doc_nom: str
         Nom de l'arrêté si trouvé, None sinon.
     """
-    if m_nom := M_NOM.search(page_txt):
+    if m_nom := P_ARR_OBJET.search(page_txt):
         return m_nom.group("arr_nom")
     else:
         return None

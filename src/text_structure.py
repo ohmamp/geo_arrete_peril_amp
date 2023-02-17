@@ -10,7 +10,7 @@ from typologie_securite import RE_CLASS_ALL
 
 
 # numéro de l'arrêté
-RE_NUM = (
+RE_ARR_NUM = (
     r"""(?:"""
     + r"""Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°"""
     + r"""|Réf\s+:"""
@@ -20,20 +20,20 @@ RE_NUM = (
     + r""")"""
     + r"""\s*(?P<arr_num>[^,;\n(]+)"""
 )
-M_NUM = re.compile(RE_NUM, re.MULTILINE | re.IGNORECASE)
+P_ARR_NUM = re.compile(RE_ARR_NUM, re.MULTILINE | re.IGNORECASE)
 
 # nom de l'arrêté
-RE_NOM = r"""Objet:\s+(?P<arr_nom>[^\n]+)"""
-M_NOM = re.compile(RE_NOM, re.MULTILINE | re.IGNORECASE)
+RE_ARR_OBJET = r"""Objet:\s+(?P<arr_nom>[^\n]+)"""
+P_ARR_OBJET = re.compile(RE_ARR_OBJET, re.MULTILINE | re.IGNORECASE)
 
 # tous arrêtés
 RE_VU = r"""^\s*V(U|u) [^\n]+"""
 # RE_VU = r"^\s*(?P<vu>V[Uu][, ](.+))"
-M_VU = re.compile(RE_VU, re.MULTILINE)  # re.VERBOSE ?
+P_VU = re.compile(RE_VU, re.MULTILINE)  # re.VERBOSE ?
 
 RE_CONSIDERANT = r"""^CONSID[EÉ]RANT [^\n]+"""
 # RE_CONSIDERANT = r"^\s*(?P<considerant>(Considérant|CONSIDERANT)[, ](.+))"
-M_CONSIDERANT = re.compile(RE_CONSIDERANT, re.MULTILINE | re.IGNORECASE)
+P_CONSIDERANT = re.compile(RE_CONSIDERANT, re.MULTILINE | re.IGNORECASE)
 
 RE_ARRETE = r"""^ARR[ÊE]T(?:E|ONS)"""
 # RE_ARRETE = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
@@ -61,8 +61,9 @@ RE_MAIRE_COMMUNE = (
     + rf"""{RE_MAIRE_COMM_DE}"""
     + r""")"""
     + rf"""(?P<commune>{RE_COMMUNE})"""
+    + r"(?:[,])?"
 )
-M_MAIRE_COMMUNE = re.compile(RE_MAIRE_COMMUNE, re.MULTILINE | re.IGNORECASE)
+P_MAIRE_COMMUNE = re.compile(RE_MAIRE_COMMUNE, re.MULTILINE | re.IGNORECASE)
 
 # - adresse
 # adresse du bâtiment visé par l'arrêté

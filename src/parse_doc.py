@@ -10,16 +10,18 @@ from typing import Optional, Tuple
 
 import pandas as pd  # tableau récapitulatif des extractions
 
-from actes import M_STAMP  # tampon
+from actes import P_STAMP  # tampon
 from doc_template import P_HEADER, P_FOOTER  # en-tête et pied-de-page
 from separate_pages import load_pages_text
 from text_structure import (
+    P_ARR_NUM,
+    P_ARR_OBJET,
     RE_MAIRE_COMMUNE,
-    M_MAIRE_COMMUNE,
+    P_MAIRE_COMMUNE,
     RE_VU,
-    M_VU,
+    P_VU,
     RE_CONSIDERANT,
-    M_CONSIDERANT,
+    P_CONSIDERANT,
 )
 
 # type de données des colonnes du fichier CSV résultat
@@ -89,7 +91,7 @@ def parse_page_template(txt: str) -> Tuple[list, str]:
             )
 
     # tampon de transmission à actes
-    if m_stamps := M_STAMP.finditer(txt):
+    if m_stamps := P_STAMP.finditer(txt):
         for match in m_stamps:
             m_beg, m_end = match.span()
             content.append(
@@ -114,26 +116,153 @@ def parse_page_template(txt: str) -> Tuple[list, str]:
     return content, txt_body
 
 
-def parse_page_content(pg_txt_body: str, i: int, latest_span: Optional[dict]) -> list:
+# motif pour capturer tout le texte sauf les espaces initiaux et finaux
+RE_STRIP = r"""(?:\s*)(?P<outstrip>\S[\s\S]*?)(?:\s*)"""
+P_STRIP = re.compile(RE_STRIP, re.IGNORECASE | re.MULTILINE)
+
+
+def parse_page_content(
+    txt_body: str, page_num: int, latest_span: Optional[dict]
+) -> list:
     """Analyse une page pour repérer les zones de contenus.
 
     Parameters
     ----------
-    pg_txt_body: string
+    txt_body: string
         Corps de texte de la page à analyser
-    i: int
+    page_num: int
         Numéro de la page
     latest_span: dict
         Dernier empan de contenu repéré sur la page précédente
 
     Returns
     -------
-    pg_content: list
+    content: list
         Liste d'empans de contenu
     """
-    pg_content = []
-    # RESUME HERE: écrire la logique de repérage de: autorité, vu, considérant, arrête, articles
-    return pg_content
+    content = []
+    # page 1
+    if page_num == 1:
+        # TODO condition suffisante, ou faut-il définir un critère pour gérer des cas marginaux?
+        # eg. page avec des métadonnées avant la p. 1
+        #
+        # repérer le 1er "Vu", et traiter tout ce qui est avant
+        if m_vu := P_VU.search(txt_body):
+            pream_beg = 0
+            pream_end = m_vu.start()
+            # a. ce préambule se termine par l'intitulé de l'autorité prenant l'arrêté (obligatoire)
+            if match := P_MAIRE_COMMUNE.search(txt_body, pream_beg, pream_end):
+                # toute la zone reconnue
+                span_beg, span_end = match.span()
+                content.append(
+                    {
+                        "span_beg": span_beg,
+                        "span_end": span_end,
+                        "span_txt": match.group(0),
+                        "span_typ": "par_autorite",
+                    }
+                )
+                autorite_beg = span_beg  # la zone restant à traiter est avant cette zone d'autorité
+                # vérifier que la zone de l'autorité est bien en fin de préambule
+                try:
+                    assert txt_body[span_end:pream_end].strip() == ""
+                except AssertionError:
+                    print(txt_body[span_end:pream_end].strip())
+                    raise
+                # stocker la donnée de la commune
+                content.append(
+                    {
+                        "span_beg": match.start("commune"),
+                        "span_end": match.end("commune"),
+                        "span_txt": match.group("commune"),
+                        "span_typ": "adr_ville",  # TODO utiliser un autre nom pour éviter le conflit?
+                    }
+                )
+            else:
+                # pas d'autorité détectée: anormal
+                autorite_beg = pream_end
+                raise ValueError("Pas d'autorité détectée !?")
+
+            # b. ce préambule peut contenir le numéro de l'arrêté (si présent, absent dans certaines communes)
+            if match := P_ARR_NUM.search(txt_body, pream_beg, autorite_beg):
+                # marquer toute la zone reconnue (contexte + numéro de l'arrêté)
+                span_beg, span_end = match.span()
+                content.append(
+                    {
+                        "span_beg": span_beg,
+                        "span_end": span_end,
+                        "span_txt": match.group(0),
+                        "span_typ": "par_arr_num",  # paragraphe contenant le numéro de l'arrêté
+                    }
+                )
+                # stocker le numéro de l'arrêté
+                content.append(
+                    {
+                        "span_beg": match.start("arr_num"),
+                        "span_end": match.end("arr_num"),
+                        "span_txt": match.group("arr_num"),
+                        "span_typ": "arr_num",
+                    }
+                )
+                arr_num_end = span_end
+            else:
+                # pas de numéro d'arrêté (ex: Aubagne)
+                arr_num_end = 0
+
+            # c. entre les deux doit se trouver le titre ou objet de l'arrêté (obligatoire)
+            if match := P_ARR_OBJET.search(txt_body, arr_num_end, autorite_beg):
+                # stocker la zone reconnue
+                content.append(
+                    {
+                        "span_beg": match.start(),
+                        "span_end": match.end(),
+                        "span_txt": match.group(0),
+                        "span_typ": "par_arr_nom",
+                    }
+                )
+                # stocker la donnée
+                content.append(
+                    {
+                        "span_beg": match.start("arr_nom"),
+                        "span_end": match.end("arr_nom"),
+                        "span_txt": match.group("arr_nom"),
+                        "span_typ": "arr_nom",
+                    }
+                )
+            else:
+                # hypothèse: sans marquage explicite comme "Objet:", le titre est tout le texte restant
+                # dans cette zone (entre le numéro et l'autorité)
+                if match := P_STRIP.fullmatch(txt_body, arr_num_end, autorite_beg):
+                    # stocker la zone reconnue
+                    content.append(
+                        {
+                            "span_beg": match.start(),
+                            "span_end": match.end(),
+                            "span_txt": match.group(0),
+                            "span_typ": "par_arr_nom",
+                        }
+                    )
+                    # stocker la donnée
+                    content.append(
+                        {
+                            "span_beg": match.start("outstrip"),
+                            "span_end": match.end("outstrip"),
+                            "span_txt": match.group("outstrip"),
+                            "span_typ": "arr_nom",
+                        }
+                    )
+                else:
+                    raise ValueError(
+                        f"Pas de texte trouvé pour le nom!?\n{txt_body[arr_num_end:autorite_beg]}"
+                    )
+
+            # WIP
+            print(content)
+        else:
+            # RESUME HERE: il ne faut pas traiter les documents vides
+            raise ValueError(f"Pas de Vu en p.1 !?\n{txt_body}")
+    # RESUME HERE: écrire la logique de repérage de: vu, considérant, arrête, articles
+    return content
 
 
 def parse_arrete(fp_txt_in: Path) -> list:
@@ -177,7 +306,7 @@ def parse_arrete(fp_txt_in: Path) -> list:
         print(fp_txt_in.name, "\tPREAMBULE ", m_preambule)
     else:
         for line in txt.split("\n"):
-            m_autorite = M_MAIRE_COMMUNE.match(line)
+            m_autorite = P_MAIRE_COMMUNE.match(line)
             if m_autorite is not None:
                 print(fp_txt_in.name, "\tAUTORITE  ", m_autorite)
                 break
@@ -195,7 +324,7 @@ def parse_arrete(fp_txt_in: Path) -> list:
     # entete
     # objet
     # autorite
-    m_autorite = M_MAIRE_COMMUNE.search(txt)
+    m_autorite = P_MAIRE_COMMUNE.search(txt)
     if m_autorite is not None:
         content["autorite"] = m_autorite.group(0)
     # vus

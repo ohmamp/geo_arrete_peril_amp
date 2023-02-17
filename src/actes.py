@@ -35,7 +35,7 @@ Date de télétransmission : {RE_DATE_SL}
 Date de réception préfecture : {RE_DATE_SL}
 """
 RE_STAMP = rf"(?:(?:{RE_STAMP_1})|(?:{RE_STAMP_2}))"
-M_STAMP = re.compile(RE_STAMP, re.MULTILINE)
+P_STAMP = re.compile(RE_STAMP, re.MULTILINE)
 
 # TODO motif complet sur l'accusé de réception ; parsing dédié pour vérifier/croiser avec les données extraites dans le reste du document
 # "Objet acte:" (page d'accusé de réception de transmission @actes)

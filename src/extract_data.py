@@ -298,7 +298,9 @@ def create_docs_dataframe(
             ),  # TODO affiner
             # (métadonnées du doc)
             "arr_nom_pdf": getattr(df_row, "filename"),
-            "arr_url": getattr(df_row, "fullpath"),  # TODO URL localhost?
+            "arr_url": getattr(
+                df_row, "fullpath"
+            ),  # TODO réécrire avec une URL externe, au moment de l'export
         }
         # adresse
         # - nettoyer a minima de l'adresse brute

@@ -24,16 +24,16 @@ import pandas as pd
 from actes import P_STAMP, M_ACCUSE
 from cadastre import M_PARCELLE
 from cadre_reglementaire import (
-    M_CGCT,
-    M_CGCT_ART,
-    M_CCH,
-    M_CCH_L111,
-    M_CCH_L511,
-    M_CCH_L521,
-    M_CCH_L541,
-    M_CCH_R511,
-    M_CC,
-    M_CC_ART,
+    P_CGCT,
+    P_CGCT_ART,
+    P_CCH,
+    P_CCH_L111,
+    P_CCH_L511,
+    P_CCH_L521,
+    P_CCH_L541,
+    P_CCH_R511,
+    P_CC,
+    P_CC_ART,
 )
 
 from typologie_securite import (
@@ -68,8 +68,8 @@ from text_structure import (
     P_ARR_OBJET,  # nom/objet de l'arrêté
     P_VU,
     P_CONSIDERANT,
-    M_ARRETE,
-    M_ARTICLE,
+    P_ARRETE,
+    P_ARTICLE,
     # spécifiques arrêtés
     # - données
     RE_COMMUNE,
@@ -78,7 +78,7 @@ from text_structure import (
     RE_ADRESSE,  # pour le nettoyage de l'adresse récupérée
     M_PROPRI,
     M_SYNDIC,
-    M_DATE_DOC,
+    P_DATE_SIGNAT,
 )
 
 
@@ -249,7 +249,7 @@ def contains_arrete(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient ARRET(E|ONS)
     """
-    return M_ARRETE.search(page_txt) is not None
+    return P_ARRETE.search(page_txt) is not None
 
 
 def contains_article(page_txt: str) -> bool:
@@ -265,7 +265,7 @@ def contains_article(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient un Article
     """
-    return M_ARTICLE.search(page_txt) is not None
+    return P_ARTICLE.search(page_txt) is not None
 
 
 # éléments spécifiques à certains types d'arrêtés
@@ -283,7 +283,7 @@ def contains_cgct(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient une référence au Code Général des Collectivités Territoriales.
     """
-    return M_CGCT.search(page_txt) is not None
+    return P_CGCT.search(page_txt) is not None
 
 
 def contains_cgct_art(page_txt: str) -> bool:
@@ -299,7 +299,7 @@ def contains_cgct_art(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient une référence à des articles du Code Général des Collectivités Territoriales.
     """
-    return M_CGCT_ART.search(page_txt) is not None
+    return P_CGCT_ART.search(page_txt) is not None
 
 
 def contains_cch(page_txt: str) -> bool:
@@ -315,7 +315,7 @@ def contains_cch(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient une référence au Code de la Construction et de l'Habitation.
     """
-    return M_CCH.search(page_txt) is not None
+    return P_CCH.search(page_txt) is not None
 
 
 def contains_cch_L111(page_txt: str) -> bool:
@@ -331,7 +331,7 @@ def contains_cch_L111(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient une référence à l'article L111 du Code de la Construction et de l'Habitation.
     """
-    return M_CCH_L111.search(page_txt) is not None
+    return P_CCH_L111.search(page_txt) is not None
 
 
 def contains_cch_L511(page_txt: str) -> bool:
@@ -347,7 +347,7 @@ def contains_cch_L511(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient une référence à l'article L511 du Code de la Construction et de l'Habitation.
     """
-    return M_CCH_L511.search(page_txt) is not None
+    return P_CCH_L511.search(page_txt) is not None
 
 
 def contains_cch_L521(page_txt: str) -> bool:
@@ -363,7 +363,7 @@ def contains_cch_L521(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient une référence à l'article L521 du Code de la Construction et de l'Habitation.
     """
-    return M_CCH_L521.search(page_txt) is not None
+    return P_CCH_L521.search(page_txt) is not None
 
 
 def contains_cch_L541(page_txt: str) -> bool:
@@ -379,7 +379,7 @@ def contains_cch_L541(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient une référence à l'article L541 du Code de la Construction et de l'Habitation.
     """
-    return M_CCH_L541.search(page_txt) is not None
+    return P_CCH_L541.search(page_txt) is not None
 
 
 def contains_cch_R511(page_txt: str) -> bool:
@@ -395,7 +395,7 @@ def contains_cch_R511(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient une référence à l'article R511 du Code de la Construction et de l'Habitation.
     """
-    return M_CCH_R511.search(page_txt) is not None
+    return P_CCH_R511.search(page_txt) is not None
 
 
 def contains_cc(page_txt: str) -> bool:
@@ -411,7 +411,7 @@ def contains_cc(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient une référence au Code Civil.
     """
-    return M_CC.search(page_txt) is not None
+    return P_CC.search(page_txt) is not None
 
 
 def contains_cc_art(page_txt: str) -> bool:
@@ -427,7 +427,7 @@ def contains_cc_art(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient une référence à des articles du Code Civil.
     """
-    return M_CC_ART.search(page_txt) is not None
+    return P_CC_ART.search(page_txt) is not None
 
 
 # - données
@@ -537,7 +537,7 @@ def get_date(page_txt: str) -> bool:
     doc_date: str
         Date du document si trouvée, None sinon.
     """
-    if m_date_d := M_DATE_DOC.search(page_txt):
+    if m_date_d := P_DATE_SIGNAT.search(page_txt):
         return m_date_d.group("arr_date")
     else:
         return None

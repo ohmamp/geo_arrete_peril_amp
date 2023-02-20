@@ -27,20 +27,36 @@ RE_ARR_OBJET = r"""Objet:\s+(?P<arr_nom>[^\n]+)"""
 P_ARR_OBJET = re.compile(RE_ARR_OBJET, re.MULTILINE | re.IGNORECASE)
 
 # tous arrêtés
-RE_VU = r"""^\s*V(U|u) [^\n]+"""
+RE_VU = r"""^\s*VU """
 # RE_VU = r"^\s*(?P<vu>V[Uu][, ](.+))"
-P_VU = re.compile(RE_VU, re.MULTILINE)  # re.VERBOSE ?
+P_VU = re.compile(RE_VU, re.MULTILINE | re.IGNORECASE)  # re.VERBOSE ?
+# paragraphe "Vu" entier
+RE_VU_PAR = r"^\s*(?P<par_vu>VU [\s\S]+?)(?=\s+(VU|CONSID[EÉ]RANT) )"
+P_VU_PAR = re.compile(RE_VU_PAR, re.MULTILINE | re.IGNORECASE)
 
-RE_CONSIDERANT = r"""^CONSID[EÉ]RANT [^\n]+"""
+RE_CONSIDERANT = r"""^\s*CONSID[EÉ]RANT """
 # RE_CONSIDERANT = r"^\s*(?P<considerant>(Considérant|CONSIDERANT)[, ](.+))"
 P_CONSIDERANT = re.compile(RE_CONSIDERANT, re.MULTILINE | re.IGNORECASE)
+# paragraphe "Considérant" entier
+RE_CONSID_PAR = r"^\s*(?P<par_considerant>CONSID[EÉ]RANT [\s\S]+?)(?=\s+(CONSID[EÉ]RANT|ARR[ÊE]T(?:E|ONS)))"
+P_CONSID_PAR = re.compile(RE_CONSID_PAR, re.MULTILINE | re.IGNORECASE)
 
-RE_ARRETE = r"""^ARR[ÊE]T(?:E|ONS)"""
+RE_ARRETE = r"""^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS))"""
 # RE_ARRETE = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
-M_ARRETE = re.compile(RE_ARRETE, re.MULTILINE | re.IGNORECASE)
+P_ARRETE = re.compile(RE_ARRETE, re.MULTILINE | re.IGNORECASE)
 
-RE_ARTICLE = r"""^ARTICLE \d+"""
-M_ARTICLE = re.compile(RE_ARTICLE, re.MULTILINE | re.IGNORECASE)
+RE_ARTICLE = r"""^\s*ARTICLE \d+"""
+P_ARTICLE = re.compile(RE_ARTICLE, re.MULTILINE | re.IGNORECASE)
+#
+RE_ARTICLE_PAR = (
+    r"^\s*(?P<par_article>ARTICLE \d+[\s\S]+?)"
+    # le motif s'arrête à l'article suivant ;
+    # ou à l'identité du signataire si sa mention précède la date de signature
+    # (ex: Marseille)
+    # FIXME repérer le signataire avant, et l'exclure de la zone d'application de ce motif
+    + r"(?=\n\s*(ARTICLE|Julien\s+RUAS\nMonsieur\s+l['’]Adjoint\s+délégué))"
+)
+P_ARTICLE_PAR = re.compile(RE_ARTICLE_PAR, re.MULTILINE | re.IGNORECASE)
 
 # (à valider)
 RE_ABF = r"""[Aa]rchitecte\s+des\s+[Bb]âtiments\s+de\s+France"""
@@ -106,7 +122,7 @@ RE_SYNDIC = (
     + r"""agence"""
     + r"""|le syndic(?:\s+de\s+copropriété)?"""
     + r"""|syndic\s+:"""
-    + r"""|syndicat\s+des\s+copropriétaires(?:\s+de\s+(?:cet\s+|l'\s*)immeuble)?(?:\s+est)?\s+pris\s+en\s+la\s+personne\s+(?:du|de)"""
+    + r"""|syndicat\s+des\s+copropriétaires(?:\s+de\s+(?:cet\s+|l['’]\s*)immeuble)?(?:\s+est)?\s+pris\s+en\s+la\s+personne\s+(?:du|de)"""
     + r""")\s+"""
     + r"""(?P<syndic>.+?)"""
     + r"""(?:"""
@@ -118,11 +134,11 @@ RE_SYNDIC = (
 M_SYNDIC = re.compile(RE_SYNDIC, re.MULTILINE | re.IGNORECASE)
 
 # date de l'arrêté
-RE_DATE_DOC = (
+RE_DATE_SIGNAT = (
     r"""(?:"""
     + r"""^Fait\s+à\s+\S+[,]?\s+le"""  # Roquevaire (fin)
-    + r"""|^Fait à Aix-en-Provence, en l'Hôtel de Ville,\nle"""  # Aix-en-Provence (fin)
-    + r"""|^Gardanne, le"""  # Gardanne
+    + r"""|^Fait\s+à\s+Aix-en-Provence,\s+en\s+l['’]Hôtel\s+de\s+Ville,\nle"""  # Aix-en-Provence (fin)
+    + r"""|^Gardanne,\s+le"""  # Gardanne
     + r"""|^Signé\s+le\s*:\s+"""
     + r"""|Arrêté\s+n°[\s\S]+?\s+du"""  # Peyrolles-en-Provence (en-tête), Martigues (fin)
     + r""")"""
@@ -130,4 +146,4 @@ RE_DATE_DOC = (
     + rf"""{RE_DATE}"""
     + r""")"""
 )
-M_DATE_DOC = re.compile(RE_DATE_DOC, re.MULTILINE | re.IGNORECASE)
+P_DATE_SIGNAT = re.compile(RE_DATE_SIGNAT, re.MULTILINE | re.IGNORECASE)

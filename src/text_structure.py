@@ -14,6 +14,7 @@ RE_ARR_NUM = (
     r"""(?:"""
     + r"""Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°"""
     + r"""|Réf\s+:"""
+    + r"""|^Nos Réf\s+:"""  # Gardanne
     + r"""|Arrêté\s+n°"""  # en-tête Peyrolles-en-Provence
     + r"""|ARRETE\s+N°"""
     + r"""|^N°"""
@@ -30,33 +31,17 @@ P_ARR_OBJET = re.compile(RE_ARR_OBJET, re.MULTILINE | re.IGNORECASE)
 RE_VU = r"""^\s*VU """
 # RE_VU = r"^\s*(?P<vu>V[Uu][, ](.+))"
 P_VU = re.compile(RE_VU, re.MULTILINE | re.IGNORECASE)  # re.VERBOSE ?
-# paragraphe "Vu" entier
-RE_VU_PAR = r"^\s*(?P<par_vu>VU [\s\S]+?)(?=\s+(VU|CONSID[EÉ]RANT) )"
-P_VU_PAR = re.compile(RE_VU_PAR, re.MULTILINE | re.IGNORECASE)
 
 RE_CONSIDERANT = r"""^\s*CONSID[EÉ]RANT """
 # RE_CONSIDERANT = r"^\s*(?P<considerant>(Considérant|CONSIDERANT)[, ](.+))"
 P_CONSIDERANT = re.compile(RE_CONSIDERANT, re.MULTILINE | re.IGNORECASE)
-# paragraphe "Considérant" entier
-RE_CONSID_PAR = r"^\s*(?P<par_considerant>CONSID[EÉ]RANT [\s\S]+?)(?=\s+(CONSID[EÉ]RANT|ARR[ÊE]T(?:E|ONS)))"
-P_CONSID_PAR = re.compile(RE_CONSID_PAR, re.MULTILINE | re.IGNORECASE)
 
 RE_ARRETE = r"""^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS))"""
 # RE_ARRETE = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
 P_ARRETE = re.compile(RE_ARRETE, re.MULTILINE | re.IGNORECASE)
 
-RE_ARTICLE = r"""^\s*ARTICLE \d+"""
+RE_ARTICLE = r"""^\s*ARTICLE\s+\d+"""
 P_ARTICLE = re.compile(RE_ARTICLE, re.MULTILINE | re.IGNORECASE)
-#
-RE_ARTICLE_PAR = (
-    r"^\s*(?P<par_article>ARTICLE \d+[\s\S]+?)"
-    # le motif s'arrête à l'article suivant ;
-    # ou à l'identité du signataire si sa mention précède la date de signature
-    # (ex: Marseille)
-    # FIXME repérer le signataire avant, et l'exclure de la zone d'application de ce motif
-    + r"(?=\n\s*(ARTICLE|Julien\s+RUAS\nMonsieur\s+l['’]Adjoint\s+délégué))"
-)
-P_ARTICLE_PAR = re.compile(RE_ARTICLE_PAR, re.MULTILINE | re.IGNORECASE)
 
 # (à valider)
 RE_ABF = r"""[Aa]rchitecte\s+des\s+[Bb]âtiments\s+de\s+France"""
@@ -73,7 +58,7 @@ RE_MAIRE_COMMUNE = (
     r"""(?P<autorite>"""
     + r"""^Le\s+"""
     + rf"""{RE_MAIRE_COMM_DE}"""
-    + r"""|^Nous[,.]\s+(?P<autorite_nom>[^,]+,\s+)?"""
+    + r"""|Nous[,.]\s+(?P<autorite_nom>[^,]+,\s+)?"""  # pas de "^" pour augmenter la robustesse (eg. séparateur "-" en fin de ligne précédente interprété comme un tiret de coupure de mot)
     + rf"""{RE_MAIRE_COMM_DE}"""
     + r""")"""
     + rf"""(?P<commune>{RE_COMMUNE})"""
@@ -140,7 +125,7 @@ RE_DATE_SIGNAT = (
     + r"""|^Fait\s+à\s+Aix-en-Provence,\s+en\s+l['’]Hôtel\s+de\s+Ville,\nle"""  # Aix-en-Provence (fin)
     + r"""|^Gardanne,\s+le"""  # Gardanne
     + r"""|^Signé\s+le\s*:\s+"""
-    + r"""|Arrêté\s+n°[\s\S]+?\s+du"""  # Peyrolles-en-Provence (en-tête), Martigues (fin)
+    + r"""|^Arrêté\s+n°[\s\S]+?\s+du"""  # Peyrolles-en-Provence (en-tête), Martigues (fin)
     + r""")"""
     + r"""\s+(?P<arr_date>"""
     + rf"""{RE_DATE}"""

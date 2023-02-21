@@ -31,6 +31,9 @@ RAW_BATCHES = {
 }
 
 # liste de fichiers à exclure du traitement car ils sortent du périmètre de traitement: diagnostics, rapports...
+# TODO créer une heuristique pour les détecter automatiquement et les écarter
+# * 1 page qui commence par "^\s*PERIMETRE\s+DE\s+SECURITE\s*$" => annexe
+# * ?
 EXCLUDE_FILES = [
     "9, rue Tranchier MARTIGUES diag solidité.pdf",  # diagnostic
     "péril rue de la Tour.pdf",  # rapport sur état de péril
@@ -56,4 +59,9 @@ EXCLUDE_FILES = [
     "20, rue d'Anvers péril annexe 1.pdf",  # annexe: plan périmètre de sécurité
     "32, avenue de Saint Just annexe 13004.pdf",  # annexe: plan périmètre de sécurité
     "St Pierre de Mézoargues annexe.pdf",  # annexe: plan périmètre de sécurité
+    "périmètre parking puces Oddo 13015.pdf",  # annexe: plan périmètre de sécurité
+    "MENPENTI.pdf",  # annexe: plan périmètre de sécurité
+    "Arrêté de péril grave et imminent annexe2- 12 rue Château du Mûrier-110619.pdf",  # annexe: plan périmètre de sécurité
+    "ordinaire 15 rue du Jet d'Eau 13003 périmètre.pdf",  # annexe: plan périmètre de sécurité
+    "7, rue du Village.pdf",  # annexe: plan périmètre de sécurité
 ]

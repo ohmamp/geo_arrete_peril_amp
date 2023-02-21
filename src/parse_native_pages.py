@@ -21,7 +21,7 @@ from typing import NamedTuple
 
 import pandas as pd
 
-from actes import P_STAMP, M_ACCUSE
+from actes import P_STAMP, P_ACCUSE
 from cadastre import M_PARCELLE
 from cadre_reglementaire import (
     P_CGCT,
@@ -163,7 +163,7 @@ def is_accusedereception_page(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient un tampon de transmission
     """
-    return M_ACCUSE.search(page_txt) is not None
+    return P_ACCUSE.search(page_txt) is not None
 
 
 # structure des arrêtés

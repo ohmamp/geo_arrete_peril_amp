@@ -69,7 +69,7 @@ Identifiant Acte: \d{3}-\d{9}-\d{8}-[^-]+-(?P<nature_abr>AI|AR|AU)"""
 # actes individuels: ...-AI, actes réglementaires: ...-AR, autres: ...-AU
 # (?P<nature_acte>Actes individuels|Actes réglementaires)\n
 # (?P<nature_abr>[^\n]+)
-M_ACCUSE = re.compile(RE_ACCUSE, re.MULTILINE)
+P_ACCUSE = re.compile(RE_ACCUSE, re.MULTILINE)
 
 # TODO vérifier les matières ;
 # grep -h "Matière:" data/interim/txt_native/*.txt |sort |uniq -c

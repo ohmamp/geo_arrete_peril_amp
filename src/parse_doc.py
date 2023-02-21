@@ -6,7 +6,7 @@ autorité, vus, correspondants, articles, signature...
 
 from pathlib import Path
 import re
-from typing import Optional, Tuple
+from typing import Optional
 
 import pandas as pd  # tableau récapitulatif des extractions
 
@@ -46,10 +46,12 @@ DTYPE_PARSES = {
 # *sous forme d'images*
 
 
-def parse_page_template(txt: str) -> Tuple[list, str]:
+def parse_page_template(txt: str) -> tuple[list, str]:
     """Analyse une page pour repérer le template.
 
-    Repère les en-têtes, pieds-de-page, tampons.
+    Repère les en-têtes, pieds-de-page, tampons, et renvoie
+    les empans correspondants, ainsi que le texte débarrassé
+    de ces éléments de template.
 
     Parameters
     ----------
@@ -125,8 +127,8 @@ RE_STRIP = r"""(?:\s*)(?P<outstrip>\S[\s\S]*?)(?:\s*)"""
 P_STRIP = re.compile(RE_STRIP, re.IGNORECASE | re.MULTILINE)
 
 
-def parse_page_before_vu(txt_body: str, pream_beg: int, pream_end: int) -> list:
-    """Analyse une page avant le 1er "Vu" pour repérer les zones de contenus.
+def parse_doc_preamble(txt_body: str, pream_beg: int, pream_end: int) -> list[dict]:
+    """Analyse le préambule d'un document, sur la 1re page, avant le 1er "Vu".
 
     Parameters
     ----------
@@ -176,7 +178,7 @@ def parse_page_before_vu(txt_body: str, pream_beg: int, pream_end: int) -> list:
     else:
         # pas d'autorité détectée: anormal
         autorite_beg = pream_end
-        raise ValueError("Pas d'autorité détectée !?")
+        raise ValueError(f"Pas d'autorité détectée !?\n{txt_body}")
 
     # b. ce préambule peut contenir le numéro de l'arrêté (si présent, absent dans certaines communes)
     if match := P_ARR_NUM.search(txt_body, pream_beg, autorite_beg):
@@ -256,22 +258,19 @@ def parse_page_before_vu(txt_body: str, pream_beg: int, pream_end: int) -> list:
     return content
 
 
-def parse_page_after_vu(
-    txt_body: str, main_beg: int, main_end: int, latest_span: Optional[dict]
-) -> list:
-    """Analyse une page avant le 1er "Vu" pour repérer les zones de contenus.
+def parse_doc_postamble(txt_body: str, pream_beg: int, pream_end: int) -> list[dict]:
+    """Analyse le postambule d'un document, sur la dernière page (hors annexes).
+
+    Le postambule correspond à la zone de signature: date, lieu éventuel et signataire.
 
     Parameters
     ----------
     txt_body: string
         Corps de texte de la page à analyser
-    main_beg: int
+    pream_beg: int
         Début de l'empan à analyser.
-    main_end: int
-        Fin de l'empan à analyser.
-    latest_span: dict
-        Dernier empan de contenu repéré sur la page précédente.
-        Vaut `None` pour la première page.
+    pream_end: int
+        Fin de l'empan à analyser, correspondant au début du 1er "Vu".
 
     Returns
     -------
@@ -279,184 +278,8 @@ def parse_page_after_vu(
         Liste d'empans de contenu
     """
     content = []
-
-    if latest_span is not None:
-        # rattacher le texte avant le premier "VU" ou "CONSIDERANT" ou "ARRETE" ou "ARTICLE",
-        # à la dernière annotation de la page précédente ;
-        # vérifier au passage que les transitions sont celles attendues:
-        # Vu < Considérant < Arrête < Article
-        # TODO vérifier que les "vu" sont obligatoirement ou systématiquement avant les "considérant"
-        if m_vu := P_VU_PAR.search(txt_body, main_beg, main_end):
-            # si on détecte un "vu", l'annotation précédente ou en cours doit être un "vu"
-            assert latest_span["span_typ"] == "par_vu"
-            zone_end = m_vu.start()
-        elif m_consid := P_CONSID_PAR.search(txt_body, main_beg, main_end):
-            # si on détecte un "considérant", l'annotation précédente ou en cours doit être un "vu" ou "considérant"
-            assert latest_span["span_typ"] in (
-                "par_vu",
-                "par_considerant",
-            )
-            zone_end = m_consid.start()
-        elif m_arrete := P_ARRETE.search(txt_body, main_beg, main_end):
-            # si on détecte un "arrête", l'annotation précédente ou en cours doit être un "considérant"
-            # TODO vérifier si ça peut être un "vu"
-            assert latest_span["span_typ"] == "par_considerant"
-            zone_end = m_arrete.start()
-        elif m_article := P_ARTICLE.search(txt_body, main_beg, main_end):
-            # si on détecte un "article", l'annotation précédente ou en cours doit être un "arrête" ou un "article"
-            assert latest_span["span_typ"] in ("par_arrete", "par_article")
-            zone_end = m_article.start()
-        else:
-            # WIP quelles situations sont possibles?
-            raise ValueError(f"Zone?\n{txt_body[main_beg:main_end]}")
-            # RESUME HERE FIXME il faut arrêter les motifs "vu", "considérant"... non seulement
-            # lorsqu'un nouveau paragraphe commence, mais aussi en fin de page
-
-        # récupérer le texte en début de page avant le premier préfixe reconnu, s'il y en a, et
-        # le mettre dans un empan de type span_typ + "_suite"
-        if match := P_STRIP.fullmatch(txt_body, main_beg, zone_end):
-            # stocker la zone reconnue
-            content.append(
-                {
-                    "span_beg": match.start(),
-                    "span_end": match.end(),
-                    "span_txt": match.group(0),
-                    "span_typ": latest_span["span_typ"] + "_suite",
-                }
-            )
-            # repérer les références au cadre réglementaire
-            # TODO seulement pour les "vu"? ou utile pour les autres?
-            content_reg = parse_refs_reglement(txt_body, span_beg, span_end)
-            content.extend(content_reg)
-
-    if matches := P_VU_PAR.finditer(txt_body, main_beg, main_end):
-        for match in matches:
-            span_beg, span_end = match.span()
-            content.append(
-                {
-                    "span_beg": span_beg,
-                    "span_end": span_end,
-                    "span_txt": match.group("par_vu"),
-                    "span_typ": "par_vu",  # paragraphe de "vu"
-                }
-            )
-            # repérer les références au cadre réglementaire
-            content_reg = parse_refs_reglement(txt_body, span_beg, span_end)
-            content.extend(content_reg)
-
-    # TODO déplacer au fur et à mesure la fenêtre (_beg, _end) de recherche pour accélérer?
-    if matches := P_CONSID_PAR.finditer(txt_body, main_beg, main_end):
-        for match in matches:
-            span_beg, span_end = match.span()
-            content.append(
-                {
-                    "span_beg": span_beg,
-                    "span_end": span_end,
-                    "span_txt": match.group("par_considerant"),
-                    "span_typ": "par_considerant",  # paragraphe de "considerant"
-                }
-            )
-            # ? repérer les références au cadre réglementaire
-            content_reg = parse_refs_reglement(txt_body, span_beg, span_end)
-            if content_reg:
-                # WIP cela ne devrait pas arriver?
-                raise ValueError(
-                    f"Considérant avec référence réglementaire:\n{txt_body[span_beg:span_end]}"
-                )
-            content.extend(content_reg)
-
-    if matches := P_ARRETE.finditer(txt_body, main_beg, main_end):
-        for match in matches:
-            span_beg, span_end = match.span()
-            content.append(
-                {
-                    "span_beg": span_beg,
-                    "span_end": span_end,
-                    "span_txt": match.group("par_arrete"),
-                    "span_typ": "par_arrete",  # paragraphe de "arrête"
-                }
-            )
-            # pas de traitement à réaliser
-
-    if matches := P_ARTICLE_PAR.finditer(txt_body, main_beg, main_end):
-        for match in matches:
-            span_beg, span_end = match.span()
-            content.append(
-                {
-                    "span_beg": span_beg,
-                    "span_end": span_end,
-                    "span_txt": match.group("par_article"),
-                    "span_typ": "par_article",  # paragraphe de "article"
-                }
-            )
-            # ? repérer les références au cadre réglementaire
-            content_reg = parse_refs_reglement(txt_body, span_beg, span_end)
-            if content_reg:
-                # WIP cela ne devrait pas arriver?
-                raise ValueError(
-                    f"Article avec référence réglementaire:\n{txt_body[span_beg:span_end]}"
-                )
-            content.extend(content_reg)
-
-    return content
-
-
-def parse_page_content(
-    txt_body: str, page_num: int, latest_span: Optional[dict]
-) -> list:
-    """Analyse une page pour repérer les zones de contenus.
-
-    Parameters
-    ----------
-    txt_body: string
-        Corps de texte de la page à analyser
-    page_num: int
-        Numéro de la page
-    latest_span: dict
-        Dernier empan de contenu repéré sur la page précédente.
-        Vaut `None` pour la première page.
-
-    Returns
-    -------
-    content: list
-        Liste d'empans de contenu
-    """
-    content = []
-    if latest_span is None:
-        # TODO mieux que page_num == 1 ? ou faut-il définir un autre critère pour gérer des cas marginaux?
-        # eg. page avec des métadonnées avant la p. 1
-        #
-        # repérer le 1er "Vu", et traiter tout ce qui est avant
-        # TODO ou repérer le "ARRETE | ARRETONS | ..." ?
-        if m_vu := P_VU.search(txt_body):
-            pream_beg = 0
-            pream_end = m_vu.start()
-            content_before_vu = parse_page_before_vu(txt_body, pream_beg, pream_end)
-            content.extend(content_before_vu)
-            main_beg = pream_end
-        else:
-            # RESUME HERE: il ne faut pas traiter les documents vides
-            raise ValueError(f"Pas de Vu en p.1 !?\n{txt_body}")
-    else:
-        main_beg = 0
-
-    if m_signature := P_DATE_SIGNAT.search(txt_body):
-        # si la page contient la signature de fin de l'acte, l'analyse du contenu
-        # principal s'arrêter à la signature
-        main_end = m_signature.start()
-    else:
-        main_end = len(txt_body)
-
-    # traiter les Vu, Concernant, Article etc.
-    content_after_vu = parse_page_after_vu(
-        txt_body, main_beg, main_end, latest_span=latest_span
-    )
-    content.extend(content_after_vu)
-
-    # extraire la date (de signature) de l'acte
-    # FIXME repérer également le signataire, et limiter la zone de recherche du contenu au début du 1er
-    # qui apparaît entre la date de signature et le signataire
-    if m_signature:
+    # a. extraire la date de signature
+    if m_signature := P_DATE_SIGNAT.search(txt_body, pream_beg, pream_end):
         # stocker la zone reconnue
         content.append(
             {
@@ -475,10 +298,119 @@ def parse_page_content(
                 "span_typ": "arr_date",
             }
         )
-
-    # TODO extraire l'identité et la qualité du signataire? (eg. délégation de signature)
+    # TODO b. extraire l'identité et la qualité du signataire? (eg. délégation de signature)
     #
-    # TODO arrêter le traitement ici et tronquer le texte / le PDF si possible? (utile pour l'OCR)
+    return content
+
+
+def parse_page_content(
+    txt_body: str, main_beg: int, main_end: int, latest_span: Optional[dict]
+) -> list:
+    """Analyse une page pour repérer les zones de contenus.
+
+    Parameters
+    ----------
+    txt_body: string
+        Corps de texte de la page à analyser
+    main_beg: int
+        Début de l'empan à analyser.
+    main_end: int
+        Fin de l'empan à analyser.
+    latest_span: dict, optional
+        Dernier empan de contenu repéré sur la page précédente.
+        Vaut `None` pour la première page.
+
+    Returns
+    -------
+    content: list
+        Liste d'empans de contenu
+    """
+    content = []
+
+    # repérer les débuts de paragraphes: "Vu", "Considérant", "Arrête", "Article"
+    par_begs = (
+        [(m.start(), "par_vu") for m in P_VU.finditer(txt_body, main_beg, main_end)]
+        + [
+            (m.start(), "par_considerant")
+            for m in P_CONSIDERANT.finditer(txt_body, main_beg, main_end)
+        ]
+        + [
+            (m.start(), "par_arrete")
+            for m in P_ARRETE.finditer(txt_body, main_beg, main_end)
+        ]
+        + [
+            (m.start(), "par_article")
+            for m in P_ARTICLE.finditer(txt_body, main_beg, main_end)
+        ]
+    )
+    # s'il y a du texte avant le 1er début de paragraphe, c'est la continuation du
+    # dernier paragraphe de la page précédente ;
+    # le mettre dans un empan de type span_typ + "_suite"
+    if par_begs:
+        nxt_beg, nxt_typ = par_begs[0]
+    else:
+        # aucun début de paragraphe détecté sur la page ; cela peut arriver lorsqu'un empan
+        # court sur plusieurs pages, eg. un "Considérant" très long incluant la liste des
+        # copropriétaires
+        nxt_beg = main_end  # analyser jusqu'en bas de la page
+        nxt_typ = None  # pas de prochain empan connu sur cette page
+        # RESUME HERE vérifier qu'il y a bien un latest_span (et d'un type possible pour une continuation)
+    if match := P_STRIP.fullmatch(txt_body, main_beg, nxt_beg):
+        lst_typ = latest_span["span_typ"]
+        # un empan peut courir sur plus d'une page complète (ex: "Considérant" très long, incluant la liste des copropriétaires)
+        cur_typ = lst_typ if lst_typ.endswith("_suite") else lst_typ + "_suite"
+        # stocker la zone reconnue
+        content.append(
+            {
+                "span_beg": match.start(),
+                "span_end": match.end(),
+                "span_txt": match.group(0),
+                "span_typ": cur_typ,
+            }
+        )
+        if nxt_typ is not None:
+            # vérifier que la transition autorisée est correcte
+            # TODO déplacer cette vérification en amont ou en aval?
+            assert (cur_typ, nxt_typ) in (
+                ("par_vu_suite", "par_vu"),
+                ("par_vu_suite", "par_considerant"),
+                ("par_considerant_suite", "par_considerant"),
+                ("par_considerant_suite", "par_arrete"),
+                # ("par_arrete_suite", "par_article"),  # "Arrête" ne peut pas être coupé par un saut de page car il est toujours sur une seule ligne
+                ("par_article_suite", "par_article"),
+            )
+    # créer un empan par paragraphe
+    for (cur_beg, cur_typ), (nxt_beg, nxt_typ) in zip(par_begs[:-1], par_begs[1:]):
+        # extraire le texte hors espaces de début et fin
+        if match := P_STRIP.fullmatch(txt_body, cur_beg, nxt_beg):
+            # stocker la zone reconnue
+            content.append(
+                {
+                    "span_beg": match.start(),
+                    "span_end": match.end(),
+                    "span_txt": match.group(0),
+                    "span_typ": cur_typ,
+                }
+            )
+        # vérifier que la transition autorisée est correcte
+        # TODO déplacer cette vérification en amont ou en aval?
+        assert (cur_typ, nxt_typ) in (
+            ("par_vu", "par_vu"),
+            ("par_vu", "par_considerant"),
+            ("par_considerant", "par_considerant"),
+            ("par_considerant", "par_arrete"),
+            ("par_arrete", "par_article"),
+            ("par_article", "par_article"),
+        )
+    # repérer, dans chaque paragraphe, les références au cadre réglementaire
+    # TODO seulement pour les "vu"? ou utile pour les autres?
+    # TODO certaines références peuvent-elles être coupées par des sauts de page ? => concaténer latest_span["span_txt"] et content[0]["span_txt"] ?
+    content_reg = []
+    for par in content:
+        par_reg = parse_refs_reglement(txt_body, par["span_beg"], par["span_end"])
+        content_reg.extend(par_reg)
+    content.extend(content_reg)
+
     return content
 
 
@@ -507,57 +439,63 @@ def parse_arrete(fp_txt_in: Path) -> list:
     for i, page in enumerate(pages, start=1):
         mdata_page = mdata_doc | {"page_num": i}
         pg_template, pg_txt_body = parse_page_template(page)
-        pg_content = parse_page_content(pg_txt_body, i, latest_span)
-        latest_span = pg_content[-1]  # pour l'itération suivante
+        pg_content = []
+
+        # préambule du document: seulement en page 1
+        if i == 1:
+            # 1re page: il faut d'abord analyser le préambule du document (avant le 1er "Vu")
+            # contient la commune, l'autorité prenant l'arrêté, parfois le numéro de l'arrêté
+            if fst_vu := P_VU.search(pg_txt_body):
+                pream_beg = 0
+                pream_end = fst_vu.start()
+                pream_content = parse_doc_preamble(pg_txt_body, pream_beg, pream_end)
+                pg_content.extend(pream_content)
+            else:
+                raise ValueError(f"Pas de 'Vu' en page 1\n{mdata_page}\n{pg_txt_body}")
+            main_beg = pream_end
+        else:
+            # p. 2 et suivantes: la zone à analyser commence en haut de la page (les éléments de
+            # template ayant été effacés au préalable)
+            main_beg = 0
+
+        # postambule du document: en dernière page (hors annexes)
+        # (NB: peut être la page 1 ou 2, pour les arrêtés les plus courts)
+        # le corps du document s'arrête à la signature ou la date de prise de l'arrêté
+        # FIXME attraper le 1er qui apparaît: date de signature ou signataire
+        if m_date_sign := P_DATE_SIGNAT.search(pg_txt_body, main_beg):
+            # si la page contient la signature de fin de l'acte, l'analyse du contenu
+            # principal s'arrêter à la signature
+            main_end = m_date_sign.start()
+        else:
+            main_end = len(pg_txt_body)
+
+        # appliquer sur la zone principale ainsi définie une fonction d'analyse générique
+        # du contenu (pour toutes les pages)
+        pg_content = parse_page_content(pg_txt_body, main_beg, main_end, latest_span)
+        # récupérer le dernier paragraphe de la page, car il peut être continué
+        # en début de page suivante
+        latest_span = [x for x in pg_content if x["span_typ"].startswith("par_")][-1]
+        # accumulation au niveau du document
         page_content = mdata_page | {
-            "template": pg_template,
-            "body": pg_txt_body,
-            "content": pg_content,
+            "template": pg_template,  # empans de template
+            "body": pg_txt_body,  # texte (sans le texte du template)
+            "content": pg_content,  # empans de contenu (paragraphes et données)
         }
         doc_content.append(page_content)
-    return doc_content
-    # WIP
-    m_preambule = P_PREAMBULE.search(txt)
-    if m_preambule is not None:
-        print(fp_txt_in.name, "\tPREAMBULE ", m_preambule)
-    else:
-        for line in txt.split("\n"):
-            m_autorite = P_MAIRE_COMMUNE.match(line)
-            if m_autorite is not None:
-                print(fp_txt_in.name, "\tAUTORITE  ", m_autorite)
-                break
-        else:
-            raise ValueError(f"{fp_txt_in.name}")
-    # end WIP
-    # chercher le point de référence "ARRETE|ARRÊTE|ARRÊTONS"
-    m_arrete = P_ARRETE.search(txt)
-    if m_arrete is not None:
-        content["arrete"] = m_arrete.groups()
-    else:
-        print(repr(txt))
-        raise ValueError(f"{fp_txt_in.name}:\t !?")
-    # avant ARRETE, on trouve l'en-tête, l'objet, l'autorité, les "vu" et les "considérant"
-    # entete
-    # objet
-    # autorite
-    m_autorite = P_MAIRE_COMMUNE.search(txt)
-    if m_autorite is not None:
-        content["autorite"] = m_autorite.group(0)
-    # vus
-    m_vu = P_VU.findall(txt)
-    content["vu"] = m_vu
-    # considerants
-    m_considerant = P_CONSIDERANT.findall(txt)
-    content["considerant"] = m_considerant
-    if not m_considerant:
+        # TODO arrêter le traitement à la fin du postambule et tronquer le texte / le PDF si possible? (utile pour l'OCR)
+
+    # vérifier certaines hypothèses sur la composition du document
+    par_typs = [x["span_typ"] for x in doc_content if x["span_typ"].startswith("par_")]
+    # "considérant" obligatoire sauf pour certains arrêtés?
+    if "par_considerant" not in par_typs:
         if fp_txt_in.name not in (
             "99_AR-013-211300058-20220131-310122_01-AR-1-1_1 (1).txt",  # mainlevée => optionnel ?
             "99_AR-013-211300058-20220318-180322_01-AR-1-1_1.txt",  # mainlevée => optionnel ?
         ):
             raise ValueError(fp_txt_in.name)
-    # articles
-    # pieddepage
-    return content
+    # TODO autres vérifications: "Vu" obligatoire, exactement 1 "Arrête" etc.
+
+    return doc_content
 
 
 if __name__ == "__main__":

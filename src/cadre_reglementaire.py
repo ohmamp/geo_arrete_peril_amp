@@ -41,7 +41,7 @@ P_CC_ART = re.compile(RE_CC_ART, re.MULTILINE | re.IGNORECASE)
 
 
 # association entre un motif compilé et un type d'empan
-REG_SPANS = [
+REG_TYP = [
     (P_CGCT, "cgct"),
     (P_CGCT_ART, "cgct_art"),
     (P_CCH, "cch"),
@@ -73,7 +73,7 @@ def parse_refs_reglement(txt_body: str, span_beg: int, span_end: int) -> list:
         Liste d'empans de références
     """
     content = []
-    for p_reg, span_reg in REG_SPANS:
+    for p_reg, typ_reg in REG_TYP:
         if matches := p_reg.finditer(txt_body, span_beg, span_end):
             for match in matches:
                 content.append(
@@ -81,7 +81,7 @@ def parse_refs_reglement(txt_body: str, span_beg: int, span_end: int) -> list:
                         "span_beg": match.start(),
                         "span_end": match.end(),
                         "span_txt": match.group(0),
-                        "span_typ": span_reg,
+                        "span_typ": typ_reg,
                     }
                 )
     return content

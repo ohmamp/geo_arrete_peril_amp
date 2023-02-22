@@ -43,7 +43,7 @@ P_HEADER = re.compile(RE_HEADER, flags=re.MULTILINE | re.IGNORECASE | re.VERBOSE
 RE_FOOTERS = [
     (
         "Marseille",
-        r"""^Ville\s+de\s+Marseille,\s+2\s+quai\s+du\s+Port\s+–\s+13233\s+MARSEILLE\s+CEDEX\s+20""",
+        r"""^Ville\s+de\s+Marseille,\s+2\s+quai\s+du\s+Port\s+[–-]\s+13233\s+MARSEILLE\s+CEDEX\s+20""",
     ),  #
     ("Marseille", r"""^\d{1,2}/\d{1,2}$"""),  # numéro de page
     (

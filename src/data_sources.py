@@ -32,8 +32,10 @@ RAW_BATCHES = {
 
 # liste de fichiers à exclure du traitement car ils sortent du périmètre de traitement: diagnostics, rapports...
 # TODO créer une heuristique pour les détecter automatiquement et les écarter
-# * 1 page qui commence par "^\s*PERIMETRE\s+DE\s+SECURITE\s*$" => annexe
-# * ?
+# * p. 1 commence par "^ANNEXE\s+\d+" => annexe
+# * p. 1 contient "^\s*PERIMETRE\s+DE\s+SECURITE\s*" => annexe
+# * "EXTRAIT\s+DU\s+PLAN\s+CADASTRAL" => annexe
+# * page contenant "^Impression non normalisée du plan cadastral$" => annexe
 EXCLUDE_FILES = [
     "9, rue Tranchier MARTIGUES diag solidité.pdf",  # diagnostic
     "péril rue de la Tour.pdf",  # rapport sur état de péril
@@ -64,4 +66,23 @@ EXCLUDE_FILES = [
     "Arrêté de péril grave et imminent annexe2- 12 rue Château du Mûrier-110619.pdf",  # annexe: plan périmètre de sécurité
     "ordinaire 15 rue du Jet d'Eau 13003 périmètre.pdf",  # annexe: plan périmètre de sécurité
     "7, rue du Village.pdf",  # annexe: plan périmètre de sécurité
+    "5 rue du Village.pdf",  # annexe: plan périmètre de sécurité
+    "péril 87 rue d'Aubagne 13001 annexe 2.pdf",  # annexe: plan périmètre de sécurité
+    "ordinaire 2 impasse Moncault 13013 plan.pdf",  # annexe: plan périmètre de sécurité
+    "18, rue d'Aix  annexe 13001.pdf",  # annexe: plan périmètre de sécurité
+    "Périmètre de sécurité 2 Joliette.pdf",  # annexe: plan périmètre de sécurité
+    "modif 8 et 10 impasse Croix de Regnier.pdf",  # annexe: plan périmètre de sécurité
+    "39, 41, 43, rue de la Palud péril annexe 3 feuille presence AG.pdf",  # annexe: feuille de présence (liste des copropriétaires)
+    "MS 93 rue le Pelletier 13016 plan.pdf",  # annexe: plan périmètre de sécurité
+    "déconstruction 41 43 rue de la Palud annexe 1 .pdf",  # annexe: feuille de présence (liste des copropriétaires)
+    "périmètre de sécurité rue Charvet et interdiction 17 et 26 rue Charvet annexe.pdf",  # annexe: plan périmètre de sécurité
+    "Périmètre de sécurité Joliette.pdf",  # annexe: plan périmètre de sécurité
+    "MS 169 rue Rabelais 13016 plan.pdf",  # annexe: plan périmètre de sécurité
+    "PLAN CADASTRAL.pdf",  # annexe: plan périmètre de sécurité
+    "83 rue Antoine Del Bello - annex 2 10.02.20.pdf",  # annexe: plan périmètre de sécurité
+    "simple 81 rue Curiol 13001 - plan.pdf",  # annexe: plan périmètre de sécurité
+    "ordinaire 25 rue de Crimée 17 bld G. Desplaces 13003 plan.pdf",  # annexe: plan périmètre de sécurité
+    "modif déconstruction 535 rue Saint Pierre 13012 plan.pdf",  # annexe: plan périmètre de sécurité
+    "39, 41, 43, rue de la Palud péril annexe 5 feuille présence AG.pdf",  # annexe: feuille de présence (liste des copropriétaires)
+    "mise en sécurité 7 rue du Village 13006 périmètre.pdf",  # annexe: plan périmètre de sécurité
 ]

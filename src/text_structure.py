@@ -14,7 +14,7 @@ RE_ARR_NUM = (
     r"""(?:"""
     + r"""Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°"""
     + r"""|Réf\s+:"""
-    + r"""|^Nos Réf\s+:"""  # Gardanne
+    + r"""|^Nos\s+Réf\s+:"""  # Gardanne
     + r"""|Arrêté\s+n°"""  # en-tête Peyrolles-en-Provence
     + r"""|ARRETE\s+N°"""
     + r"""|^N°"""
@@ -28,11 +28,11 @@ RE_ARR_OBJET = r"""Objet:\s+(?P<arr_nom>[^\n]+)"""
 P_ARR_OBJET = re.compile(RE_ARR_OBJET, re.MULTILINE | re.IGNORECASE)
 
 # tous arrêtés
-RE_VU = r"""^\s*VU """
+RE_VU = r"""^\s*VU"""
 # RE_VU = r"^\s*(?P<vu>V[Uu][, ](.+))"
 P_VU = re.compile(RE_VU, re.MULTILINE | re.IGNORECASE)  # re.VERBOSE ?
 
-RE_CONSIDERANT = r"""^\s*CONSID[EÉ]RANT """
+RE_CONSIDERANT = r"""^\s*CONSID[EÉ]RANT"""
 # RE_CONSIDERANT = r"^\s*(?P<considerant>(Considérant|CONSIDERANT)[, ](.+))"
 P_CONSIDERANT = re.compile(RE_CONSIDERANT, re.MULTILINE | re.IGNORECASE)
 

@@ -12,10 +12,15 @@ import pandas as pd  # tableau récapitulatif des extractions
 
 from actes import P_STAMP, P_ACCUSE  # tampon
 from cadre_reglementaire import parse_refs_reglement
-from doc_template import P_HEADER, P_FOOTER  # en-tête et pied-de-page
+from doc_template import (
+    P_HEADER,
+    P_FOOTER,
+    P_BORDEREAU,
+)  # en-têtes, pieds-de-page, pages spéciales
 from separate_pages import load_pages_text
 from text_structure import (
     P_ARR_NUM,
+    P_ARR_NUM_FALLBACK,
     P_ARR_OBJET,
     P_MAIRE_COMMUNE,
     P_VU,
@@ -120,15 +125,30 @@ def parse_page_template(txt: str) -> tuple[list, str]:
 
 
 # motif pour capturer tout le texte sauf les espaces initiaux et finaux
-RE_STRIP = r"""(?:\s*)(?P<outstrip>\S[\s\S]*?)(?:\s*)"""
+RE_STRIP = (
+    r"(?:\s*)"  # espaces initiaux
+    + r"(?P<outstrip>\S[\s\S]*?)"  # texte à capturer
+    + r"(?:\s*)"  # espaces finaux
+)
 P_STRIP = re.compile(RE_STRIP, re.IGNORECASE | re.MULTILINE)
+# motif pour capturer les lignes (pour ne pas les confondre avec du vrai texte, en garde-fou avant STRIP)
+RE_LINE = (
+    r"(?:\s*)"  # espaces initiaux
+    + r"(?:_{3,})"  # capturer les traits/lignes "_______"
+    + r"(?:\s*)"  # espaces finaux
+)
+P_LINE = re.compile(RE_LINE, re.IGNORECASE | re.MULTILINE)
 
 
-def parse_doc_preamble(txt_body: str, pream_beg: int, pream_end: int) -> list[dict]:
+def parse_doc_preamble(
+    filename: str, txt_body: str, pream_beg: int, pream_end: int
+) -> list[dict]:
     """Analyse le préambule d'un document, sur la 1re page, avant le 1er "Vu".
 
     Parameters
     ----------
+    filename: string
+        Nom du fichier texte
     txt_body: string
         Corps de texte de la page à analyser
     pream_beg: int
@@ -142,6 +162,7 @@ def parse_doc_preamble(txt_body: str, pream_beg: int, pream_end: int) -> list[di
         Liste d'empans de contenu
     """
     content = []
+    rem_txt = ""  # s'il reste du texte après l'autorité (WIP)
 
     # créer une copie du texte du préambule, de même longueur que le texte complet pour que les empans soient bien positionnés
     # le texte sera effacé au fur et à mesure qu'il sera "consommé"
@@ -180,19 +201,36 @@ def parse_doc_preamble(txt_body: str, pream_beg: int, pream_end: int) -> list[di
         )
         # vérifier que la zone de l'autorité est bien en fin de préambule
         try:
-            assert txt_copy[span_end:pream_end].strip() == ""
+            rem_txt = txt_copy[span_end:pream_end].strip()
+            assert rem_txt == ""
         except AssertionError:
+            # FIXME log warning
             print(
-                f"\tTexte en fin de préambule: {txt_copy[span_end:pream_end].strip()}"
+                f"W: {filename}\tTexte après l'autorité, en fin de préambule: {rem_txt}"
             )
-            # raise
+            if len(rem_txt) < 2:
+                # s'il ne reste qu'un caractère, c'est probablement une typo => avertir et effacer
+                # FIXME warning
+                print(
+                    f"W: {filename}\tIgnorer le fragment de texte en fin de préambule, probablement une typo: {rem_txt}"
+                )
+                txt_copy = (
+                    txt_copy[:span_end]
+                    + " " * (pream_end - span_end)
+                    + txt_copy[pream_end:]
+                )
     else:
         # pas d'autorité détectée: anormal
         raise ValueError(f"Pas d'autorité détectée !?\n{txt_copy}")
 
     # b. ce préambule peut contenir le numéro de l'arrêté (si présent, absent dans certaines communes)
     # NB: ce numéro d'arrêté peut se trouver avant ou après l'autorité (ex: Gardanne)
-    if match := P_ARR_NUM.search(txt_copy, pream_beg, pream_end):
+    match = P_ARR_NUM.search(txt_copy, pream_beg, pream_end)
+    if match is None:
+        # si la capture précise échoue, utiliser une capture plus permissive (mais risque d'attrape-tout)
+        match = P_ARR_NUM_FALLBACK.search(txt_copy, pream_beg, pream_end)
+
+    if match is not None:
         # marquer toute la zone reconnue (contexte + numéro de l'arrêté)
         span_beg, span_end = match.span()
         content.append(
@@ -216,8 +254,11 @@ def parse_doc_preamble(txt_body: str, pream_beg: int, pream_end: int) -> list[di
         txt_copy = (
             txt_copy[:span_beg] + " " * (span_end - span_beg) + txt_copy[span_end:]
         )
+        # print(f"num arr: {content[-1]['span_txt']}")  # DEBUG
     else:
         # pas de numéro d'arrêté (ex: Aubagne)
+        # FIXME log warning
+        print(f"{filename}: Pas de numéro d'arrêté\n{txt_copy[pream_beg:pream_end]}")
         pass
 
     # c. entre les deux doit se trouver le titre ou objet de l'arrêté (obligatoire)
@@ -248,7 +289,9 @@ def parse_doc_preamble(txt_body: str, pream_beg: int, pream_end: int) -> list[di
     else:
         # hypothèse: sans marquage explicite comme "Objet:", le titre est tout le texte restant
         # dans cette zone (entre le numéro et l'autorité)
-        if match := P_STRIP.fullmatch(txt_copy, pream_beg, pream_end):
+        if (not P_LINE.fullmatch(txt_copy, pream_beg, pream_end)) and (
+            match := P_STRIP.fullmatch(txt_copy, pream_beg, pream_end)
+        ):
             # stocker la zone reconnue
             content.append(
                 {
@@ -271,6 +314,11 @@ def parse_doc_preamble(txt_body: str, pream_beg: int, pream_end: int) -> list[di
             raise ValueError(
                 f"Pas de texte trouvé pour le nom!?\n{txt_copy[pream_beg:pream_end]}"
             )
+        # WIP
+        if rem_txt and content[-1]["span_typ"] == "arr_nom":
+            arr_nom = content[-1]["span_txt"].replace("\n", " ")
+            print(f"W: {filename} - nom: {arr_nom}")
+        # end WIP
 
     # print(content)  # WIP
     # TODO remplacer les zones reconnues par des espaces, et afficher le texte non-capturé?
@@ -409,46 +457,53 @@ def parse_page_content(
         nxt_beg, nxt_typ = par_begs[0]
 
     # récupérer ce texte et le mettre dans un empan spécial _suite
-    if match := P_STRIP.fullmatch(txt_body, main_beg, nxt_beg):
-        try:
-            lst_typ = latest_span["span_typ"]
-        except TypeError:
-            print(f"{par_begs}")
-            print(f"{main_beg} {nxt_beg} {txt_body[main_beg:nxt_beg]}")
-            raise
-        # un empan peut courir sur plus d'une page complète (ex: "Considérant" très long, incluant la liste des copropriétaires)
-        cur_typ = lst_typ if lst_typ.endswith("_suite") else lst_typ + "_suite"
-        # stocker la zone reconnue
-        content.append(
-            {
-                "span_beg": match.start("outstrip"),
-                "span_end": match.end("outstrip"),
-                "span_txt": match.group("outstrip"),
-                "span_typ": cur_typ,
-            }
-        )
-        if nxt_typ is not None:
-            # vérifier que la transition autorisée est correcte
-            # TODO déplacer cette vérification en amont ou en aval?
+    if (not P_LINE.fullmatch(txt_body, main_beg, nxt_beg)) and (
+        match := P_STRIP.fullmatch(txt_body, main_beg, nxt_beg)
+    ):
+        txt_dang = match.group("outstrip")
+        if txt_dang:
+            # print(f"txt_dang: {txt_dang}")  # DEBUG
             try:
-                assert (cur_typ, nxt_typ) in (
-                    ("par_vu_suite", "par_vu"),
-                    ("par_vu_suite", "par_considerant"),
-                    ("par_considerant_suite", "par_considerant"),
-                    ("par_considerant_suite", "par_arrete"),
-                    # ("par_arrete_suite", "par_article"),  # "Arrête" ne peut pas être coupé par un saut de page car il est toujours sur une seule ligne
-                    ("par_article_suite", "par_article"),
-                )
-            except AssertionError:
-                print(
-                    f"Transition inattendue: ({cur_typ}, {nxt_typ})\n{latest_span}\n{txt_body}"
-                )
+                lst_typ = latest_span["span_typ"]
+            except TypeError:
+                print(f"{par_begs}")
+                print(f"{main_beg} {nxt_beg} {txt_body[main_beg:nxt_beg]}")
                 raise
+            # un empan peut courir sur plus d'une page complète (ex: "Considérant" très long, incluant la liste des copropriétaires)
+            cur_typ = lst_typ if lst_typ.endswith("_suite") else lst_typ + "_suite"
+            # stocker la zone reconnue
+            content.append(
+                {
+                    "span_beg": match.start("outstrip"),
+                    "span_end": match.end("outstrip"),
+                    "span_txt": match.group("outstrip"),
+                    "span_typ": cur_typ,
+                }
+            )
+            if nxt_typ is not None:
+                # vérifier que la transition autorisée est correcte
+                # TODO déplacer cette vérification en amont ou en aval?
+                try:
+                    assert (cur_typ, nxt_typ) in (
+                        ("par_vu_suite", "par_vu"),
+                        ("par_vu_suite", "par_considerant"),
+                        ("par_considerant_suite", "par_considerant"),
+                        ("par_considerant_suite", "par_arrete"),
+                        # ("par_arrete_suite", "par_article"),  # "Arrête" ne peut pas être coupé par un saut de page car il est toujours sur une seule ligne
+                        ("par_article_suite", "par_article"),
+                    )
+                except AssertionError:
+                    print(
+                        f"Transition inattendue: ({cur_typ}, {nxt_typ})\n{latest_span}\n{txt_body}"
+                    )
+                    raise
 
     # 2. pour chaque début de paragraphe, créer un empan allant jusqu'au prochain début
     for (cur_beg, cur_typ), (nxt_beg, nxt_typ) in zip(par_begs[:-1], par_begs[1:]):
         # extraire le texte hors espaces de début et fin
-        if match := P_STRIP.fullmatch(txt_body, cur_beg, nxt_beg):
+        if (not P_LINE.fullmatch(txt_body, cur_beg, nxt_beg)) and (
+            match := P_STRIP.fullmatch(txt_body, cur_beg, nxt_beg)
+        ):
             # stocker la zone reconnue
             content.append(
                 {
@@ -483,7 +538,9 @@ def parse_page_content(
         nxt_beg = main_end
         nxt_typ = None
         # extraire le texte hors espaces de début et fin
-        if match := P_STRIP.fullmatch(txt_body, cur_beg, nxt_beg):
+        if (not P_LINE.fullmatch(txt_body, cur_beg, nxt_beg)) and (
+            match := P_STRIP.fullmatch(txt_body, cur_beg, nxt_beg)
+        ):
             # stocker la zone reconnue
             content.append(
                 {
@@ -545,6 +602,30 @@ def examine_doc_content(filename: str, doc_content: list[dict]):
                 "ABROGATION 73, rue d'Aubagne.txt",  # abrogation
                 "abrogation 24, rue des Phocéens 13002.txt",  # abrogation
                 "abrogation.txt",  # abrogation
+                "abrogation 19, rue d'Italie 13006.txt",  # abrogation
+                "ABROGATION 54, bld Dahdah.txt",  # abrogation
+                "abrogation 3, rue Loubon 13003.txt",  # abrogation
+                "abrogation 35, rue de Lodi.txt",  # abrogation
+                "abrogation 4 - 6 rue Saint Georges.txt",  # abrogation
+                "abrogation 23, bld Salvator.txt",  # abrogation
+                "abrogation 25, rue Nau.txt",  # abrogation
+                "abrogation 51 rue Pierre Albrand.txt",  # abrogation
+                "abrogation 80 a, rue Longue des Capucins.txt",  # abrogation
+                "abrogation 36, cours Franklin Roosevelt.txt",  # abrogation
+                "abrogation 356, bld National.txt",  # abrogation
+                "abrogation 57, bld Dahdah.txt",  # abrogation
+                "abrogation 86, rue Longue des Capucins.txt",  # abrogation
+                "abrogation 26, bld Battala.txt",  # abrogation
+                "abrogation 24, rue Montgrand.txt",  # abrogation
+                "mainlevée 102 bld Plombières 13014.txt",  # mainlevée (Marseille)
+                "mainlevée 29 bld Michel 13016.txt",  # mainlevée (Marseille)
+                "mainlevée 7 rue de la Tour Peyrolles.txt",  # mainlevée (Peyrolles)
+                "mainlevée de péril ordinaire 8 rue Longue Roquevaire.txt",  # mainlevée (Roquevaire)
+                "mainlevée 82L chemin des Lavandières Roquevaire.txt",  # mainlevée (Roquevaire)
+                "8, rue Maréchal Foch Roquevaire.txt",  # PGI ! (Roquevaire)
+                "grave 31 rue du Calvaire Roquevaire.txt",  # PGI ! (Roquevaire)
+                "PGI rue docteur Paul Gariel -15122020.txt",  # PGI ! (Roquevaire)
+                "modif Maréchal Foch.txt",  # modif PGI ! (Roquevaire)
             ):
                 raise ValueError(f"{filename}: pas de considérant")
         # chaque arrêté contient exactement 1 "Arrête"
@@ -579,29 +660,44 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
     mdata_doc = {
         "filename": filename,
     }
-    print(filename)  # DEBUG
+    # print(filename)  # DEBUG
     # traiter les pages
     # TODO états alternatifs? ["preambule", "vu", "considerant", "arrete", "article", "postambule" ou "signature", "apres_signature" ou "annexes"] ?
     cur_state = "avant_vu"  # init ; "avant_vu" < "avant_arrete" < "avant_signature"  # TODO ajouter "avant_considerant" ?
     latest_span = None  # init
     for i, page in enumerate(pages, start=1):
+        # métadonnées de la page
         mdata_page = mdata_doc | {"page_num": i}
+
         # repérer et effacer les éléments de template, pour ne garder que le contenu de chaque page
         pg_template, pg_txt_body = parse_page_template(page)
         pg_content = []  # initialisation de la liste des éléments de contenu
 
-        # si la page est vide de texte hors template, aucun empan de contenu ne pourra être reconnu
-        # TODO si la signature est déjà passée, on peut considérer que le document est terminé et stopper tout le traitement? => ajouter un état cur_state == "apres_signature" ?
+        # détecter et traiter spécifiquement les pages vides, de bordereau ou d'annexes
         if pg_txt_body.strip() == "":
-            # accumuler au niveau du document
+            # * la page est vide de texte (hors template), donc aucun empan de contenu ne pourra être reconnu
             page_content = mdata_page | {
                 "template": pg_template,  # empans de template
                 "body": pg_txt_body,  # texte (sans le texte du template)
-                "content": pg_content,  # empans de contenu (paragraphes et données)
+                "content": pg_content,  # empans de contenu (paragraphes et données): vide
             }
             doc_content.append(page_content)
-            # passer à la page suivante
             continue
+        elif P_BORDEREAU.search(pg_txt_body):
+            # * page de bordereau de formalités (Aix-en-Provence)
+            # TODO extraire le contenu (date de l'acte, numéro, titre) pour vérifier la correction des données extraites ailleurs?
+            page_content = mdata_page | {
+                "template": pg_template,  # empans de template
+                "body": pg_txt_body,  # texte (sans le texte du template)
+                "content": pg_content,  # empans de contenu (paragraphes et données): vide
+            }
+            doc_content.append(page_content)
+            continue
+
+        # TODO pages d'annexe
+
+        # TODO si la signature est déjà passée, on peut considérer que le document est terminé et stopper tout le traitement? => ajouter un état cur_state == "apres_signature" ?
+        # NB: certains fichiers PDF contiennent un arrêté modificatif puis l'arrêté d'origine (ex: "modif 39 rue Tapis Vert 13001.pdf"), on ignore le 2e ?
 
         # la page n'est pas vide de texte
         main_end = len(pg_txt_body)
@@ -610,7 +706,9 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
             if fst_vu := P_VU.search(pg_txt_body):
                 pream_beg = 0
                 pream_end = fst_vu.start()
-                pream_content = parse_doc_preamble(pg_txt_body, pream_beg, pream_end)
+                pream_content = parse_doc_preamble(
+                    filename, pg_txt_body, pream_beg, pream_end
+                )
                 pg_content.extend(pream_content)
                 if pream_content:
                     latest_span = None  # le dernier empan de la page précédente n'est plus disponible
@@ -678,9 +776,13 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
                 artic_end = main_end
 
             # repérer les articles
-            artic_content = parse_page_content(
-                pg_txt_body, artic_beg, artic_end, cur_state, latest_span
-            )  # FIXME spécialiser la fonction pour restreindre aux "Vu" et "Considérant" et/ou passer cur_state? ; NB: ces deux types de paragraphes admettent des continuations
+            try:
+                artic_content = parse_page_content(
+                    pg_txt_body, artic_beg, artic_end, cur_state, latest_span
+                )  # FIXME spécialiser la fonction pour restreindre aux "Vu" et "Considérant" et/ou passer cur_state? ; NB: ces deux types de paragraphes admettent des continuations
+            except TypeError:
+                print(f"Fichier fautif: {filename}, p. {i}")
+                raise
             pg_content.extend(artic_content)
             if artic_content:
                 latest_span = (
@@ -703,15 +805,16 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
 
         # récupérer le dernier paragraphe de la page, car il peut être continué
         # en début de page suivante
-        try:
-            latest_span = [x for x in pg_content if x["span_typ"].startswith("par_")][
-                -1
-            ]
-        except IndexError:
-            print(i, main_beg, main_end)
-            print(pg_txt_body)
-            print(pg_content)
-            raise
+        if pg_content:
+            try:
+                latest_span = [
+                    x for x in pg_content if x["span_typ"].startswith("par_")
+                ][-1]
+            except IndexError:
+                print(
+                    f"{filename} / p.{i} : pas de paragraphe sur l'empan {main_beg}:{main_end}\ncontenu:{pg_content}\ntexte:\n{pg_txt_body}"
+                )
+                raise
         # accumulation au niveau du document
         page_content = mdata_page | {
             "template": pg_template,  # empans de template
@@ -753,7 +856,8 @@ def parse_arrete(fp_txt_in: Path) -> list:
     lst_page = pages[-1]
     if m_accuse := P_ACCUSE.match(lst_page):
         pages = pages[:-1]
-    return parse_arrete_pages(fp_txt_in.name, pages)
+    doc_content = parse_arrete_pages(fp_txt_in.name, pages)
+    return doc_content
 
 
 if __name__ == "__main__":

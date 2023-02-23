@@ -23,7 +23,9 @@ RE_NUM_IND_VOIE = (
 RE_TYP_VOIE = r"""(?:avenue|boulevard|cours|impasse|place|rue|traverse)"""
 RE_NOM_VOIE = rf"""(?:{RE_TOK}(?:\s+{RE_TOK})*)"""
 RE_CP = r"""\d{5}"""
-RE_COMMUNE = rf"""{RE_TOK}"""  # r"""[^,;]+"""
+RE_COMMUNE = (
+    rf"{RE_TOK}(?:[ ]{RE_TOK})" + r"{0,2}"
+)  # r"""[^,;]+"""  # 1 à 3 tokens séparés par des espaces?
 
 # contextes: "objet:" (objet de l'arrêté),
 # TODO ajouter du contexte pour être plus précis? "désordres sur le bâtiment sis... ?"

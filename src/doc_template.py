@@ -15,6 +15,16 @@ RE_HEADERS = [
     ),  # p.1 (.. - 2020-07-04)
     ("Marseille", r"""^La\s+Maire$"""),  # p.1 (2020-07-04 - 2020-12-21)
     ("Marseille", r"""^Le\s+Maire$"""),  # p.1 (2020-12-21 - ..)
+    (
+        "Aix-en-Provence",
+        (
+            r"DEPARTEMENT\s+OPERATIONS\s+JURIDIQUES\s+"
+            + r"COMPLEXES\s+ET\s+CONTROLE\s+ET\s+SUIVI\s+DES\s+"
+            + r"PROCEDURES\s+CONTENTIEUSES\n"
+            + r"Direction\s+Etudes\s+Juridiques\s+&\s+Contentieux\n"
+        ),
+    ),  # p.1
+    ("Aix-en-Provence", r"^ARRÊTÉ\n"),
     # texte extrait (image)
     (
         "Allauch",
@@ -27,10 +37,49 @@ RE_HEADERS = [
         + r"""Arrondissement\s+d'[Il]stres\s+-\s+"""
         + r"""Bouches\s+du\s+Rhône""",
     ),  # p.1, OCR à refaire?
+    ("Gardanne", r"^Ville\s+de\s+Gardanne$"),  # p. 1
     (
         "Gardanne",
         r"""Arrêté\s+n°\d{4}-\d{2}-ARR-SIHI\s+""" + r"""Page\s+\d{1,2}/\d{1,2}""",
     ),  # p.2 et suiv
+    # TODO vérifier après OCR
+    # ("La Ciotat", r"^Ville\s+de\s+La\s+Ciotat$"),  # p. 1
+    ("Berre-l'Étang", r"^République\s+Française$"),  # p. 1
+    (
+        "Gémenos",
+        r"^DÉPARTEMENT\nDES BOUCHES-DU-RHÔNE$",
+    ),  # p. 1
+    ("Gémenos", r"^Ville\s+de\s+Gémenos$"),  # p. 1
+    (
+        "Gémenos",
+        r"TÉL\s+:\s+04\s+42\s+32\s+89\s+00\n"
+        + r"FAX\s+:\s+04\s+42\s+32\s+71\s+41"
+        + r"www\.mairie-gemenos\.fr",
+    ),  # p. 1
+    ("Gémenos", r"^ARRÊTÉ\s+DU\s+MAIRE$"),  # p. 1 (optionnel)
+    (
+        "Martigues",
+        r"^Département\s+des\nBouches-du-Rhône\nArrondissement\s+d’Istres$",
+    ),  # p. 1
+    (
+        "Martigues",
+        r"^Direction\s+des\s+Affaires\s+Civiles,\nJuridiques\s+et\s+Funéraires\nRéglementation\s+Administrative$",
+    ),  # p. 1
+    (
+        "Peyrolles-en-Provence",
+        r"^Affaire\s+suivie\s+par\s+:\s+[^\n]+\n(?:[^\n]+\n)?"
+        + r"Service\s+:\s+[^\n]+\n(?:[^\n]+\n)?"
+        + r"Tél\s+:\s+04\.42\.57\.89\.74",
+    ),  # p. 1
+    (
+        "Roquevaire",
+        r"^COMMUNE\s+DE\s+ROQUEVAIRE\n+"
+        + r"(?:"
+        + r"COMMUNE\s+DE\s+ROQUEVAIRE\n"
+        + r"Liberté\s+-\s+Egalité\s+-\s+Fraternité\n+"
+        + r")?"
+        + r"ARRETE\n+",
+    ),  # p. 1
 ]
 # TODO en-tête Aix-en-Provence p. 2 et suivantes: numéro de page (en haut à droite)
 
@@ -78,6 +127,14 @@ RE_FOOTERS = [
     ),  # p.1
     ("Auriol", r"""Page\s+\d{1,2}\s+sur\s+\d{1,2}$"""),
     (
+        "Berre-l'Étang",
+        r"VILLE\s+DE\s+BERRE-L’ETANG\n"
+        + r"HOTEL\s+DE\s+VILLE\s+-\s+B\.P\s+30221\s+-\s+13138\s+BERRE\s+L'ÉTANG\s+CEDEX\n"
+        + r"Téléphone\s+:\s+04\.42\.74\.93\.00\s+-\s+"
+        + r"Télécopie\s+:\s+04\.42\.74\.93\.02\s+-\s+"
+        + r"Site\s+internet\s+:\s+www\.berreletang\.fr",
+    ),  # p.1
+    (
         "Châteauneuf-les-Martigues",
         r"""Hôtel\s+de\s+ville\s+-\s+"""
         + r"""BP\s+70024\s+-\s+"""
@@ -92,4 +149,8 @@ RE_FOOTERS = [
 RE_FOOTER = r"(?P<footer>" + r"|".join(r"(" + x + r")" for _, x in RE_FOOTERS) + r")"
 P_FOOTER = re.compile(RE_FOOTER, flags=re.MULTILINE | re.IGNORECASE | re.VERBOSE)
 
+
+# page de bordereau de formalités (en fin de document, Aix-en-Provence)
+RE_BORDEREAU = r"^BORDEREAU\s+DE\s+FORMALITES$"
+P_BORDEREAU = re.compile(RE_BORDEREAU, flags=re.MULTILINE | re.IGNORECASE)
 # TODO annexes

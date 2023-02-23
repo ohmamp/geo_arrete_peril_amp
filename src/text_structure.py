@@ -11,24 +11,35 @@ from typologie_securite import RE_CLASS_ALL
 
 # numéro de l'arrêté
 RE_ARR_NUM = (
-    r"""(?:"""
-    + r"""Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°"""
-    + r"""|Réf\s+:"""
-    + r"""|^Nos\s+Réf\s+:"""  # Gardanne
-    + r"""|Arrêté\s+n°"""  # en-tête Peyrolles-en-Provence
-    + r"""|ARRETE\s+N°"""
-    + r"""|^N°"""
-    + r""")"""
-    + r"""\s*(?P<arr_num>[^,;\n(]+)"""
+    r"(?:"
+    + r"Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°"
+    + r"|Réf\s+:"
+    + r"|^Nos\s+Réf\s+:"  # Gardanne
+    + r"|^A\.M\s+N°"  # Martigues
+    + r"|^Décision\s+N°"  # Marseille (1)
+    + r"|Arrêté\s+n°"  # en-tête Peyrolles-en-Provence
+    + r"|ARRETE\s+N°"
+    # + r"|^N°"  # motif trop peu spécifique, capture par exemple un numéro de parcelle
+    + r")"
+    + r"\s*(?P<arr_num>[^,;\n(]+)"
 )
 P_ARR_NUM = re.compile(RE_ARR_NUM, re.MULTILINE | re.IGNORECASE)
+# 2e motif pour reconnaître le numéro d'arrêté, très générique donc à n'utiliser qu'en 2e lame (ou dernier recours)
+RE_ARR_NUM_FALLBACK = (
+    r"(?:"
+    + r"^N°"  # Gardanne?
+    + r"|^ARR-[^-]{2,3}-"  # Gemenos ; la 2e partie du préfixe varie selon les références (au même acte!): JUR, SG, ST, DGS... donc le numéro est la partie stable qui vient après
+    + r")"
+    + r"\s*(?P<arr_num>[^,;\n(]+)"
+)
+P_ARR_NUM_FALLBACK = re.compile(RE_ARR_NUM_FALLBACK, re.MULTILINE | re.IGNORECASE)
 
 # nom de l'arrêté
-RE_ARR_OBJET = r"""Objet:\s+(?P<arr_nom>[^\n]+)"""
+RE_ARR_OBJET = r"Objet:\s+(?P<arr_nom>[^\n]+)"  # on laisse volontairement de côté la capture de "OBJET :\n\nARRÊTÉ DE PÉRIL\nORDINAIRE..." (Peyrolles) qu'il faudra traiter proprement par le layout 2 colonnes
 P_ARR_OBJET = re.compile(RE_ARR_OBJET, re.MULTILINE | re.IGNORECASE)
 
 # tous arrêtés
-RE_VU = r"""^\s*VU"""
+RE_VU = r"""^\s*VU[^e]"""
 # RE_VU = r"^\s*(?P<vu>V[Uu][, ](.+))"
 P_VU = re.compile(RE_VU, re.MULTILINE | re.IGNORECASE)  # re.VERBOSE ?
 
@@ -36,7 +47,7 @@ RE_CONSIDERANT = r"""^\s*CONSID[EÉ]RANT"""
 # RE_CONSIDERANT = r"^\s*(?P<considerant>(Considérant|CONSIDERANT)[, ](.+))"
 P_CONSIDERANT = re.compile(RE_CONSIDERANT, re.MULTILINE | re.IGNORECASE)
 
-RE_ARRETE = r"""^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS))"""
+RE_ARRETE = r"""^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS)(?:\s*:)?)"""
 # RE_ARRETE = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
 P_ARRETE = re.compile(RE_ARRETE, re.MULTILINE | re.IGNORECASE)
 

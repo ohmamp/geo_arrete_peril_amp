@@ -32,10 +32,11 @@ RAW_BATCHES = {
 
 # liste de fichiers à exclure du traitement car ils sortent du périmètre de traitement: diagnostics, rapports...
 # TODO créer une heuristique pour les détecter automatiquement et les écarter
-# * p. 1 commence par "^ANNEXE\s+\d+" => annexe
-# * p. 1 contient "^\s*PERIMETRE\s+DE\s+SECURITE\s*" => annexe
-# * "EXTRAIT\s+DU\s+PLAN\s+CADASTRAL" => annexe
-# * page contenant "^Impression non normalisée du plan cadastral$" => annexe
+# * p. 1 .match(r"^ANNEXE\s+[I\dZ]+") => annexe  # "IZ" pour le 1 et 2 mal reconnus par OCR
+# * p. 1 .search(r"^\s*PERIMETRE\s+DE\s+SECURITE\s*") => annexe
+# * .search(r"EXTRAIT\s+DU\s+PLAN\s+CADASTRAL") => annexe
+# * .search(r"^Impression non normalisée du plan cadastral$") => annexe
+# * .search(r"^Cet extrait de plan vous est délivré par:") => annexe
 EXCLUDE_FILES = [
     "9, rue Tranchier MARTIGUES diag solidité.pdf",  # diagnostic
     "péril rue de la Tour.pdf",  # rapport sur état de péril
@@ -85,4 +86,80 @@ EXCLUDE_FILES = [
     "modif déconstruction 535 rue Saint Pierre 13012 plan.pdf",  # annexe: plan périmètre de sécurité
     "39, 41, 43, rue de la Palud péril annexe 5 feuille présence AG.pdf",  # annexe: feuille de présence (liste des copropriétaires)
     "mise en sécurité 7 rue du Village 13006 périmètre.pdf",  # annexe: plan périmètre de sécurité
+    "péril 68-70, av de SaintAntoine 13015 plan.pdf",  # annexe: plan périmètre de sécurité
+    "4 rue Eugène Pottier 1 rue Hoche 13003 MS périmètre.pdf",  # annexe: plan périmètre de sécurité
+    "ordinaire 275 rue Saint Pierre 13005 annexe 2.pdf",  # annexe: plan périmètre de sécurité
+    "annexe 2 Plan.pdf",  # annexe: plan périmètre de sécurité
+    "déconstruction 535 rue Saint Pierre 13012 schéma.pdf",  # annexe: plan périmètre de sécurité
+    "périmètre de sécurité 535 rue Saint Pierre 13012.pdf",  # annexe: plan périmètre de sécurité
+    "annexe main levée 19bis quai de la Joliette  13002.pdf",  # annexe: plan périmètre de sécurité
+    "modif 42 bis, rue François Barbini.pdf",  # annexe: plan périmètre de sécurité
+    "8 - 10 impasse Croix de Regnier.pdf",  # annexe: plan périmètre de sécurité
+    "ordinaire 28 bld de la Libération 13001 périmètre.pdf",  # annexe: plan périmètre de sécurité
+    "J JAURES 13006 - anexe périmètre sécurité.pdf",  # annexe: plan périmètre de sécurité
+    "péril 20, rue Corneille annexe 2 13001.pdf",  # annexe: plan périmètre de sécurité
+    "MS 75 cours Lieutaud 13006 annexe 2.pdf",  # annexe: plan périmètre de sécurité
+    "ordinaire 26 bld de la Libération 13001 périmètre.pdf",  # annexe: plan périmètre de sécurité
+    "déconstruction 41 43 rue de la Palud annexe 2 .pdf",  # annexe: plan périmètre de sécurité
+    "ordinaire 4 impasse Moncault 13013 plan.pdf",  # annexe: plan périmètre de sécurité
+    "MS 13 rue de la Joliette 13002 PS.pdf",  # annexe: plan périmètre de sécurité
+    "Périmètre rue F Pauriol 2.pdf",  # annexe: plan périmètre de sécurité
+    "31 TRAVERSE TENERIFE etpérimètre de sécurité 13016 annexe.pdf",  # annexe: plan périmètre de sécurité
+    "annexe.pdf",  # annexe: plan périmètre de sécurité
+    "6, rue de la Butte.pdf",  # annexe: plan périmètre de sécurité
+    "Plan avenue Camille Pelletan 13003.pdf",  # annexe: plan périmètre de sécurité
+    "6_traverse_Ténérife_13016 annexe.pdf",  # annexe: plan périmètre de sécurité
+    "péril 8, rue Capitaine Galinat annexe 1 .pdf",  # annexe: schéma de principe
+    "plan 73 chemin de Saint Henri 13016 annexe 3.pdf",  # annexe: plan périmètre de sécurité
+    "297, avenue de la Capelette.pdf",  # annexe: plan périmètre de sécurité
+    "bld National2.pdf",  # annexe: plan périmètre de sécurité
+    "158, avenue Roger Salengro Pér Sec.pdf",  # annexe: plan périmètre de sécurité
+    "péril 4 rue Eugène Pottier annexe 2.pdf",  # id
+    "ordinaire rue de la Javie 13014 plan.pdf",  # id
+    "83, rue Curiol.pdf",  # id
+    "11 bld Ménard annex 1 .pdf",  # id
+    "21 rue Clovis Hugues impasse bleue.pdf",  # id
+    "ordinaire 38 avenue F Zoccola 13015 périmètre.pdf",  # id
+    "modif 4 rue Eugène Pottier.pdf",  # id
+    "Annexe2 rue St Pierre.pdf",  # id
+    "43-45, rue Michel Gachet 13007annexe 1 .pdf",  # id
+    "3 place Sadi Carnot 11 rue Mery Périmetre sécurité.pdf",  # id
+    "PS 15 rue de la Joliette 13002.pdf",  # id
+    "4, impasse Montcault 13013 annexe 2.pdf",  # id
+    "43-45, rue Michel Gachet 13007 annexe 2 .pdf",  # id
+    "ordinaire 42 bis rue François Barbini 13003 périmètre.pdf",  # id
+    "234, avenue Roger Salengro annexe.pdf",  # id
+    "déconstruction 1, domaine Ventre annexe .pdf",  # id
+    "39, 41, 43, rue de la Palud péril annexe 8 perimetre securité.pdf",  # id
+    "péril grave 19 bis, quai de la Joliette annexe 1 .pdf",  # id
+    "MenS 193 bld S. Bolivar 13015 plan.pdf",  # id
+    "mise en sécurité 234 avenue Roger Salengro 13015 périmètre.pdf",  # id
+    "ordinaire 40 rue St Bazile 13001 périmètre.pdf",  # id
+    "33 avenue de Montolivet 13004 plan.pdf",  # id
+    "MS 5 rue du Village 13006 périmètre volume 2000.pdf",  # id
+    "imminent 553 rue Saint Pierre 13012 annexe.pdf",  # id
+    "modif 21 rue Clovis Hugues annexe.pdf",  # id
+    "périmètre de s93 rue le Pelletier 13016 annexe.pdf",  # id
+    "ordinaire 12 bld de la Liberté 13001 plan.pdf",  # id
+    "58, bld Guigou.pdf",  # id
+    "4 rue du Bon Pasteur plan.pdf",  # id
+    "20, rue Corneille annexe 2  .pdf",  # id
+    "ordinaire 6a impasse Croix de Regnier 13004 périmètre.pdf",  # id
+    "modif 19 rue Clovis Hugues annexe 2.pdf",  # id
+    "116, avenue Camille Pelletan annexe 1 .pdf",  # id
+    "4 rue du Bon Pasteur.pdf",  # id
+    "131 133 rue du Rouet 21.02.20 annexe 2.pdf",  # id
+    "152 avenue Roger Salengro - périmètre sécurité.pdf",  # id
+    "11 rue de la Joliette 13002 périmètre.pdf",  # id
+    "154 156 avenue Roger Salengro.pdf",  # id
+    "emprise périmètre de sécurité.pdf",  # id
+    # fichiers problématiques
+    "2, rue Kruger Gardanne - PO.pdf",  # FIXME "Considérant", "Vu", "Considérant" => autoriser ces transitions ?
+    "2 rue Léon Gambetta Martigues.pdf",  # FIXME erreur "Pas de Vu en page 1" mais se produit en p. 3 !?
+    "69 rue Félix Piat 13003 MARSEILLE.pdf",  # FIXME traiter spécifiquement: ré-océriser tout ou seulement la p. 2 ? la p. 2 est la carte du cadastre, qui contient du texte invisible car en sous-couche du texte principal !
+    "partie de la cour intérieure 69 rue Félix Pyat 13003.pdf",  # FIXME id
+    "6, bld Louis Frangin 13005.pdf",  # FIXME pas de "ARRETE" ; mais exception "pas de vu" ?
+    "Arrêté d'interdiction d'occuper - 13 rue de la fare 13001.pdf",  # FIXME p. 1 vide après "nous, maire...", "vu" seulement en p. 2
+    "mainlevée 14 rue Mère de Dieu Peyrolles.pdf",  # FIXME layout 2 colonnes (tous Peyrolles concernés mais celui-ci coince vraiment car peu de "Vu")
+    "mainlevée rue de la Tour Peyrolles en Provence.pdf",  # FIXME layout 2 colonnes id
 ]

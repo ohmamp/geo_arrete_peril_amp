@@ -34,7 +34,19 @@ RE_STAMP_2 = rf"""Accusé de réception en préfecture
 Date de télétransmission : {RE_DATE_SL}
 Date de réception préfecture : {RE_DATE_SL}
 """
-RE_STAMP = rf"(?:(?:{RE_STAMP_1})|(?:{RE_STAMP_2}))"
+
+# équiv. tampon - Aix-en-Provence
+RE_STAMP_3 = (
+    r"(?:CB|CL/PD|PD|CB/ELT|JFF)\n"
+    + r"Accusé\s+de\s+réception\s+en\s+préfecture\n"
+    + r"Identifiant\s+:\n"
+    + r"Date\s+de\s+réception\s+:\n"
+    + r"Date\s+de\s+notification\n"
+    + r"Date\s+d’affichage\s+:\s+du\s+au\n"
+    + r"Date\s+de\s+publication\s+:\n"
+)
+
+RE_STAMP = rf"(?:(?:{RE_STAMP_1})|(?:{RE_STAMP_2})|(?:{RE_STAMP_3}))"
 P_STAMP = re.compile(RE_STAMP, re.MULTILINE)
 
 # TODO motif complet sur l'accusé de réception ; parsing dédié pour vérifier/croiser avec les données extraites dans le reste du document
@@ -54,18 +66,20 @@ P_STAMP = re.compile(RE_STAMP, re.MULTILINE)
 # Nature de l'acte: Actes individuels
 # Matière: 6.1-Police municipale
 # Identifiant Acte: 013-211300561-20210602-RA21_21646-AI
-RE_ACCUSE = r"""Accusé de réception
-Acte reçu par: Préfecture des Bouches du Rhône
-Nature transaction: AR de transmission d'acte
-Date d'émission de l'accusé de réception: \d{4}-\d{2}-\d{2}[(]GMT[+-]\d[)]
-Nombre de pièces jointes: \d+
-Nom émetteur: [^\n]+
-N° de SIREN: \d{9}
-Numéro Acte de la collectivité locale: [^\n]+
-Objet acte: (?:[\s\S]+?)
-Nature de l'acte: (?P<nature_acte>Actes individuels|Actes réglementaires|Autres)
-Matière: \d[.]\d-[^\n]+
-Identifiant Acte: \d{3}-\d{9}-\d{8}-[^-]+-(?P<nature_abr>AI|AR|AU)"""
+RE_ACCUSE = (
+    r"Accusé de réception\n"
+    + r"Acte reçu par: Préfecture des Bouches du Rhône\n"
+    + r"Nature transaction: AR de transmission d'acte\n"
+    + r"Date d'émission de l'accusé de réception: \d{4}-\d{2}-\d{2}[(]GMT[+-]\d[)]\n"
+    + r"Nombre de pièces jointes: \d+\n"
+    + r"Nom émetteur: [^\n]+\n"
+    + r"N° de SIREN: \d{9}\n"
+    + r"Numéro Acte de la collectivité locale: [^\n]+\n"
+    + r"Objet acte: (?:[\s\S]+?)(?:\n)?"  # la ligne se termine par "\n" mais si l'objet se termine par un tiret, l'extracteur de texte peut mal l'interpréter...
+    + r"Nature de l'acte: (?P<nature_acte>Actes individuels|Actes réglementaires|Autres)\n"
+    + r"Matière: \d[.]\d-[^\n]+\n"
+    + r"Identifiant Acte: \d{3}-\d{9}-\d{8}-\S+-(?P<nature_abr>AI|AR|AU)\n"
+)
 # actes individuels: ...-AI, actes réglementaires: ...-AR, autres: ...-AU
 # (?P<nature_acte>Actes individuels|Actes réglementaires)\n
 # (?P<nature_abr>[^\n]+)

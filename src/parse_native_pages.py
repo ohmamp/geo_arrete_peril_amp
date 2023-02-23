@@ -65,6 +65,7 @@ from separate_pages import DTYPE_META_NTXT, DTYPE_NTXT_PAGES
 from text_structure import (
     # tous arrêtés
     P_ARR_NUM,  # numéro/identifiant de l'arrêté
+    P_ARR_NUM_FALLBACK,  # motif plus générique pour num arrêté (repli)
     P_ARR_OBJET,  # nom/objet de l'arrêté
     P_VU,
     P_CONSIDERANT,
@@ -556,8 +557,12 @@ def get_num(page_txt: str) -> bool:
     doc_num: str
         Numéro de l'arrêté si trouvé, None sinon.
     """
-    m_num = P_ARR_NUM.search(page_txt)
-    return m_num.group("arr_num") if m_num is not None else None
+    if m_num := P_ARR_NUM.search(page_txt):
+        return m_num.group("arr_num")
+    elif m_num_fb := P_ARR_NUM_FALLBACK.search(page_txt):
+        return m_num_fb.group("arr_num")
+    else:
+        return None
 
 
 def get_nom(page_txt: str) -> bool:

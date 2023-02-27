@@ -250,7 +250,10 @@ def create_docs_dataframe(
         Tableau contenant les données normalisées extraites des documents.
     """
     doc_rows = []
-    for i, df_row in enumerate(df_agg.itertuples()):
+    # filtrer les documents à exclure complètement: documents hors périmètre strict du jeu de données cible
+    df_filt = df_agg[~df_agg["exclude"]]
+    # itérer sur tous les documents non-exclus
+    for i, df_row in enumerate(df_filt.itertuples()):
         doc_idu = {
             "idu": f"id_{i:04}",  # FIXME identifiant unique
         }

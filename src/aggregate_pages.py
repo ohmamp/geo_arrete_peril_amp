@@ -13,7 +13,10 @@ from typing import Dict
 
 import pandas as pd
 
-from parse_native_pages import DTYPE_META_NTXT, DTYPE_META_NTXT_PROC, DTYPE_PARSE
+from parse_native_pages import (
+    DTYPE_META_NTXT_FILT,
+    DTYPE_META_NTXT_PROC,
+)
 
 
 # colonnes de données produites, avec leur dtype
@@ -59,7 +62,7 @@ DTYPE_PARSE_AGG = {
 }
 
 
-DTYPE_META_NTXT_DOC = DTYPE_META_NTXT | DTYPE_PARSE_AGG
+DTYPE_META_NTXT_DOC = DTYPE_META_NTXT_FILT | DTYPE_PARSE_AGG
 
 
 def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -> Dict:
@@ -89,9 +92,10 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
     # utile lorsque le document ne contient pas de texte, notamment les PDF non-natifs non-océrisés (ou pas encore)
     if grp.empty:
         rec_struct = {x: None for x in DTYPE_PARSE_AGG}
+        return rec_struct
 
     # agréger les numéros de pages ou les valeurs extraites
-    rec_struct = {
+    rec_actes = {
         # - métadonnées
         #   * @ctes
         "actes_pages_tampon": grp.query("has_stamp")[
@@ -100,6 +104,8 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
         "actes_pages_ar": grp.query("is_accusedereception_page")[
             "pagenum"
         ].to_list(),  # table: contrôle ; expectation: liste vide (all NaN) ou valeur unique
+    }
+    rec_commu = {
         # - tous arrêtés
         #   * champ "commune"
         "commune_maire": (
@@ -107,6 +113,8 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
             if not grp.dropna(subset=["commune_maire"]).empty
             else None
         ),  # TODO table: ? ; TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+    }
+    rec_pars = {
         #   * champs structure de l'arrêté
         "pages_vu": grp.query("has_vu")[
             "pagenum"
@@ -120,6 +128,8 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
         "pages_article": grp.query("has_article")[
             "pagenum"
         ].to_list(),  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
+    }
+    rec_regl = {
         # arrêtés spécifiques
         # - réglementaires
         "pages_cgct": grp.query("has_cgct")[
@@ -152,39 +162,55 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
         "pages_cc_art": grp.query("has_cc_art")[
             "pagenum"
         ].to_list(),  # TODO retraiter pour classer les arrêtés?
+    }
+    rec_adre = {
         # - données
         "adresse_brute": (
             grp.dropna(subset=["adresse"])["adresse"].to_list()[0]
             if not grp.dropna(subset=["adresse"]).empty
             else None
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+    }
+    rec_parce = {
         "parcelle": (
             grp.dropna(subset=["parcelle"])["parcelle"].to_list()[0]
             if not grp.dropna(subset=["parcelle"]).empty
             else None
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+    }
+    rec_syndi = {
         "syndic": (
             grp.dropna(subset=["syndic"])["syndic"].to_list()[0]
             if not grp.dropna(subset=["syndic"]).empty
             else None
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+    }
+    rec_date = {
         "arr_date": (
             grp.dropna(subset=["date"])["date"].to_list()[0]
             if not grp.dropna(subset=["date"]).empty
             else None
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+    }
+    rec_num = {
         "arr_num": (
             grp.dropna(subset=["arr_num"])["arr_num"].to_list()[0]
             if not grp.dropna(subset=["arr_num"]).empty
             else None
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+    }
+    rec_nom = {
         "arr_nom": (
             grp.dropna(subset=["arr_nom"])["arr_nom"].to_list()[0]
             if not grp.dropna(subset=["arr_nom"]).empty
             else None
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+    }
+    rec_classi = {
         "arr_classification": (
-            grp.dropna(subset=["arr_classification"])["arr_classification"].to_list()[0]
+            grp.dropna(subset=["arr_classification"])[
+                "arr_classification"
+            ].to_list()[0]
             if not grp.dropna(subset=["arr_classification"]).empty
             else None
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
@@ -209,6 +235,19 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
             else None
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
+    rec_struct = (
+        rec_actes
+        | rec_commu
+        | rec_pars
+        | rec_regl
+        | rec_adre
+        | rec_parce
+        | rec_syndi
+        | rec_date
+        | rec_num
+        | rec_nom
+        | rec_classi
+    )
     return rec_struct
 
 
@@ -233,8 +272,10 @@ def create_docs_dataframe(
     for _, df_grp in df_pages.groupby("fullpath_txt"):
         # reporter les métadonnées du fichier PDF et du TXT, dans chaque entrée de document
         meta_doc = {
-            x: df_grp[x].to_list()[0] for x in DTYPE_META_NTXT
+            x: df_grp[x].to_list()[0] for x in DTYPE_META_NTXT_FILT
         }  # FIXME prendre les métadonnées du document dans le CSV 1 ligne par doc?
+        # retraiter spécifiquement le champ "exclude": si toutes les pages sont "exclude", alors le fichier aussi, sinon non
+        meta_doc["exclude"] = df_grp["exclude"].all()
         # rassembler les données des pages ;
         # exclure l'éventuelle page d'accusé de réception d'actes
         data_doc = aggregate_pages(df_grp, include_actes_page_ar=False)

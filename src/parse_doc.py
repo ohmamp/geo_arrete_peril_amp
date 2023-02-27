@@ -4,6 +4,9 @@ Extrait des empans de texte correspondant aux en-têtes, pieds-de-page,
 autorité, vus, correspondants, articles, signature...
 """
 
+import argparse
+from datetime import datetime
+import logging
 from pathlib import Path
 import re
 from typing import Optional
@@ -12,12 +15,14 @@ import pandas as pd  # tableau récapitulatif des extractions
 
 from actes import P_STAMP, P_ACCUSE  # tampon
 from cadre_reglementaire import parse_refs_reglement
+from data_sources import EXCLUDE_FIXME_FILES, EXCLUDE_FILES
 from doc_template import (
     P_HEADER,
     P_FOOTER,
     P_BORDEREAU,
 )  # en-têtes, pieds-de-page, pages spéciales
 from separate_pages import load_pages_text
+from filter_docs import DTYPE_META_NTXT_FILT, DTYPE_NTXT_PAGES_FILT
 from text_structure import (
     P_ARR_NUM,
     P_ARR_NUM_FALLBACK,
@@ -30,8 +35,59 @@ from text_structure import (
     P_DATE_SIGNAT,
 )
 
+
+# dtypes des champs extraits
+DTYPE_PARSE = {
+    # @ctes
+    "has_stamp": "boolean",
+    "is_accusedereception_page": "boolean",
+    # tous arrêtés
+    "commune_maire": "string",
+    "has_vu": "boolean",
+    "has_considerant": "boolean",
+    "has_arrete": "boolean",
+    "has_article": "boolean",
+    # arrêtés spécifiques
+    # - réglementaires
+    "has_cgct": "boolean",
+    "has_cgct_art": "boolean",
+    "has_cch": "boolean",
+    "has_cch_L111": "boolean",
+    "has_cch_L511": "boolean",
+    "has_cch_L521": "boolean",
+    "has_cch_L541": "boolean",
+    "has_cch_R511": "boolean",
+    "has_cc": "boolean",
+    "has_cc_art": "boolean",
+    # - données
+    #   * parcelle
+    "parcelle": "string",
+    #   * adresse
+    "adresse": "string",
+    #   * notifiés
+    # "proprietaire": "string",
+    "syndic": "string",
+    #   * arrêté
+    "date": "string",
+    "arr_num": "string",
+    "arr_nom": "string",
+    # type d'arrêté
+    "arr_classification": "string",
+    "arr_proc_urgence": "string",
+    "arr_demolition": "string",
+    "arr_interdiction": "string",
+    "arr_equipcomm": "string",
+}
+
+# dtype du fichier de sortie
+DTYPE_META_NTXT_PROC = (
+    DTYPE_META_NTXT_FILT | {"pagenum": DTYPE_NTXT_PAGES_FILT["pagenum"]} | DTYPE_PARSE
+)
+
+
+# (spécifique)
 # type de données des colonnes du fichier CSV résultat
-DTYPE_PARSES = {
+DTYPE_SPANS = {
     # doc
     "filename": "string",
     # page
@@ -574,12 +630,14 @@ def examine_doc_content(filename: str, doc_content: list[dict]):
     doc_content: list[dict]
         Empans de contenu extraits du document
     """
+    # filtrer les pages absentes
+    pg_conts = [x for x in doc_content if (pd.notna(x) and x["content"] is not None)]
     # paragraphes
     par_typs = [
         x["span_typ"]
-        for pg_content in doc_content
+        for pg_content in pg_conts
         for x in pg_content["content"]
-        if x["span_typ"].startswith("par_")
+        if (pd.notna(x) and x["span_typ"].startswith("par_"))
     ]
     # "considérant" obligatoire sauf pour certains arrêtés?
     # TODO déterminer si les assertions ne s'appliquent qu'à certaines classes d'arrêtés
@@ -591,53 +649,58 @@ def examine_doc_content(filename: str, doc_content: list[dict]):
         # * sauf dans les mainlevées et abrogations où dans la pratique ce n'est pas le cas
         if "par_considerant" not in par_typs:
             if filename not in (
-                "99_AR-013-211300058-20220131-310122_01-AR-1-1_1 (1).txt",  # mainlevée => optionnel ?
-                "99_AR-013-211300058-20220318-180322_01-AR-1-1_1.txt",  # mainlevée => optionnel ?
-                "abrogation interdiction d'occuper 35, bld Barbieri.txt",  # abrogation => optionnel ?
-                "abrogation 232 et 236 rue Roger Salengro 13003.txt",  # abrogation => optionnel ?
-                "abrogation 79, rue de Rome.txt",  # abrogation => optionnel ?
-                "abrogation 19 24 rue Moustier 13001.txt",  # abrogation => optionnel ?
-                "102, rue d'Aubagne abrogation.txt",  # abrogation => optionnel ?
-                "9, rue Brutus ABROGATION.txt",  # abrogation
-                "ABROGATION 73, rue d'Aubagne.txt",  # abrogation
-                "abrogation 24, rue des Phocéens 13002.txt",  # abrogation
-                "abrogation.txt",  # abrogation
-                "abrogation 19, rue d'Italie 13006.txt",  # abrogation
-                "ABROGATION 54, bld Dahdah.txt",  # abrogation
-                "abrogation 3, rue Loubon 13003.txt",  # abrogation
-                "abrogation 35, rue de Lodi.txt",  # abrogation
-                "abrogation 4 - 6 rue Saint Georges.txt",  # abrogation
-                "abrogation 23, bld Salvator.txt",  # abrogation
-                "abrogation 25, rue Nau.txt",  # abrogation
-                "abrogation 51 rue Pierre Albrand.txt",  # abrogation
-                "abrogation 80 a, rue Longue des Capucins.txt",  # abrogation
-                "abrogation 36, cours Franklin Roosevelt.txt",  # abrogation
-                "abrogation 356, bld National.txt",  # abrogation
-                "abrogation 57, bld Dahdah.txt",  # abrogation
-                "abrogation 86, rue Longue des Capucins.txt",  # abrogation
-                "abrogation 26, bld Battala.txt",  # abrogation
-                "abrogation 24, rue Montgrand.txt",  # abrogation
-                "mainlevée 102 bld Plombières 13014.txt",  # mainlevée (Marseille)
-                "mainlevée 29 bld Michel 13016.txt",  # mainlevée (Marseille)
-                "mainlevée 7 rue de la Tour Peyrolles.txt",  # mainlevée (Peyrolles)
-                "mainlevée de péril ordinaire 8 rue Longue Roquevaire.txt",  # mainlevée (Roquevaire)
-                "mainlevée 82L chemin des Lavandières Roquevaire.txt",  # mainlevée (Roquevaire)
-                "8, rue Maréchal Foch Roquevaire.txt",  # PGI ! (Roquevaire)
-                "grave 31 rue du Calvaire Roquevaire.txt",  # PGI ! (Roquevaire)
-                "PGI rue docteur Paul Gariel -15122020.txt",  # PGI ! (Roquevaire)
-                "modif Maréchal Foch.txt",  # modif PGI ! (Roquevaire)
+                "99_AR-013-211300058-20220131-310122_01-AR-1-1_1 (1).pdf",  # mainlevée => optionnel ?
+                "99_AR-013-211300058-20220318-180322_01-AR-1-1_1.pdf",  # mainlevée => optionnel ?
+                "abrogation interdiction d'occuper 35, bld Barbieri.pdf",  # abrogation => optionnel ?
+                "abrogation 232 et 236 rue Roger Salengro 13003.pdf",  # abrogation => optionnel ?
+                "abrogation 79, rue de Rome.pdf",  # abrogation => optionnel ?
+                "abrogation 19 24 rue Moustier 13001.pdf",  # abrogation => optionnel ?
+                "102, rue d'Aubagne abrogation.pdf",  # abrogation => optionnel ?
+                "9, rue Brutus ABROGATION.pdf",  # abrogation
+                "ABROGATION 73, rue d'Aubagne.pdf",  # abrogation
+                "abrogation 24, rue des Phocéens 13002.pdf",  # abrogation
+                "abrogation.pdf",  # abrogation
+                "abrogation 19, rue d'Italie 13006.pdf",  # abrogation
+                "ABROGATION 54, bld Dahdah.pdf",  # abrogation
+                "abrogation 3, rue Loubon 13003.pdf",  # abrogation
+                "abrogation 35, rue de Lodi.pdf",  # abrogation
+                "abrogation 4 - 6 rue Saint Georges.pdf",  # abrogation
+                "abrogation 23, bld Salvator.pdf",  # abrogation
+                "abrogation 25, rue Nau.pdf",  # abrogation
+                "abrogation 51 rue Pierre Albrand.pdf",  # abrogation
+                "abrogation 80 a, rue Longue des Capucins.pdf",  # abrogation
+                "abrogation 36, cours Franklin Roosevelt.pdf",  # abrogation
+                "abrogation 356, bld National.pdf",  # abrogation
+                "abrogation 57, bld Dahdah.pdf",  # abrogation
+                "abrogation 86, rue Longue des Capucins.pdf",  # abrogation
+                "abrogation 26, bld Battala.pdf",  # abrogation
+                "abrogation 24, rue Montgrand.pdf",  # abrogation
+                "mainlevée 102 bld Plombières 13014.pdf",  # mainlevée (Marseille)
+                "mainlevée 29 bld Michel 13016.pdf",  # mainlevée (Marseille)
+                "mainlevée 7 rue de la Tour Peyrolles.pdf",  # mainlevée (Peyrolles)
+                "mainlevée de péril ordinaire 8 rue Longue Roquevaire.pdf",  # mainlevée (Roquevaire)
+                "mainlevée 82L chemin des Lavandières Roquevaire.pdf",  # mainlevée (Roquevaire)
+                "8, rue Maréchal Foch Roquevaire.PDF",  # PGI ! (Roquevaire)
+                "grave 31 rue du Calvaire Roquevaire.pdf",  # PGI ! (Roquevaire)
+                "PGI rue docteur Paul Gariel -15122020.PDF",  # PGI ! (Roquevaire)
+                "modif Maréchal Foch.PDF",  # modif PGI ! (Roquevaire)
             ):
+                # FIXME détecter la classe au lieu d'une liste d'exclusion => ne pas appliquer pour abrogations et mainlevées
                 raise ValueError(f"{filename}: pas de considérant")
         # chaque arrêté contient exactement 1 "Arrête"
         try:
             assert len([x for x in par_typs if x == "par_arrete"]) == 1
         except AssertionError:
             if filename not in (
-                "16, rue de la République Gemenos.txt",  # OCR p.1 seulement => à ré-océriser
-                "mainlevée 6, rue des Jaynes Gemenos.txt",  # OCR p.1 seulement => à ré-océriser
+                "16, rue de la République Gemenos.pdf",  # OCR p.1 seulement => à ré-océriser
+                "mainlevée 6, rue des Jaynes Gemenos.pdf",  # OCR p.1 seulement => à ré-océriser
             ):
                 raise ValueError(f"{filename}: pas de vu")
         # l'ordre relatif (vu < considérant < arrête < article) est vérifié au niveau des transitions admissibles
+
+
+# FIXME enlever les EXCLUDE_FILES en amont (idéalement: les détecter et filtrer automatiquement, juste avant)
+EXCLUDE_SET = set(EXCLUDE_FIXME_FILES)
 
 
 def parse_arrete_pages(filename: str, pages: list[str]) -> list:
@@ -656,6 +719,12 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
         Contenu du document, par page découpée en zones de texte.
     """
     doc_content = []  # valeur de retour
+
+    # FIXME on ne traite pas une poignée de documents qui posent différents problèmes
+    if filename in EXCLUDE_SET:
+        return doc_content
+    # end FIXME
+
     # métadonnées du document
     mdata_doc = {
         "filename": filename,
@@ -668,6 +737,16 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
     for i, page in enumerate(pages, start=1):
         # métadonnées de la page
         mdata_page = mdata_doc | {"page_num": i}
+
+        if pd.isna(page):
+            # * la page n'a pas de texte
+            page_content = mdata_page | {
+                "template": None,  # empans de template
+                "body": None,  # texte (sans le texte du template)
+                "content": None,  # empans de contenu (paragraphes et données): vide
+            }
+            doc_content.append(page_content)
+            continue
 
         # repérer et effacer les éléments de template, pour ne garder que le contenu de chaque page
         pg_template, pg_txt_body = parse_page_template(page)
@@ -838,6 +917,167 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
     return doc_content
 
 
+def unique_txt(spans: list[dict], span_typ: str) -> str:
+    """Cherche l'unique empan d'un type donné et renvoie son texte.
+
+    Si plusieurs empans de la liste en entrée sont du type recherché,
+    une exception est levée.
+    Si aucun empan de la liste n'est du type recherché, renvoie None.
+
+    Parameters
+    ----------
+    spans: list(dict)
+        Liste d'empans extraits
+    span_typ: str
+        Type d'empan recherché
+
+    Returns
+    -------
+    span_txt: str
+        Texte de l'unique empan du type recherché.
+    """
+    if not spans:
+        return None
+    cands = [x for x in spans if x["span_typ"] == span_typ]
+    if not cands:
+        return None
+    elif len(cands) > 1:
+        raise ValueError(f"Plusieurs empans de type {span_typ}: {cands}")
+    else:
+        return cands[0]["span_txt"]
+
+
+def has_one(spans: list[dict], span_typ: str) -> str:
+    """Détecte si la liste contient au moins un empan d'un type donné.
+
+    Si la liste est vide, renvoie None.
+
+    Parameters
+    ----------
+    spans: list(dict)
+        Liste d'empans extraits
+    span_typ: str
+        Type d'empan recherché
+
+    Returns
+    -------
+    has_span: boolean
+        True si au moins un empan de la liste est du type recherché.
+    """
+    if not spans:
+        return None
+    return any(x for x in spans if x["span_typ"] == span_typ)
+
+
+def process_files(
+    df_meta: pd.DataFrame,
+    df_txts: pd.DataFrame,
+) -> pd.DataFrame:
+    """Traiter un ensemble d'arrêtés: repérer des éléments de structure des textes.
+
+    Parameters
+    ----------
+    df_meta: pd.DataFrame
+        Liste de métadonnées des fichiers à traiter.
+    df_txts: pd.DataFrame
+        Liste de pages de documents à traiter.
+
+    Returns
+    -------
+    df_proc: pd.DataFrame
+        Liste de métadonnées des pages traitées, avec indications des éléments de
+        structure détectés.
+    """
+    indics_struct = []
+    for _, df_doc_pages in df_txts.groupby("fullpath"):  # RESUME HERE ~exclude
+        # méta à passer en fin
+        df_doc_meta = df_doc_pages[["filename", "fullpath", "pagenum"]]
+        #
+        filename = df_doc_pages["filename"].iat[0]
+        pages = df_doc_pages["pagetxt"].values
+        exclude = df_doc_pages["exclude"].values
+        # actes
+        try:
+            has_stamp_pages = [
+                (P_STAMP.search(x) is not None) if pd.notna(x) else None for x in pages
+            ]
+        except TypeError:
+            print(repr(pages))
+            raise
+        # repérer les pages d'accusé de réception d'actes, elles seront marquées et non passées au parser
+        # TODO vérifier si la page d'AR actes apparaît seulement en dernière page, sinon on peut couper le doc et passer moins de pages au parser
+        # TODO timer et réécrire les deux instructions en pandas[pyarrow] pour améliorer la vitesse?
+        is_ar_pages = [
+            (P_ACCUSE.match(x) is not None) if pd.notna(x) else None for x in pages
+        ]
+        # filtrer les pages
+        filt_pages = []
+        for x, excl, is_ar in zip(pages, exclude, is_ar_pages):
+            if excl:  # flag d'exclusion de la page
+                filt_p = None
+            elif is_ar:  # page d'accusé de réception de télétransmission actes
+                filt_p = ""
+            else:
+                filt_p = x
+            filt_pages.append(filt_p)
+        # analyser les pages
+        doc_content = parse_arrete_pages(filename, filt_pages)
+        # filtrer les empans de données, et laisser de côté les empans de structure
+        for page_cont, has_st, is_ar, page_meta in zip(
+            doc_content, has_stamp_pages, is_ar_pages, df_doc_meta.itertuples()
+        ):
+            pg_content = page_cont["content"]
+            rec_struct = {
+                # @ctes
+                "has_stamp": has_st,
+                "is_accusedereception_page": is_ar,
+                # tous arrêtés
+                "commune_maire": unique_txt(pg_content, "adr_ville"),
+                "has_vu": has_one(pg_content, "par_vu"),
+                "has_considerant": has_one(pg_content, "par_considerant"),
+                "has_arrete": has_one(pg_content, "par_arrete"),
+                "has_article": has_one(pg_content, "par_article"),
+                # arrêtés spécifiques
+                # - réglementaires
+                "has_cgct": None,  # TODO
+                "has_cgct_art": None,  # TODO
+                "has_cch": None,  # TODO
+                "has_cch_L111": None,  # TODO
+                "has_cch_L511": None,  # TODO
+                "has_cch_L521": None,  # TODO
+                "has_cch_L541": None,  # TODO
+                "has_cch_R511": None,  # TODO
+                "has_cc": None,  # TODO
+                "has_cc_art": None,  # TODO
+                # - données
+                "adresse": None,  # TODO urgent
+                "parcelle": None,  # TODO urgent
+                "syndic": None,  # TODO urgent-
+                "date": unique_txt(pg_content, "arr_date"),
+                #   * arrêté
+                "arr_num": unique_txt(pg_content, "arr_num"),
+                "arr_nom": unique_txt(pg_content, "arr_nom"),
+                "arr_classification": None,  # TODO urgent
+                "arr_proc_urgence": None,
+                "arr_demolition": None,
+                "arr_interdiction": None,
+                "arr_equipcomm": None,
+            }
+            indics_struct.append(
+                {
+                    "filename": page_meta.filename,
+                    "fullpath": page_meta.fullpath,
+                    "pagenum": page_meta.pagenum,
+                }
+                | rec_struct  # python >= 3.9 (dict union)
+            )
+    df_indics = pd.DataFrame.from_records(indics_struct)
+    df_proc = pd.merge(df_meta, df_indics, on=["filename", "fullpath"])
+    df_proc = df_proc.astype(dtype=DTYPE_META_NTXT_PROC)
+    return df_proc
+
+
+# FIXME refactor dans process_files et __main__
 def parse_arrete(fp_txt_in: Path) -> list:
     """Analyse un arrêté pour le découper en zones.
 
@@ -854,27 +1094,144 @@ def parse_arrete(fp_txt_in: Path) -> list:
     pages = load_pages_text(fp_txt_in)
     # exclure la dernière page si c'est une page d'accusé de réception d'actes
     lst_page = pages[-1]
-    if m_accuse := P_ACCUSE.match(lst_page):
+    if P_ACCUSE.match(lst_page):
         pages = pages[:-1]
-    doc_content = parse_arrete_pages(fp_txt_in.name, pages)
+    filename = fp_txt_in.stem + ".pdf"
+    doc_content = parse_arrete_pages(filename, pages)
     return doc_content
 
 
+if False:
+    if __name__ == "__main__":
+        # TODO argparse
+        INT_TXT_DIR = Path("../data/interim/txt")
+        CSV_PARSES = Path("../data/interim") / "parses.csv"
+        # stocker les champs extraits dans un tableau
+        parses = []
+        for fp_txt in sorted(INT_TXT_DIR.glob("*.txt")):
+            content = parse_arrete(fp_txt)
+            parses.extend(content)
+        df_parses = pd.DataFrame(parses)
+        # on force les types de colonnes (impossible dans le constructeur...)
+        df_parses = df_parses.astype(DTYPE_SPANS)
+        # TODO tests: dropna() puis:
+        # assert header_beg == 0
+        # alt: assert txt[:header_beg] == ""
+        # assert footer_end == len(txt)
+        # alt: assert txt[footer_end:] == ""
+        df_parses.to_csv(CSV_PARSES, index=False)
+
+
 if __name__ == "__main__":
-    # TODO argparse
-    INT_TXT_DIR = Path("../data/interim/txt")
-    CSV_PARSES = Path("../data/interim") / "parses.csv"
-    # stocker les champs extraits dans un tableau
-    parses = []
-    for fp_txt in sorted(INT_TXT_DIR.glob("*.txt")):
-        content = parse_arrete(fp_txt)
-        parses.extend(content)
-    df_parses = pd.DataFrame(parses)
-    # on force les types de colonnes (impossible dans le constructeur...)
-    df_parses = df_parses.astype(DTYPE_PARSES)
-    # TODO tests: dropna() puis:
-    # assert header_beg == 0
-    # alt: assert txt[:header_beg] == ""
-    # assert footer_end == len(txt)
-    # alt: assert txt[footer_end:] == ""
-    df_parses.to_csv(CSV_PARSES, index=False)
+    # log
+    dir_log = Path(__file__).resolve().parents[1] / "logs"
+    logging.basicConfig(
+        filename=f"{dir_log}/parse_doc_{datetime.now().isoformat()}.log",
+        encoding="utf-8",
+        level=logging.DEBUG,
+    )
+
+    # arguments de la commande exécutable
+    parser = argparse.ArgumentParser()
+    # mêmes entrées et sorties que parse_native_pages
+    parser.add_argument(
+        "in_file_meta",
+        help="Chemin vers le fichier CSV en entrée contenant les métadonnées des fichiers PDF",
+    )
+    parser.add_argument(
+        "in_file_pages",
+        help="Chemin vers le fichier CSV en entrée contenant les pages de texte",
+    )
+    parser.add_argument(
+        "out_file",
+        help="Chemin vers le fichier CSV en sortie contenant les métadonnées des fichiers PDF enrichies, par page",
+    )
+    group = parser.add_mutually_exclusive_group()
+    # par défaut, le fichier out_file ne doit pas exister, sinon deux options mutuellement exclusives:
+    # "redo" (écrase le fichier existant) et "append" (étend le fichier existant)
+    group.add_argument(
+        "--redo",
+        action="store_true",
+        help="Ré-exécuter le traitement d'un lot, et écraser le fichier de sortie",
+    )
+    group.add_argument(
+        "--append",
+        action="store_true",
+        help="Ajoute les pages annotées au fichier out_file s'il existe",
+    )
+    args = parser.parse_args()
+
+    # entrée: CSV de métadonnées
+    in_file_meta = Path(args.in_file_meta).resolve()
+    if not in_file_meta.is_file():
+        raise ValueError(f"Le fichier en entrée {in_file_meta} n'existe pas.")
+
+    # entrée: CSV de pages de texte
+    in_file_pages = Path(args.in_file_pages).resolve()
+    if not in_file_pages.is_file():
+        raise ValueError(f"Le fichier en entrée {in_file_pages} n'existe pas.")
+
+    # sortie: CSV de pages de texte annotées
+    # on crée le dossier parent (récursivement) si besoin
+    out_file = Path(args.out_file).resolve()
+    if out_file.is_file():
+        if not args.redo and not args.append:
+            # erreur si le fichier CSV existe déjà mais ni redo, ni append
+            raise ValueError(
+                f"Le fichier de sortie {out_file} existe déjà. Pour l'écraser, ajoutez --redo ; pour l'augmenter, ajoutez --append."
+            )
+    else:
+        # si out_file n'existe pas, créer son dossier parent si besoin
+        out_dir = out_file.parent
+        logging.info(
+            f"Dossier de sortie: {out_dir} {'existe déjà' if out_dir.is_dir() else 'doit être créé'}."
+        )
+        out_dir.mkdir(exist_ok=True)
+
+    # ouvrir le fichier de métadonnées en entrée
+    logging.info(f"Ouverture du fichier CSV de métadonnées {in_file_meta}")
+    df_meta = pd.read_csv(in_file_meta, dtype=DTYPE_META_NTXT_FILT)
+    # ouvrir le fichier d'entrée
+    logging.info(f"Ouverture du fichier CSV de pages de texte {in_file_pages}")
+    df_txts = pd.read_csv(in_file_pages, dtype=DTYPE_NTXT_PAGES_FILT)
+    # traiter les documents (découpés en pages de texte)
+    df_tmod = process_files(df_meta, df_txts)
+
+    # optionnel: afficher des statistiques
+    if True:  # TODO ajouter une option si utilité confirmée
+        new_cols = [
+            # @ctes
+            "has_stamp",
+            "is_accusedereception_page",
+            # structure générique des arrêtés
+            "commune_maire",
+            # "has_vu",
+            # "has_considerant",
+            # "has_arrete",
+            # "has_article",
+            # données à extraire
+            "parcelle",
+            # "adresse",
+            # "syndic",
+        ]
+        print(
+            df_tmod.query("pagenum == 1")
+            .dropna(axis=0, how="all", subset=["has_stamp"])[new_cols]
+            .groupby("commune_maire")
+            .value_counts(dropna=False)
+        )
+        # TODO écrire des "expectations": cohérence entre colonnes sur le même document,
+        # AR sur la dernière page (sans doute faux dans certains cas, eg. annexes ou rapport d'expertise)
+        # page has_article=TRUE >= page has_vu, has_considerant
+        # pour tout document ayant au moins une page où has_article=TRUE, alors il existe une page has_vu=TRUE
+        # (et il existe une page où has_considerant=TRUE ?)
+
+    # sauvegarder les infos extraites dans un fichier CSV
+    if args.append and out_file.is_file():
+        # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées
+        df_tmod_old = pd.read_csv(out_file, dtype=DTYPE_META_NTXT_PROC)
+        df_proc = pd.concat([df_tmod_old, df_tmod])
+    else:
+        # sinon utiliser les seules nouvelles entrées
+        df_proc = df_tmod
+    df_proc.to_csv(out_file, index=False)

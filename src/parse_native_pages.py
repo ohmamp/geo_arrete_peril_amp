@@ -61,7 +61,7 @@ from typologie_securite import (
     M_EQUIPEMENTS_COMMUNS,
 )
 
-from separate_pages import DTYPE_META_NTXT, DTYPE_NTXT_PAGES
+from filter_docs import DTYPE_META_NTXT_FILT, DTYPE_NTXT_PAGES_FILT
 from text_structure import (
     # tous arrêtés
     P_ARR_NUM,  # numéro/identifiant de l'arrêté
@@ -128,7 +128,7 @@ DTYPE_PARSE = {
 
 # dtype du fichier de sortie
 DTYPE_META_NTXT_PROC = (
-    DTYPE_META_NTXT | {"pagenum": DTYPE_NTXT_PAGES["pagenum"]} | DTYPE_PARSE
+    DTYPE_META_NTXT_FILT | {"pagenum": DTYPE_NTXT_PAGES_FILT["pagenum"]} | DTYPE_PARSE
 )
 
 
@@ -750,7 +750,9 @@ def spot_text_structure(
         Les clés et les types de valeurs sont spécifiés dans `DTYPE_PARSE`.
         Si df_row ne contient pas de texte, toutes les valeurs de sortie sont None.
     """
-    if pd.notna(df_row.pagetxt):
+    if pd.notna(df_row.pagetxt) and (
+        not df_row.exclude
+    ):  # WIP " and (not df_row.exclude)"
         rec_struct = {
             # @ctes
             "has_stamp": is_stamped_page(df_row.pagetxt),
@@ -905,10 +907,10 @@ if __name__ == "__main__":
 
     # ouvrir le fichier de métadonnées en entrée
     logging.info(f"Ouverture du fichier CSV de métadonnées {in_file_meta}")
-    df_meta = pd.read_csv(in_file_meta, dtype=DTYPE_META_NTXT)
+    df_meta = pd.read_csv(in_file_meta, dtype=DTYPE_META_NTXT_FILT)
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV de pages de texte {in_file_pages}")
-    df_txts = pd.read_csv(in_file_pages, dtype=DTYPE_NTXT_PAGES)
+    df_txts = pd.read_csv(in_file_pages, dtype=DTYPE_NTXT_PAGES_FILT)
     # traiter les documents (découpés en pages de texte)
     df_tmod = process_files(df_meta, df_txts)
 

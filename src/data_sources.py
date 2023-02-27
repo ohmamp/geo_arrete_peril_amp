@@ -153,6 +153,9 @@ EXCLUDE_FILES = [
     "11 rue de la Joliette 13002 périmètre.pdf",  # id
     "154 156 avenue Roger Salengro.pdf",  # id
     "emprise périmètre de sécurité.pdf",  # id
+]
+
+EXCLUDE_FIXME_FILES = [
     # fichiers problématiques
     "2, rue Kruger Gardanne - PO.pdf",  # FIXME "Considérant", "Vu", "Considérant" => autoriser ces transitions ?
     "2 rue Léon Gambetta Martigues.pdf",  # FIXME erreur "Pas de Vu en page 1" mais se produit en p. 3 !?

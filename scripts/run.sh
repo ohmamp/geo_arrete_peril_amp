@@ -37,8 +37,8 @@ BATCH=arretes_peril_compil
 # 6. rassembler les données extraites dans chaque document
 # 1 entrée: CSV de métadonnées enrichies et données, 1 ligne par page
 # 1 sortie: CSV de métadonnées et données 1 ligne par document
-python src/aggregate_pages.py ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv ${DATA_INT}/${BATCH}_meta_ntxt_doc2.csv
-# python src/aggregate_pages.py ${DATA_INT}/${BATCH}_meta_ntxt_proc_struct.csv ${DATA_INT}/${BATCH}_meta_ntxt_doc_struct.csv
+python src/aggregate_pages.py ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv ${DATA_INT}/${BATCH}_meta_ntxt_doc.csv
+python src/aggregate_pages.py ${DATA_INT}/${BATCH}_meta_ntxt_proc_struct.csv ${DATA_INT}/${BATCH}_meta_ntxt_doc_struct.csv
 # RESUME HERE
 
 # 7. extraire le texte des PDF par OCR si pertinent, et convertir les PDF originaux en PDF/A archivables contenant du texte natif
@@ -52,14 +52,14 @@ python src/aggregate_pages.py ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv ${DATA_INT
 
 # 9. extraire les champs voulus
 # (1 entrée: CSV de métadonnées et données ; 1 sortie: CSV de métadonnées et données)
-# python src/extract_data.py ${DATA_INT}/${BATCH}_meta_ntxt_doc.csv ${DATA_INT}/${BATCH}_data.csv
-# python src/extract_data.py ${DATA_INT}/${BATCH}_meta_ntxt_doc_struct.csv ${DATA_INT}/${BATCH}_data_struct.csv
+python src/extract_data.py ${DATA_INT}/${BATCH}_meta_ntxt_doc.csv ${DATA_INT}/${BATCH}_data.csv
+python src/extract_data.py ${DATA_INT}/${BATCH}_meta_ntxt_doc_struct.csv ${DATA_INT}/${BATCH}_data_struct.csv
 
 # 10. enrichir les données avec des bases externes
 # (1 entrée: CSV de métadonnées et données ; 1 sortie: CSV de métadonnées et données)
-# python src/enrich_data.py ${DATA_INT}/${BATCH}_data.csv ${DATA_INT}/${BATCH}_data_enr.csv
-# python src/enrich_data.py ${DATA_INT}/${BATCH}_data_struct.csv ${DATA_INT}/${BATCH}_data_enr_struct.csv
+python src/enrich_data.py ${DATA_INT}/${BATCH}_data.csv ${DATA_INT}/${BATCH}_data_enr.csv
+python src/enrich_data.py ${DATA_INT}/${BATCH}_data_struct.csv ${DATA_INT}/${BATCH}_data_enr_struct.csv
 
 # 11. exporter les données en 4 fichiers CSV pour l'intégration au SIG
-# python src/export_data.py ${DATA_INT}/${BATCH}_data_enr.csv ${DATA_PRO}/${BATCH}
-# python src/export_data.py ${DATA_INT}/${BATCH}_data_enr_struct.csv ${DATA_PRO}/${BATCH}_struct
+python src/export_data.py ${DATA_INT}/${BATCH}_data_enr.csv ${DATA_PRO}/${BATCH}
+python src/export_data.py ${DATA_INT}/${BATCH}_data_enr_struct.csv ${DATA_PRO}/${BATCH}_struct

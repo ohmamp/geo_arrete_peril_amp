@@ -10,6 +10,7 @@ from datetime import datetime
 import logging
 from pathlib import Path
 from typing import Dict
+import time  # WIP
 
 import pandas as pd
 
@@ -65,6 +66,20 @@ DTYPE_PARSE_AGG = {
 DTYPE_META_NTXT_DOC = DTYPE_META_NTXT_FILT | DTYPE_PARSE_AGG
 
 
+def pagenums(df_grp: pd.DataFrame, col_on: str):
+    """Renvoie la liste des numéros de pages où une colonne est vraie"""
+    return df_grp[df_grp[col_on]]["pagenum"].to_list()
+
+
+def first(df_grp: pd.DataFrame, col_on: str):
+    """Renvoie la première valeur non-vide de la colonne"""
+    s_ok = df_grp[col_on].dropna()
+    if s_ok.empty:
+        return None
+    else:
+        return s_ok.to_list()[0]
+
+
 def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -> Dict:
     """Fusionne les champs extraits des différentes pages d'un document.
 
@@ -86,7 +101,7 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
     grp = df_grp.dropna(subset=["has_stamp"])
     # si demandé, exclure l'éventuelle page d'accusé de réception d'actes
     if not include_actes_page_ar:
-        grp = df_grp.query("not is_accusedereception_page")
+        grp = grp.query("not is_accusedereception_page")
 
     # si le groupe est vide, renvoyer une ligne (pour le document) vide ;
     # utile lorsque le document ne contient pas de texte, notamment les PDF non-natifs non-océrisés (ou pas encore)
@@ -94,145 +109,140 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
         rec_struct = {x: None for x in DTYPE_PARSE_AGG}
         return rec_struct
 
+    # t0 = time.time()
+    if False:
+        grp[grp.has_stamp]["pagenum"].to_list()
+        t0b = time.time()
+        grp[grp["has_stamp"]]["pagenum"].to_list()
+        t0c = time.time()
+        grp.query("has_stamp")["pagenum"].to_list()
+        t0d = time.time()
+        print(f"{t0b - t0:.3f}\t{t0c - t0b:.3f}\t{t0d - t0c:.3f}")
     # agréger les numéros de pages ou les valeurs extraites
     rec_actes = {
         # - métadonnées
         #   * @ctes
-        "actes_pages_tampon": grp.query("has_stamp")[
-            "pagenum"
-        ].to_list(),  # table: contrôle ; expectation: liste de valeurs continue (ex: 1,2,3) ou vide (all NaN)
-        "actes_pages_ar": grp.query("is_accusedereception_page")[
-            "pagenum"
-        ].to_list(),  # table: contrôle ; expectation: liste vide (all NaN) ou valeur unique
+        # table: contrôle ; expectation: liste de valeurs continue (ex: 1,2,3) ou vide (all NaN)
+        # grp.query("has_stamp")["pagenum"].to_list(),
+        "actes_pages_tampon": pagenums(grp, "has_stamp"),
+        # table: contrôle ; expectation: liste vide (all NaN) ou valeur unique
+        # grp.query("is_accusedereception_page")["pagenum"].to_list()
+        "actes_pages_ar": pagenums(grp, "is_accusedereception_page"),
     }
+    # t1 = time.time()
     rec_commu = {
         # - tous arrêtés
         #   * champ "commune"
-        "commune_maire": (
-            grp.dropna(subset=["commune_maire"])["commune_maire"].to_list()[0]
-            if not grp.dropna(subset=["commune_maire"]).empty
-            else None
-        ),  # TODO table: ? ; TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+        # TODO table: ? ; TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+        "commune_maire": first(grp, "commune_maire"),
     }
+    # t2 = time.time()
     rec_pars = {
         #   * champs structure de l'arrêté
-        "pages_vu": grp.query("has_vu")[
-            "pagenum"
-        ].to_list(),  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
-        "pages_considerant": grp.query("has_considerant")[
-            "pagenum"
-        ].to_list(),  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
-        "pages_arrete": grp.query("has_arrete")[
-            "pagenum"
-        ].to_list(),  # table: contrôle ; expectation: valeur unique ou vide/NaN
-        "pages_article": grp.query("has_article")[
-            "pagenum"
-        ].to_list(),  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
+        "pages_vu": pagenums(
+            grp, "has_vu"
+        ),  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
+        "pages_considerant": pagenums(
+            grp, "has_considerant"
+        ),  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
+        "pages_arrete": pagenums(
+            grp, "has_arrete"
+        ),  # table: contrôle ; expectation: valeur unique ou vide/NaN
+        "pages_article": pagenums(
+            grp, "has_article"
+        ),  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
     }
+    # t3 = time.time()
     rec_regl = {
         # arrêtés spécifiques
         # - réglementaires
-        "pages_cgct": grp.query("has_cgct")[
-            "pagenum"
-        ].to_list(),  # TODO retraiter pour classer les arrêtés?  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
-        "pages_cgct_art": grp.query("has_cgct_art")[
-            "pagenum"
-        ].to_list(),  # TODO retraiter pour classer les arrêtés?
-        "pages_cch": grp.query("has_cch")[
-            "pagenum"
-        ].to_list(),  # TODO retraiter pour classer les arrêtés?
-        "pages_cch_L111": grp.query("has_cch_L111")[
-            "pagenum"
-        ].to_list(),  # TODO retraiter pour classer les arrêtés?
-        "pages_cch_L511": grp.query("has_cch_L511")[
-            "pagenum"
-        ].to_list(),  # TODO retraiter pour classer les arrêtés?
-        "pages_cch_L521": grp.query("has_cch_L521")[
-            "pagenum"
-        ].to_list(),  # TODO retraiter pour classer les arrêtés?
-        "pages_cch_L541": grp.query("has_cch_L541")[
-            "pagenum"
-        ].to_list(),  # TODO retraiter pour classer les arrêtés?
-        "pages_cch_R511": grp.query("has_cch_R511")[
-            "pagenum"
-        ].to_list(),  # TODO retraiter pour classer les arrêtés?
-        "pages_cc": grp.query("has_cc")[
-            "pagenum"
-        ].to_list(),  # TODO retraiter pour classer les arrêtés?
-        "pages_cc_art": grp.query("has_cc_art")[
-            "pagenum"
-        ].to_list(),  # TODO retraiter pour classer les arrêtés?
+        "pages_cgct": pagenums(
+            grp, "has_cgct"
+        ),  # TODO retraiter pour classer les arrêtés?  # table: contrôle ; expectation: liste de valeurs continue ou vide (all NaN)
+        "pages_cgct_art": pagenums(
+            grp, "has_cgct_art"
+        ),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch": pagenums(
+            grp, "has_cch"
+        ),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch_L111": pagenums(
+            grp, "has_cch_L111"
+        ),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch_L511": pagenums(
+            grp, "has_cch_L511"
+        ),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch_L521": pagenums(
+            grp, "has_cch_L521"
+        ),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch_L541": pagenums(
+            grp, "has_cch_L541"
+        ),  # TODO retraiter pour classer les arrêtés?
+        "pages_cch_R511": pagenums(
+            grp, "has_cch_R511"
+        ),  # TODO retraiter pour classer les arrêtés?
+        "pages_cc": pagenums(grp, "has_cc"),  # TODO retraiter pour classer les arrêtés?
+        "pages_cc_art": pagenums(
+            grp, "has_cc_art"
+        ),  # TODO retraiter pour classer les arrêtés?
     }
+    # t4 = time.time()
     rec_adre = {
         # - données
-        "adresse_brute": (
-            grp.dropna(subset=["adresse"])["adresse"].to_list()[0]
-            if not grp.dropna(subset=["adresse"]).empty
-            else None
+        "adresse_brute": first(
+            grp, "adresse"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
+    # t5 = time.time()
     rec_parce = {
-        "parcelle": (
-            grp.dropna(subset=["parcelle"])["parcelle"].to_list()[0]
-            if not grp.dropna(subset=["parcelle"]).empty
-            else None
+        "parcelle": first(
+            grp, "parcelle"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
+    # t6 = time.time()
     rec_syndi = {
-        "syndic": (
-            grp.dropna(subset=["syndic"])["syndic"].to_list()[0]
-            if not grp.dropna(subset=["syndic"]).empty
-            else None
+        "syndic": first(
+            grp, "syndic"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
+    # t7 = time.time()
     rec_date = {
-        "arr_date": (
-            grp.dropna(subset=["date"])["date"].to_list()[0]
-            if not grp.dropna(subset=["date"]).empty
-            else None
+        "arr_date": first(
+            grp, "date"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
+    # t8 = time.time()
     rec_num = {
-        "arr_num": (
-            grp.dropna(subset=["arr_num"])["arr_num"].to_list()[0]
-            if not grp.dropna(subset=["arr_num"]).empty
-            else None
+        "arr_num": first(
+            grp, "arr_num"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
+    # t9 = time.time()
+    if False:
+        print(
+            f"actes: {t1 - t0:.3f}\tcommune: {t2 - t1:.3f}\tvu_etc: {t3 - t2:.3f}"
+            + f"\tregl: {t4 - t3:.3f}\tadr: {t5 - t4:.3f}\tparcelle: {t6 - t5:.3f}"
+            + f"\tsyndic: {t7 - t6:.3f}\tdate: {t8 - t7:.3f}\tnum: {t9 - t8:.3f}"
+        )
     rec_nom = {
-        "arr_nom": (
-            grp.dropna(subset=["arr_nom"])["arr_nom"].to_list()[0]
-            if not grp.dropna(subset=["arr_nom"]).empty
-            else None
+        "arr_nom": first(
+            grp, "arr_nom"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
     rec_classi = {
-        "arr_classification": (
-            grp.dropna(subset=["arr_classification"])[
-                "arr_classification"
-            ].to_list()[0]
-            if not grp.dropna(subset=["arr_classification"]).empty
-            else None
+        "arr_classification": first(
+            grp, "arr_classification"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
-        "arr_proc_urgence": (
-            grp.dropna(subset=["arr_proc_urgence"])["arr_proc_urgence"].to_list()[0]
-            if not grp.dropna(subset=["arr_proc_urgence"]).empty
-            else None
+        "arr_proc_urgence": first(
+            grp, "arr_proc_urgence"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
-        "arr_demolition": (
-            grp.dropna(subset=["arr_demolition"])["arr_demolition"].to_list()[0]
-            if not grp.dropna(subset=["arr_demolition"]).empty
-            else None
+        "arr_demolition": first(
+            grp, "arr_demolition"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
-        "arr_interdiction": (
-            grp.dropna(subset=["arr_interdiction"])["arr_interdiction"].to_list()[0]
-            if not grp.dropna(subset=["arr_interdiction"]).empty
-            else None
+        "arr_interdiction": first(
+            grp, "arr_interdiction"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
-        "arr_equipcomm": (
-            grp.dropna(subset=["arr_equipcomm"])["arr_equipcomm"].to_list()[0]
-            if not grp.dropna(subset=["arr_equipcomm"]).empty
-            else None
+        "arr_equipcomm": first(
+            grp, "arr_equipcomm"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
     rec_struct = (

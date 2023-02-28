@@ -58,6 +58,7 @@ DTYPE_PARSE_AGG = {
     # - notifiés
     # "proprietaire": "string",
     "syndic": "string",
+    "gestio": "string",
     "arr_date": "string",
     "arr_num": "string",
 }

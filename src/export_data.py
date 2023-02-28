@@ -30,6 +30,7 @@ DTYPE_ARRETE = {
     "equipcomm": "string",
     "nom_pdf": "string",  # = filename
     "url": "string",  # TODO URL serveur
+    "codeinsee": "string",  # code insee (5 chars)
 }
 
 DTYPE_ADRESSE = {
@@ -48,6 +49,7 @@ DTYPE_ADRESSE = {
 DTYPE_PARCELLE = {
     "idu": "string",  # identifiant unique
     "ref_cad": "string",  # référence cadastrale
+    "codeinsee": "string",  # code insee (5 chars)
 }
 
 DTYPE_NOTIFIE = {
@@ -57,6 +59,7 @@ DTYPE_NOTIFIE = {
     "ide_syndic": "string",  # identification du syndic
     "nom_syndic": "string",  # nom du syndic
     "ide_gestio": "string",  # identification du gestionnaire
+    "codeinsee": "string",  # code insee (5 chars)
 }
 
 DTYPE_TABLES = {
@@ -144,7 +147,12 @@ if __name__ == "__main__":
         # sélectionner les données
         # - colonnes à conserver
         prefix_tab = PREFIX_TABLES[out_key]
-        sel_cols = ["idu"] + [x for x in df_meta.columns if x.startswith(prefix_tab)]
+        sel_cols = (
+            ["idu"]
+            + [x for x in df_meta.columns if x.startswith(prefix_tab)]
+            # ajout du code insee dans toutes les tables (rmq_iteration_2.docx, 2023-02-14)
+            + ["adr_codeinsee"]
+        )
         # - dtypes de ces colonnes
         sel_dtype = DTYPE_TABLES[out_key]
         df_txts = df_meta[sel_cols].rename(

@@ -353,7 +353,11 @@ def create_docs_dataframe(
                 else None
             ),  # identification du syndic
             "not_nom_syndic": "TODO_syndic",  # nom du syndic
-            "not_ide_gestio": "TODO_gestio",  # identification du gestionnaire
+            "not_ide_gestio": (
+                normalize_string(getattr(df_row, "gestio"))
+                if pd.notna(getattr(df_row, "gestio"))
+                else None
+            ),  # identification du gestionnaire
         }
         doc_data = doc_idu | doc_arr | doc_adr | doc_par | doc_not
         doc_rows.append(doc_data)

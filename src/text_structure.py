@@ -91,10 +91,9 @@ RE_ADR_DOC = (
     + r""")\s+"""
     + rf"""(?P<adresse>{RE_ADRESSE})"""  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     + r"""(?:\s+"""
-    + r"""(?:"""
-    + r"""(?:[,:–-]\s+)|[(]"""
-    + r""")?"""
-    + r"""(?:susceptible|parcelle|référence|concernant)"""
+    + r"(?:[,:–-]\s+|[(])?"
+    + r"(?:susceptible|parcelle|référence|concernant"
+    + r"|est\s+pris\s+en|à\s+l[’']exception|de\s+mettre\s+fin)"
     + r""")?"""
 )
 M_ADR_DOC = re.compile(RE_ADR_DOC, re.MULTILINE | re.IGNORECASE)
@@ -102,7 +101,7 @@ M_ADR_DOC = re.compile(RE_ADR_DOC, re.MULTILINE | re.IGNORECASE)
 # - propriétaire
 RE_PROPRI = (
     r"""(?:à\s+la\s+)"""
-    + r"""(?P<propri>Société\s+Civile\s+Immobilière\s+.+)"""
+    + r"""(?P<propri>(?:Société\s+Civile\s+Immobilière|SCI)\s+.+)"""
     + r"""[,]?\s+sise\s+"""
     + rf"""(?P<prop_adr>{RE_ADRESSE})"""
 )
@@ -115,10 +114,10 @@ M_PROPRI = re.compile(RE_PROPRI, re.MULTILINE | re.IGNORECASE)
 # ex: "Considérant que le syndicat des copropriétaires de cet immeuble est pris en la personne du Cabinet xxxx syndic, domicilié 11, avenue du Dol - 13001 MARSEILLE,"
 RE_SYNDIC = (
     r"""(?:"""
-    + r"""agence"""
-    + r"""|le syndic(?:\s+de\s+copropriété)?"""
+    + r"le syndic(?:\s+de\s+copropriété)?"
+    + r"|syndic(?:\s+de\s+(?:cet\s+|l['’]\s*)immeuble)?(?:\s+est|,)?\s+pris\s+en\s+la\s+personne\s+(?:du|de)"
     + r"""|syndic\s+:"""
-    + r"""|syndicat\s+des\s+copropriétaires(?:\s+de\s+(?:cet\s+|l['’]\s*)immeuble)?(?:\s+est)?\s+pris\s+en\s+la\s+personne\s+(?:du|de)"""
+    + r"""|syndicat\s+des\s+copropriétaires(?:\s+de\s+(?:cet\s+|l['’]\s*)immeuble)?(?:\s+est|,)?\s+pris\s+en\s+la\s+personne\s+(?:du|de)"""
     + r""")\s+"""
     + r"""(?P<syndic>.+?)"""
     + r"""(?:"""
@@ -128,6 +127,19 @@ RE_SYNDIC = (
     + r""")"""
 )
 M_SYNDIC = re.compile(RE_SYNDIC, re.MULTILINE | re.IGNORECASE)
+
+# gestionnaire
+RE_GESTIO = (
+    r"(?:gestionnaire\s+de\s+(?:cet\s+|l['’]\s*)immeuble(?:\s+est|,)?\s+pris\s+en\s+la\s+personne\s+(?:du|de))"
+    + r"(?P<gestio>.+?)"
+    + r"(?:"
+    + r"[,.]"
+    + r"|[,]?\s+(?:sis|domicilié)\s+"
+    + rf"{RE_ADRESSE}"
+    + r")"
+)
+P_GESTIO = re.compile(RE_GESTIO, re.MULTILINE | re.IGNORECASE)
+
 
 # date de l'arrêté
 RE_DATE_SIGNAT = (

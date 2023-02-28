@@ -79,6 +79,7 @@ from text_structure import (
     RE_ADRESSE,  # pour le nettoyage de l'adresse récupérée
     M_PROPRI,
     M_SYNDIC,
+    P_GESTIO,
     P_DATE_SIGNAT,
 )
 
@@ -114,6 +115,7 @@ DTYPE_PARSE = {
     #   * notifiés
     # "proprietaire": "string",
     "syndic": "string",
+    "gestio": "string",
     #   * arrêté
     "date": "string",
     "arr_num": "string",
@@ -525,6 +527,23 @@ def get_syndic(page_txt: str) -> bool:
     return m_synd.group("syndic") if m_synd is not None else None
 
 
+def get_gestio(page_txt: str) -> str:
+    """Détecte si une page contient un nom de gestionnaire immobilier.
+
+    Parameters
+    ----------
+    page_txt: str
+        Texte d'une page de document
+
+    Returns
+    -------
+    syndic: str
+        Nom de gestionnaire si détecté, None sinon.
+    """
+    match = P_GESTIO.search(page_txt)
+    return match.group("gestio") if match is not None else None
+
+
 def get_date(page_txt: str) -> bool:
     """Récupère la date de l'arrêté.
 
@@ -779,6 +798,7 @@ def spot_text_structure(
             "adresse": get_adr_doc(df_row.pagetxt),
             "parcelle": get_parcelle(df_row.pagetxt),
             "syndic": get_syndic(df_row.pagetxt),
+            "gestio": get_gestio(df_row.pagetxt),
             "date": get_date(df_row.pagetxt),
             #   * arrêté
             "arr_num": get_num(df_row.pagetxt),

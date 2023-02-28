@@ -21,11 +21,14 @@ RE_NUM_IND_VOIE = (
     + r"""(?:\s?(?P<ind_voie>A|bis|ter))?"""
 )
 RE_TYP_VOIE = r"""(?:avenue|boulevard|cours|impasse|place|rue|traverse)"""
-RE_NOM_VOIE = rf"""(?:{RE_TOK}(?:\s+{RE_TOK})*)"""
+RE_NOM_VOIE = rf"""(?:{RE_TOK}(?:[\s-]{RE_TOK})*)"""
 RE_CP = r"""\d{5}"""
 RE_COMMUNE = (
-    rf"{RE_TOK}(?:[ ]{RE_TOK})" + r"{0,2}"
-)  # r"""[^,;]+"""  # 1 à 3 tokens séparés par des espaces?
+    rf"{RE_TOK}"  # au moins 1 token
+    + r"(?:[\s-]"
+    + rf"{RE_TOK}"
+    + r"){0,4}"  # + 0 à 3 tokens séparés par espace ou tiret
+)  # r"""[^,;]+"""  # 1 à 4 tokens séparés par des espaces?
 
 # contextes: "objet:" (objet de l'arrêté),
 # TODO ajouter du contexte pour être plus précis? "désordres sur le bâtiment sis... ?"
@@ -36,7 +39,7 @@ RE_ADRESSE = (
     + rf"""\s+(?P<nom_voie>{RE_NOM_VOIE})"""
     # TODO complément d'adresse ?
     + r"""(?:"""
-    + r"""(?:(?:\s*[,–])|(?:\s+à))?"""  # ex: 2 rue xxx[,] 13420 GEMENOS
+    + r"""(?:(?:\s*[,–-])|(?:\s+à))?"""  # ex: 2 rue xxx[,] 13420 GEMENOS
     + r"""\s+"""
     + r"""(?:"""
     + rf"""(?P<code_postal>{RE_CP})"""

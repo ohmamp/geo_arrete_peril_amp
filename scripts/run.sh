@@ -26,12 +26,12 @@ BATCH=arretes_peril_compil
 # 5. analyser le texte natif des PDF (pages vides, tampons, accusés de réception), pour déterminer si l'OCR doit être faite (ou refaite)
 # (2 entrées: CSV de métadonnées 1 ligne par fichier + CSV de pages de texte 1 ligne par page ;
 # 1 sortie: CSV de métadonnées enrichies et données, 1 ligne par page)
-# python src/parse_native_pages.py ${DATA_INT}/${BATCH}_meta_ntxt_filt.csv ${DATA_INT}/${BATCH}_ntxt_pages_filt.csv ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv
+python src/parse_native_pages.py ${DATA_INT}/${BATCH}_meta_ntxt_filt.csv ${DATA_INT}/${BATCH}_ntxt_pages_filt.csv ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv
 
 # 5. (alt) analyser de façon structurée le texte natif des PDF (pages vides, tampons, accusés de réception), pour déterminer si l'OCR doit être faite (ou refaite)
 # (2 entrées: CSV de métadonnées 1 ligne par fichier + CSV de pages de texte 1 ligne par page ;
 # 1 sortie: CSV de métadonnées enrichies et données, 1 ligne par page)
-# python src/parse_doc.py ${DATA_INT}/${BATCH}_meta_ntxt_filt.csv ${DATA_INT}/${BATCH}_ntxt_pages_filt.csv ${DATA_INT}/${BATCH}_meta_ntxt_proc_struct.csv
+python src/parse_doc.py ${DATA_INT}/${BATCH}_meta_ntxt_filt.csv ${DATA_INT}/${BATCH}_ntxt_pages_filt.csv ${DATA_INT}/${BATCH}_meta_ntxt_proc_struct.csv
 
 
 # 6. rassembler les données extraites dans chaque document

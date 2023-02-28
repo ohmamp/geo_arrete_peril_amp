@@ -21,6 +21,27 @@ from doc_template import (
     P_FOOTER,
     P_BORDEREAU,
 )  # en-têtes, pieds-de-page, pages spéciales
+from parse_native_pages import (
+    get_classification,
+    get_urgence,
+    get_demol_deconst,
+    get_interdiction_habiter,
+    get_equipements_communs,
+    get_adr_doc,
+    get_parcelle,
+    get_syndic,
+    get_gestio,
+    contains_cc,
+    contains_cc_art,
+    contains_cch,
+    contains_cch_L111,
+    contains_cch_L511,
+    contains_cch_L521,
+    contains_cch_L541,
+    contains_cch_R511,
+    contains_cgct,
+    contains_cgct_art,
+)
 from separate_pages import load_pages_text
 from filter_docs import DTYPE_META_NTXT_FILT, DTYPE_NTXT_PAGES_FILT
 from text_structure import (
@@ -67,6 +88,7 @@ DTYPE_PARSE = {
     #   * notifiés
     # "proprietaire": "string",
     "syndic": "string",
+    "gestio": "string",
     #   * arrêté
     "date": "string",
     "arr_num": "string",
@@ -1027,6 +1049,7 @@ def process_files(
             doc_content, has_stamp_pages, is_ar_pages, df_doc_meta.itertuples()
         ):
             pg_content = page_cont["content"]
+            pg_txt_body = page_cont["body"]
             rec_struct = {
                 # @ctes
                 "has_stamp": has_st,
@@ -1039,29 +1062,68 @@ def process_files(
                 "has_article": has_one(pg_content, "par_article"),
                 # arrêtés spécifiques
                 # - réglementaires
-                "has_cgct": None,  # TODO
-                "has_cgct_art": None,  # TODO
-                "has_cch": None,  # TODO
-                "has_cch_L111": None,  # TODO
-                "has_cch_L511": None,  # TODO
-                "has_cch_L521": None,  # TODO
-                "has_cch_L541": None,  # TODO
-                "has_cch_R511": None,  # TODO
-                "has_cc": None,  # TODO
-                "has_cc_art": None,  # TODO
+                "has_cgct": contains_cgct(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO
+                "has_cgct_art": contains_cgct_art(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO
+                "has_cch": contains_cch(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO
+                "has_cch_L111": contains_cch_L111(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO
+                "has_cch_L511": contains_cch_L511(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO
+                "has_cch_L521": contains_cch_L521(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO
+                "has_cch_L541": contains_cch_L541(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO
+                "has_cch_R511": contains_cch_R511(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO
+                "has_cc": contains_cc(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO
+                "has_cc_art": contains_cc_art(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO
                 # - données
-                "adresse": None,  # TODO urgent
-                "parcelle": None,  # TODO urgent
-                "syndic": None,  # TODO urgent-
+                "adresse": get_adr_doc(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO urgent
+                "parcelle": get_parcelle(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO urgent
+                "syndic": get_syndic(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO urgent-
+                "gestio": get_gestio(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO urgent-
                 "date": unique_txt(pg_content, "arr_date"),
                 #   * arrêté
                 "arr_num": unique_txt(pg_content, "arr_num"),
                 "arr_nom": unique_txt(pg_content, "arr_nom"),
-                "arr_classification": None,  # TODO urgent
-                "arr_proc_urgence": None,
-                "arr_demolition": None,
-                "arr_interdiction": None,
-                "arr_equipcomm": None,
+                "arr_classification": get_classification(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO improve
+                "arr_proc_urgence": get_urgence(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO improve
+                "arr_demolition": get_demol_deconst(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO improve
+                "arr_interdiction": get_interdiction_habiter(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO improve
+                "arr_equipcomm": get_equipements_communs(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # TODO improve
             }
             indics_struct.append(
                 {

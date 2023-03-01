@@ -149,7 +149,11 @@ def process_adresse_brute(adr_ad_brute: str) -> Dict:
             "adr_num": m_adresse["num_voie"],
             "adr_ind": m_adresse["ind_voie"],
             "adr_voie": adr_voie,
-            "adr_compl": None,  # TODO ajouter la détection du complément d'adresse dans la regex?
+            "adr_compl": " ".join(
+                m_adresse[x]
+                for x in ["compl_ini", "compl_fin"]
+                if m_adresse[x] is not None
+            ),  # FIXME concat?
             "adr_cpostal": m_adresse["code_postal"],
             "adr_commune": m_adresse["commune"],
         }
@@ -346,7 +350,11 @@ def create_docs_dataframe(
         }
         # notifiés
         doc_not = {
-            "not_nom_propri": "TODO_proprietaire",  # nom des propriétaries
+            "not_nom_propri": (
+                normalize_string(getattr(df_row, "proprietaire"))
+                if pd.notna(getattr(df_row, "proprietaire"))
+                else None
+            ),  # identification des propriétaires
             "not_ide_syndic": (
                 normalize_string(getattr(df_row, "syndic"))
                 if pd.notna(getattr(df_row, "syndic"))

@@ -79,6 +79,8 @@ P_MAIRE_COMMUNE = re.compile(RE_MAIRE_COMMUNE, re.MULTILINE | re.IGNORECASE)
 
 # - adresse
 # adresse du bâtiment visé par l'arrêté
+# TODO choisir la ou les bonnes adresses quand il y a risque de confusion
+# (ex compliqué: "59, rue Peysonnel 13003 - PGI 18.06.20.pdf")
 RE_ADR_DOC = (
     r"""(?:situ[ée](?:\s+au)?"""
     + r"""|désordres\s+sur\s+le\s+bâtiment\s+sis"""
@@ -98,12 +100,39 @@ RE_ADR_DOC = (
 )
 M_ADR_DOC = re.compile(RE_ADR_DOC, re.MULTILINE | re.IGNORECASE)
 
+RE_INFOS_JOUR = r"\s*,\s+selon\s+nos\s+informations\s+à\s+ce\s+jour\s*,"
+
+RE_PROPRIO_MONO = (
+    r"appartient"
+    + r"(?:"  # optionnel: "selon nos informations à ce jour"
+    + rf"{RE_INFOS_JOUR}"
+    + r")?"  # fin optionnel
+    + r"\s+en\s+toute\s+propriété\s+"
+    + r"(?:"  # à | à la | à l' | au | aux
+    + r"[àa]\s+(?:la\s+|l['’]\s*)?"
+    + r"|au(?:x)?"
+    + r")"
+    + r"(?P<propri>[^,–]+)"  # identité du propriétaire
+    + r"[,]?\s+(?:sis(?:e)?|domicilié(?:e)?)\s+"
+    + r"(?P<prop_adr>"
+    + r"[\s\S]*?"  # complément d'adresse non-capturé dans RE_ADRESSE (ex: "Les toits de la Pounche")
+    + rf"{RE_ADRESSE}"  # adresse du propriétaire
+    + r")"
+    # + r"(?:\s+ou\s+à\s+ses\s+ayants\s+droit)"  # WIP: contexte obligatoire?
+)
+P_PROPRIO_MONO = re.compile(RE_PROPRIO_MONO, re.MULTILINE | re.IGNORECASE)
+
+
 # - propriétaire
 RE_PROPRI = (
-    r"""(?:à\s+la\s+)"""
-    + r"""(?P<propri>(?:Société\s+Civile\s+Immobilière|SCI)\s+.+)"""
-    + r"""[,]?\s+sise\s+"""
-    + rf"""(?P<prop_adr>{RE_ADRESSE})"""
+    r"(?:"
+    + r"(?:appartenant\s+à|propriété\s+de)"
+    + r"\s+la)"
+    + r"(?P<propri>(?:Société\s+Civile\s+Immobilière|SCI)\s+.+)"
+    + r"[,]?\s+sise\s+"
+    + r"(?P<prop_adr>"
+    + rf"{RE_ADRESSE}"
+    + r")"
 )
 M_PROPRI = re.compile(RE_PROPRI, re.MULTILINE | re.IGNORECASE)
 
@@ -113,28 +142,35 @@ M_PROPRI = re.compile(RE_PROPRI, re.MULTILINE | re.IGNORECASE)
 # TODO administrateur?
 # ex: "Considérant que le syndicat des copropriétaires de cet immeuble est pris en la personne du Cabinet xxxx syndic, domicilié 11, avenue du Dol - 13001 MARSEILLE,"
 RE_SYNDIC = (
-    r"""(?:"""
-    + r"le syndic(?:\s+de\s+copropriété)?"
-    + r"|syndic(?:\s+de\s+(?:cet\s+|l['’]\s*)immeuble)?(?:\s+est|,)?\s+pris\s+en\s+la\s+personne\s+(?:du|de)"
-    + r"""|syndic\s+:"""
-    + r"""|syndicat\s+des\s+copropriétaires(?:\s+de\s+(?:cet\s+|l['’]\s*)immeuble)?(?:\s+est|,)?\s+pris\s+en\s+la\s+personne\s+(?:du|de)"""
-    + r""")\s+"""
-    + r"""(?P<syndic>.+?)"""
-    + r"""(?:"""
-    + r"""[,.]"""
-    + r"""|[,]?\s+(?:sis|domicilié)\s+"""
-    + rf"""{RE_ADRESSE}"""
-    + r""")"""
+    r"("
+    # + r"le syndic(?:\s+de\s+copropriété)?"
+    # + r"|syndic\s+:"
+    + r"(?:syndic|syndicat\s+des\s+copropriétaires)"
+    + r"(?:\s+de\s+(?:cet\s+|l['’]\s*)(?:immeuble|ensemble\s+immobilier))?"
+    + r"(?:\s+est|,)?"  # + r"(?:\s+est|,)?"  # FIXME confusions possibles ancien/nouveau syndic (ex: "1 cours Jean Ballard 13001.pdf")
+    + r"\s+pris\s+en\s+la\s+personne\s+(?:du|de)"
+    + r"|syndicat\s+des\s+copropriétaires\s+représenté\s+par"
+    + r")\s+"
+    + r"(?P<syndic>[^,.]+?)"  # [\s\S]+?
+    # + r"(?:(?:,)?\s*syndic)?"  # "syndic" peut faire partie du nom: "le bon syndic", "activ' syndic"
+    + r"(?:"
+    + r"[,.]"
+    + r"|[,]?\s+(?:sis(?:e)?|domicilié(?:e)?)\s+"
+    + rf"{RE_ADRESSE}"
+    + r")"
 )
 M_SYNDIC = re.compile(RE_SYNDIC, re.MULTILINE | re.IGNORECASE)
 
 # gestionnaire
 RE_GESTIO = (
-    r"(?:gestionnaire\s+de\s+(?:cet\s+|l['’]\s*)immeuble(?:\s+est|,)?\s+pris\s+en\s+la\s+personne\s+(?:du|de))"
-    + r"(?P<gestio>.+?)"
+    r"(?:gestionnaire"
+    + r"\s+de\s+(?:cet\s+|l['’]\s*)immeuble"
+    + r"(?:\s+est|,)?"
+    + r"\s+pris\s+en\s+la\s+personne\s+(?:du|de))"
+    + r"(?P<gestio>[^,.]+?)"  # [\s\S]+?
     + r"(?:"
     + r"[,.]"
-    + r"|[,]?\s+(?:sis|domicilié)\s+"
+    + r"|[,]?\s+(?:sis(?:e)?|domicilié(?:e)?)\s+"
     + rf"{RE_ADRESSE}"
     + r")"
 )

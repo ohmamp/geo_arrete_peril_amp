@@ -29,6 +29,7 @@ from parse_native_pages import (
     get_equipements_communs,
     get_adr_doc,
     get_parcelle,
+    get_proprietaire,
     get_syndic,
     get_gestio,
     contains_cc,
@@ -86,7 +87,7 @@ DTYPE_PARSE = {
     #   * adresse
     "adresse": "string",
     #   * notifiés
-    # "proprietaire": "string",
+    "proprietaire": "string",
     "syndic": "string",
     "gestio": "string",
     #   * arrêté
@@ -1099,6 +1100,9 @@ def process_files(
                 "parcelle": get_parcelle(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # TODO urgent
+                "proprietaire": get_proprietaire(pg_txt_body)
+                if pg_txt_body is not None
+                else None,  # WIP
                 "syndic": get_syndic(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # TODO urgent-

@@ -77,7 +77,8 @@ from text_structure import (
     P_MAIRE_COMMUNE,
     M_ADR_DOC,
     RE_ADRESSE,  # pour le nettoyage de l'adresse récupérée
-    M_PROPRI,
+    M_PROPRI,  # fallback propriétaire (WIP)
+    P_PROPRIO_MONO,  # mono-propriétaire (WIP)
     M_SYNDIC,
     P_GESTIO,
     P_DATE_SIGNAT,
@@ -113,7 +114,7 @@ DTYPE_PARSE = {
     #   * adresse
     "adresse": "string",
     #   * notifiés
-    # "proprietaire": "string",
+    "proprietaire": "string",
     "syndic": "string",
     "gestio": "string",
     #   * arrêté
@@ -506,8 +507,14 @@ def get_proprietaire(page_txt: str) -> bool:
     syndic: str
         Nom et adresse du propriétaire si détecté, None sinon.
     """
-    m_prop = M_PROPRI.search(page_txt)
-    return m_prop.group(0) if m_prop is not None else None
+    # on essaie d'abord de détecter un mono-propriétaire (WIP)
+    if match := P_PROPRIO_MONO.search(page_txt):
+        return match.group("propri")
+    # puis sinon les multi-propriétaires (TODO proprement)
+    elif match := M_PROPRI.search(page_txt):
+        return match.group("propri")
+    else:
+        return None
 
 
 def get_syndic(page_txt: str) -> bool:
@@ -797,6 +804,7 @@ def spot_text_structure(
             # - données
             "adresse": get_adr_doc(df_row.pagetxt),
             "parcelle": get_parcelle(df_row.pagetxt),
+            "proprietaire": get_proprietaire(df_row.pagetxt),  # WIP
             "syndic": get_syndic(df_row.pagetxt),
             "gestio": get_gestio(df_row.pagetxt),
             "date": get_date(df_row.pagetxt),

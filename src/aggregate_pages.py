@@ -56,7 +56,7 @@ DTYPE_PARSE_AGG = {
     # - parcelle
     "parcelle": "string",
     # - notifiés
-    # "proprietaire": "string",
+    "proprietaire": "string",
     "syndic": "string",
     "gestio": "string",
     "arr_date": "string",
@@ -200,9 +200,19 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
     # t6 = time.time()
+    rec_propri = {
+        "proprietaire": first(
+            grp, "proprietaire"
+        ),  # TODO expectation: 1-n (TODO normalisation: casse, accents etc?) ; vide pour abrogation?
+    }
     rec_syndi = {
         "syndic": first(
             grp, "syndic"
+        ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+    }
+    rec_gestio = {
+        "gestio": first(
+            grp, "gestio"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
     # t7 = time.time()
@@ -253,7 +263,9 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
         | rec_regl
         | rec_adre
         | rec_parce
+        | rec_propri
         | rec_syndi
+        | rec_gestio
         | rec_date
         | rec_num
         | rec_nom

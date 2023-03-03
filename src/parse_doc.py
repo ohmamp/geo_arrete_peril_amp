@@ -22,16 +22,16 @@ from doc_template import (
     P_BORDEREAU,
 )  # en-têtes, pieds-de-page, pages spéciales
 from parse_native_pages import (
-    get_classification,
+    get_classe,
     get_urgence,
-    get_demol_deconst,
-    get_interdiction_habiter,
-    get_equipements_communs,
+    get_demo,
+    get_int_hab,
+    get_equ_com,
     get_adr_doc,
     get_parcelle,
-    get_proprietaire,
+    get_proprio,
     get_syndic,
-    get_gestio,
+    get_gest,
     contains_cc,
     contains_cc_art,
     contains_cch,
@@ -46,9 +46,9 @@ from parse_native_pages import (
 from separate_pages import load_pages_text
 from filter_docs import DTYPE_META_NTXT_FILT, DTYPE_NTXT_PAGES_FILT
 from text_structure import (
-    P_ARR_NUM,
-    P_ARR_NUM_FALLBACK,
-    P_ARR_OBJET,
+    P_NUM_ARR,
+    P_NUM_ARR_FALLBACK,
+    P_NOM_ARR,
     P_MAIRE_COMMUNE,
     P_VU,
     P_CONSIDERANT,
@@ -87,19 +87,19 @@ DTYPE_PARSE = {
     #   * adresse
     "adresse": "string",
     #   * notifiés
-    "proprietaire": "string",
+    "proprio": "string",
     "syndic": "string",
-    "gestio": "string",
+    "gest": "string",
     #   * arrêté
     "date": "string",
-    "arr_num": "string",
-    "arr_nom": "string",
+    "num_arr": "string",
+    "nom_arr": "string",
     # type d'arrêté
-    "arr_classification": "string",
-    "arr_proc_urgence": "string",
-    "arr_demolition": "string",
-    "arr_interdiction": "string",
-    "arr_equipcomm": "string",
+    "classe": "string",
+    "urgence": "string",
+    "demo": "string",
+    "int_hab": "string",
+    "equ_com": "string",
 }
 
 # dtype du fichier de sortie
@@ -112,7 +112,7 @@ DTYPE_META_NTXT_PROC = (
 # type de données des colonnes du fichier CSV résultat
 DTYPE_SPANS = {
     # doc
-    "filename": "string",
+    "pdf": "string",
     # page
     "page_num": "int64",
     # pour chaque empan repéré: position et texte
@@ -220,14 +220,14 @@ P_LINE = re.compile(RE_LINE, re.IGNORECASE | re.MULTILINE)
 
 
 def parse_doc_preamble(
-    filename: str, txt_body: str, pream_beg: int, pream_end: int
+    fn_pdf: str, txt_body: str, pream_beg: int, pream_end: int
 ) -> list[dict]:
     """Analyse le préambule d'un document, sur la 1re page, avant le 1er "Vu".
 
     Parameters
     ----------
-    filename: string
-        Nom du fichier texte
+    fn_pdf: string
+        Nom du fichier PDF
     txt_body: string
         Corps de texte de la page à analyser
     pream_beg: int
@@ -285,13 +285,13 @@ def parse_doc_preamble(
         except AssertionError:
             # FIXME log warning
             print(
-                f"W: {filename}\tTexte après l'autorité, en fin de préambule: {rem_txt}"
+                f"W: {fn_pdf}\tTexte après l'autorité, en fin de préambule: {rem_txt}"
             )
             if len(rem_txt) < 2:
                 # s'il ne reste qu'un caractère, c'est probablement une typo => avertir et effacer
                 # FIXME warning
                 print(
-                    f"W: {filename}\tIgnorer le fragment de texte en fin de préambule, probablement une typo: {rem_txt}"
+                    f"W: {fn_pdf}\tIgnorer le fragment de texte en fin de préambule, probablement une typo: {rem_txt}"
                 )
                 txt_copy = (
                     txt_copy[:span_end]
@@ -304,10 +304,10 @@ def parse_doc_preamble(
 
     # b. ce préambule peut contenir le numéro de l'arrêté (si présent, absent dans certaines communes)
     # NB: ce numéro d'arrêté peut se trouver avant ou après l'autorité (ex: Gardanne)
-    match = P_ARR_NUM.search(txt_copy, pream_beg, pream_end)
+    match = P_NUM_ARR.search(txt_copy, pream_beg, pream_end)
     if match is None:
         # si la capture précise échoue, utiliser une capture plus permissive (mais risque d'attrape-tout)
-        match = P_ARR_NUM_FALLBACK.search(txt_copy, pream_beg, pream_end)
+        match = P_NUM_ARR_FALLBACK.search(txt_copy, pream_beg, pream_end)
 
     if match is not None:
         # marquer toute la zone reconnue (contexte + numéro de l'arrêté)
@@ -317,16 +317,16 @@ def parse_doc_preamble(
                 "span_beg": span_beg,
                 "span_end": span_end,
                 "span_txt": match.group(0),
-                "span_typ": "par_arr_num",  # paragraphe contenant le numéro de l'arrêté
+                "span_typ": "par_num_arr",  # paragraphe contenant le numéro de l'arrêté
             }
         )
         # stocker le numéro de l'arrêté
         content.append(
             {
-                "span_beg": match.start("arr_num"),
-                "span_end": match.end("arr_num"),
-                "span_txt": match.group("arr_num"),
-                "span_typ": "arr_num",
+                "span_beg": match.start("num_arr"),
+                "span_end": match.end("num_arr"),
+                "span_txt": match.group("num_arr"),
+                "span_typ": "num_arr",
             }
         )
         # effacer le texte reconnu
@@ -337,11 +337,11 @@ def parse_doc_preamble(
     else:
         # pas de numéro d'arrêté (ex: Aubagne)
         # FIXME log warning
-        print(f"{filename}: Pas de numéro d'arrêté\n{txt_copy[pream_beg:pream_end]}")
+        print(f"{fn_pdf}: Pas de numéro d'arrêté\n{txt_copy[pream_beg:pream_end]}")
         pass
 
     # c. entre les deux doit se trouver le titre ou objet de l'arrêté (obligatoire)
-    if match := P_ARR_OBJET.search(txt_copy, pream_beg, pream_end):
+    if match := P_NOM_ARR.search(txt_copy, pream_beg, pream_end):
         span_beg, span_end = match.span()
         # stocker la zone reconnue
         content.append(
@@ -349,16 +349,16 @@ def parse_doc_preamble(
                 "span_beg": span_beg,
                 "span_end": span_end,
                 "span_txt": match.group(0),
-                "span_typ": "par_arr_nom",
+                "span_typ": "par_nom_arr",
             }
         )
         # stocker la donnée
         content.append(
             {
-                "span_beg": match.start("arr_nom"),
-                "span_end": match.end("arr_nom"),
-                "span_txt": match.group("arr_nom"),
-                "span_typ": "arr_nom",
+                "span_beg": match.start("nom_arr"),
+                "span_end": match.end("nom_arr"),
+                "span_txt": match.group("nom_arr"),
+                "span_typ": "nom_arr",
             }
         )
         # effacer l'empan reconnu
@@ -377,7 +377,7 @@ def parse_doc_preamble(
                     "span_beg": match.start(),
                     "span_end": match.end(),
                     "span_txt": match.group("outstrip"),
-                    "span_typ": "par_arr_nom",
+                    "span_typ": "par_nom_arr",
                 }
             )
             # stocker la donnée
@@ -386,7 +386,7 @@ def parse_doc_preamble(
                     "span_beg": match.start("outstrip"),
                     "span_end": match.end("outstrip"),
                     "span_txt": match.group("outstrip"),
-                    "span_typ": "arr_nom",
+                    "span_typ": "nom_arr",
                 }
             )
         else:
@@ -394,9 +394,9 @@ def parse_doc_preamble(
                 f"Pas de texte trouvé pour le nom!?\n{txt_copy[pream_beg:pream_end]}"
             )
         # WIP
-        if rem_txt and content[-1]["span_typ"] == "arr_nom":
+        if rem_txt and content[-1]["span_typ"] == "nom_arr":
             arr_nom = content[-1]["span_txt"].replace("\n", " ")
-            print(f"W: {filename} - nom: {arr_nom}")
+            print(f"W: {fn_pdf} - nom: {arr_nom}")
         # end WIP
 
     # print(content)  # WIP
@@ -645,7 +645,7 @@ def parse_page_content(
     return content
 
 
-def examine_doc_content(filename: str, doc_content: list[dict]):
+def examine_doc_content(fn_pdf: str, doc_content: list[dict]):
     """Vérifie des hypothèses de bonne formation sur le contenu extrait du document.
 
     Parameters
@@ -667,11 +667,11 @@ def examine_doc_content(filename: str, doc_content: list[dict]):
     if par_typs:
         # chaque arrêté contient au moins un "vu"
         if "par_vu" not in par_typs:
-            raise ValueError(f"{filename}: pas de vu")
+            raise ValueError(f"{fn_pdf}: pas de vu")
         # chaque arrêté contient au moins un "considérant"
         # * sauf dans les mainlevées et abrogations où dans la pratique ce n'est pas le cas
         if "par_considerant" not in par_typs:
-            if filename not in (
+            if fn_pdf not in (
                 "99_AR-013-211300058-20220131-310122_01-AR-1-1_1 (1).pdf",  # mainlevée => optionnel ?
                 "99_AR-013-211300058-20220318-180322_01-AR-1-1_1.pdf",  # mainlevée => optionnel ?
                 "abrogation interdiction d'occuper 35, bld Barbieri.pdf",  # abrogation => optionnel ?
@@ -709,16 +709,16 @@ def examine_doc_content(filename: str, doc_content: list[dict]):
                 "modif Maréchal Foch.PDF",  # modif PGI ! (Roquevaire)
             ):
                 # FIXME détecter la classe au lieu d'une liste d'exclusion => ne pas appliquer pour abrogations et mainlevées
-                raise ValueError(f"{filename}: pas de considérant")
+                raise ValueError(f"{fn_pdf}: pas de considérant")
         # chaque arrêté contient exactement 1 "Arrête"
         try:
             assert len([x for x in par_typs if x == "par_arrete"]) == 1
         except AssertionError:
-            if filename not in (
+            if fn_pdf not in (
                 "16, rue de la République Gemenos.pdf",  # OCR p.1 seulement => à ré-océriser
                 "mainlevée 6, rue des Jaynes Gemenos.pdf",  # OCR p.1 seulement => à ré-océriser
             ):
-                raise ValueError(f"{filename}: pas de vu")
+                raise ValueError(f"{fn_pdf}: pas de vu")
         # l'ordre relatif (vu < considérant < arrête < article) est vérifié au niveau des transitions admissibles
 
 
@@ -726,13 +726,13 @@ def examine_doc_content(filename: str, doc_content: list[dict]):
 EXCLUDE_SET = set(EXCLUDE_FIXME_FILES)
 
 
-def parse_arrete_pages(filename: str, pages: list[str]) -> list:
+def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
     """Analyse les pages de texte d'un arrêté.
 
     Parameters
     ----------
-    filename: str
-        Nom du fichier texte source.
+    fn_pdf: str
+        Nom du fichier PDF.
     pages: list[str]
         Liste de pages de texte à analyser.
 
@@ -744,15 +744,15 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
     doc_content = []  # valeur de retour
 
     # FIXME on ne traite pas une poignée de documents qui posent différents problèmes
-    if filename in EXCLUDE_SET:
+    if fn_pdf in EXCLUDE_SET:
         return doc_content
     # end FIXME
 
     # métadonnées du document
     mdata_doc = {
-        "filename": filename,
+        "pdf": fn_pdf,
     }
-    # print(filename)  # DEBUG
+    # print(fn_pdf)  # DEBUG
     # traiter les pages
     # TODO états alternatifs? ["preambule", "vu", "considerant", "arrete", "article", "postambule" ou "signature", "apres_signature" ou "annexes"] ?
     cur_state = "avant_vu"  # init ; "avant_vu" < "avant_arrete" < "avant_signature"  # TODO ajouter "avant_considerant" ?
@@ -809,7 +809,7 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
                 pream_beg = 0
                 pream_end = fst_vu.start()
                 pream_content = parse_doc_preamble(
-                    filename, pg_txt_body, pream_beg, pream_end
+                    fn_pdf, pg_txt_body, pream_beg, pream_end
                 )
                 pg_content.extend(pream_content)
                 if pream_content:
@@ -883,7 +883,7 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
                     pg_txt_body, artic_beg, artic_end, cur_state, latest_span
                 )  # FIXME spécialiser la fonction pour restreindre aux "Vu" et "Considérant" et/ou passer cur_state? ; NB: ces deux types de paragraphes admettent des continuations
             except TypeError:
-                print(f"Fichier fautif: {filename}, p. {i}")
+                print(f"Fichier fautif: {fn_pdf}, p. {i}")
                 raise
             pg_content.extend(artic_content)
             if artic_content:
@@ -914,7 +914,7 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
                 ][-1]
             except IndexError:
                 print(
-                    f"{filename} / p.{i} : pas de paragraphe sur l'empan {main_beg}:{main_end}\ncontenu:{pg_content}\ntexte:\n{pg_txt_body}"
+                    f"{fn_pdf} / p.{i} : pas de paragraphe sur l'empan {main_beg}:{main_end}\ncontenu:{pg_content}\ntexte:\n{pg_txt_body}"
                 )
                 raise
         # accumulation au niveau du document
@@ -935,7 +935,7 @@ def parse_arrete_pages(filename: str, pages: list[str]) -> list:
         # TODO arrêter le traitement à la fin du postambule et tronquer le texte / le PDF si possible? (utile pour l'OCR)
 
     # vérifier que le résultat est bien formé
-    examine_doc_content(filename, doc_content)
+    examine_doc_content(fn_pdf, doc_content)
     #
     return doc_content
 
@@ -1014,9 +1014,9 @@ def process_files(
     indics_struct = []
     for _, df_doc_pages in df_txts.groupby("fullpath"):  # RESUME HERE ~exclude
         # méta à passer en fin
-        df_doc_meta = df_doc_pages[["filename", "fullpath", "pagenum"]]
+        df_doc_meta = df_doc_pages[["pdf", "fullpath", "pagenum"]]
         #
-        filename = df_doc_pages["filename"].iat[0]
+        fn_pdf = df_doc_pages["pdf"].iat[0]
         pages = df_doc_pages["pagetxt"].values
         exclude = df_doc_pages["exclude"].values
         # actes
@@ -1044,7 +1044,7 @@ def process_files(
                 filt_p = x
             filt_pages.append(filt_p)
         # analyser les pages
-        doc_content = parse_arrete_pages(filename, filt_pages)
+        doc_content = parse_arrete_pages(fn_pdf, filt_pages)
         # filtrer les empans de données, et laisser de côté les empans de structure
         for page_cont, has_st, is_ar, page_meta in zip(
             doc_content, has_stamp_pages, is_ar_pages, df_doc_meta.itertuples()
@@ -1100,45 +1100,45 @@ def process_files(
                 "parcelle": get_parcelle(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # TODO urgent
-                "proprietaire": get_proprietaire(pg_txt_body)
+                "proprio": get_proprio(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # WIP
                 "syndic": get_syndic(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # TODO urgent-
-                "gestio": get_gestio(pg_txt_body)
+                "gest": get_gest(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # TODO urgent-
                 "date": unique_txt(pg_content, "arr_date"),
                 #   * arrêté
-                "arr_num": unique_txt(pg_content, "arr_num"),
-                "arr_nom": unique_txt(pg_content, "arr_nom"),
-                "arr_classification": get_classification(pg_txt_body)
+                "num_arr": unique_txt(pg_content, "num_arr"),
+                "nom_arr": unique_txt(pg_content, "nom_arr"),
+                "classe": get_classe(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # TODO improve
-                "arr_proc_urgence": get_urgence(pg_txt_body)
+                "urgence": get_urgence(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # TODO improve
-                "arr_demolition": get_demol_deconst(pg_txt_body)
+                "demo": get_demo(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # TODO improve
-                "arr_interdiction": get_interdiction_habiter(pg_txt_body)
+                "int_hab": get_int_hab(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # TODO improve
-                "arr_equipcomm": get_equipements_communs(pg_txt_body)
+                "equ_com": get_equ_com(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # TODO improve
             }
             indics_struct.append(
                 {
-                    "filename": page_meta.filename,
+                    "pdf": page_meta.pdf,
                     "fullpath": page_meta.fullpath,
                     "pagenum": page_meta.pagenum,
                 }
                 | rec_struct  # python >= 3.9 (dict union)
             )
     df_indics = pd.DataFrame.from_records(indics_struct)
-    df_proc = pd.merge(df_meta, df_indics, on=["filename", "fullpath"])
+    df_proc = pd.merge(df_meta, df_indics, on=["pdf", "fullpath"])
     df_proc = df_proc.astype(dtype=DTYPE_META_NTXT_PROC)
     return df_proc
 
@@ -1162,8 +1162,8 @@ def parse_arrete(fp_txt_in: Path) -> list:
     lst_page = pages[-1]
     if P_ACCUSE.match(lst_page):
         pages = pages[:-1]
-    filename = fp_txt_in.stem + ".pdf"
-    doc_content = parse_arrete_pages(filename, pages)
+    fn_pdf = fp_txt_in.stem + ".pdf"
+    doc_content = parse_arrete_pages(fn_pdf, pages)
     return doc_content
 
 

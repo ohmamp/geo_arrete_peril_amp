@@ -4,8 +4,37 @@ Analyse et géolocalisation des arrêtés de périls sur le territoire de la mé
 
 ## Installation
 
+### Préliminaires Windows
+
+* [Installer ImageMagick pour Wand](https://docs.wand-py.org/en/0.6.2/guide/install.html#install-imagemagick-on-windows)
+
+### Installation commune
+
+1. [Installer Mambaforge](https://github.com/conda-forge/miniforge#mambaforge)
+
+2. Créer un environnement virtuel conda à partir du fichier de spécifications `environment.yml`
+
 ```sh
-mamba env create --file environment.yml
+mamba env create --file environment-prod.yml
+```
+
+3. Compléter l'installation
+
+(RESUME HERE)
+Erreur CMake: "cmake error at cmakelists.txt generator nmake makefiles does not support platform specification but platform x64 was specified"
+
+* ajouter CMake à la variable d'environnement système PATH: "C:\Program Files\CMake\bin" (trouver le chemin de Cmake sur D: !)
+* `pip install dlib` <https://stackoverflow.com/a/52803626>
+
+(end RESUME HERE)
+
+4. Installer python-poppler et ocrmypdf
+
+```sh
+conda activate agperils-amp
+# installer python-poppler et ocrmypdf qui ne pouvaient pas être installés en même temps que leurs dépendances...
+pip install python-poppler
+mamba install ocrmypdf
 ```
 
 ## Utilisation

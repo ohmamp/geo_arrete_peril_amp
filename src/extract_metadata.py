@@ -29,7 +29,7 @@ TZ_FRA = tz.gettz("Europe/Paris")
 
 # format de sortie
 DTYPE_META_BASE = {
-    "filename": "string",
+    "pdf": "string",
     "fullpath": "string",
     "filesize": "Int64",  # FIXME Int16 ? (dtype à fixer en amont, avant le dump)
     "nb_pages": "Int64",  # FIXME Int16 ? (dtype à fixer en amont, avant le dump)
@@ -190,7 +190,7 @@ def get_pdf_info(fp_pdf: Path) -> Dict[str, str | int]:
     logging.info(f"Ouverture du fichier {fp_pdf}")
     pdf_info = {
         # métadonnées du fichier lui-même
-        "filename": fp_pdf.name,  # nom du fichier
+        "pdf": fp_pdf.name,  # nom du fichier
         "fullpath": fp_pdf.resolve(),  # chemin complet
         "filesize": fp_pdf.stat().st_size,  # taille du fichier
         # TODO hashlib.sha1 ?

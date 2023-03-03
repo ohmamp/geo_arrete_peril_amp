@@ -54,19 +54,19 @@ from typologie_securite import (
     M_CLASS_INT,
     M_CLASS_ABRO_INT,
     #   * interdiction d'habiter
-    M_INTERDICT_HABIT,
+    P_INT_HAB,
     #   * démolition et déconstruction
-    M_DEMOL_DECONST,
+    P_DEMO,
     #   * équipements communs
-    M_EQUIPEMENTS_COMMUNS,
+    P_EQU_COM,
 )
 
 from filter_docs import DTYPE_META_NTXT_FILT, DTYPE_NTXT_PAGES_FILT
 from text_structure import (
     # tous arrêtés
-    P_ARR_NUM,  # numéro/identifiant de l'arrêté
-    P_ARR_NUM_FALLBACK,  # motif plus générique pour num arrêté (repli)
-    P_ARR_OBJET,  # nom/objet de l'arrêté
+    P_NUM_ARR,  # numéro/identifiant de l'arrêté
+    P_NUM_ARR_FALLBACK,  # motif plus générique pour num arrêté (repli)
+    P_NOM_ARR,  # nom/objet de l'arrêté
     P_VU,
     P_CONSIDERANT,
     P_ARRETE,
@@ -77,10 +77,10 @@ from text_structure import (
     P_MAIRE_COMMUNE,
     M_ADR_DOC,
     RE_ADRESSE,  # pour le nettoyage de l'adresse récupérée
-    M_PROPRI,  # fallback propriétaire (WIP)
+    P_PROPRIO,  # fallback propriétaire (WIP)
     P_PROPRIO_MONO,  # mono-propriétaire (WIP)
     M_SYNDIC,
-    P_GESTIO,
+    P_GEST,
     P_DATE_SIGNAT,
 )
 
@@ -114,19 +114,19 @@ DTYPE_PARSE = {
     #   * adresse
     "adresse": "string",
     #   * notifiés
-    "proprietaire": "string",
+    "proprio": "string",
     "syndic": "string",
-    "gestio": "string",
+    "gest": "string",
     #   * arrêté
     "date": "string",
-    "arr_num": "string",
-    "arr_nom": "string",
+    "num_arr": "string",
+    "nom_arr": "string",
     # type d'arrêté
-    "arr_classification": "string",
-    "arr_proc_urgence": "string",
-    "arr_demolition": "string",
-    "arr_interdiction": "string",
-    "arr_equipcomm": "string",
+    "classe": "string",
+    "urgence": "string",
+    "demo": "string",
+    "int_hab": "string",
+    "equ_com": "string",
 }
 
 # dtype du fichier de sortie
@@ -494,7 +494,7 @@ def get_adr_doc(page_txt: str) -> bool:
         return None
 
 
-def get_proprietaire(page_txt: str) -> bool:
+def get_proprio(page_txt: str) -> bool:
     """Extrait le nom et l'adresse du propriétaire.
 
     Parameters
@@ -509,10 +509,10 @@ def get_proprietaire(page_txt: str) -> bool:
     """
     # on essaie d'abord de détecter un mono-propriétaire (WIP)
     if match := P_PROPRIO_MONO.search(page_txt):
-        return match.group("propri")
+        return match.group("proprio")
     # puis sinon les multi-propriétaires (TODO proprement)
-    elif match := M_PROPRI.search(page_txt):
-        return match.group("propri")
+    elif match := P_PROPRIO.search(page_txt):
+        return match.group("proprio")
     else:
         return None
 
@@ -534,7 +534,7 @@ def get_syndic(page_txt: str) -> bool:
     return m_synd.group("syndic") if m_synd is not None else None
 
 
-def get_gestio(page_txt: str) -> str:
+def get_gest(page_txt: str) -> str:
     """Détecte si une page contient un nom de gestionnaire immobilier.
 
     Parameters
@@ -547,7 +547,7 @@ def get_gestio(page_txt: str) -> str:
     syndic: str
         Nom de gestionnaire si détecté, None sinon.
     """
-    match = P_GESTIO.search(page_txt)
+    match = P_GEST.search(page_txt)
     return match.group("gestio") if match is not None else None
 
 
@@ -583,10 +583,10 @@ def get_num(page_txt: str) -> bool:
     doc_num: str
         Numéro de l'arrêté si trouvé, None sinon.
     """
-    if m_num := P_ARR_NUM.search(page_txt):
-        return m_num.group("arr_num")
-    elif m_num_fb := P_ARR_NUM_FALLBACK.search(page_txt):
-        return m_num_fb.group("arr_num")
+    if m_num := P_NUM_ARR.search(page_txt):
+        return m_num.group("num_arr")
+    elif m_num_fb := P_NUM_ARR_FALLBACK.search(page_txt):
+        return m_num_fb.group("num_arr")
     else:
         return None
 
@@ -604,13 +604,13 @@ def get_nom(page_txt: str) -> bool:
     doc_nom: str
         Nom de l'arrêté si trouvé, None sinon.
     """
-    if m_nom := P_ARR_OBJET.search(page_txt):
-        return m_nom.group("arr_nom")
+    if m_nom := P_NOM_ARR.search(page_txt):
+        return m_nom.group("nom_arr")
     else:
         return None
 
 
-def get_classification(page_txt: str) -> bool:
+def get_classe(page_txt: str) -> bool:
     """Récupère la classification de l'arrêté.
 
     Parameters
@@ -662,7 +662,7 @@ def get_urgence(page_txt: str) -> bool:
     Returns
     -------
     doc_class: str
-        Classification de l'arrêté si trouvé, None sinon.
+        Caractère d'urgence de l'arrêté si trouvé, None sinon.
     """
     if (
         M_CLASS_PS_PO.search(page_txt)
@@ -693,7 +693,7 @@ def get_urgence(page_txt: str) -> bool:
         return None
 
 
-def get_interdiction_habiter(page_txt: str) -> bool:
+def get_int_hab(page_txt: str) -> bool:
     """Détermine si l'arrêté porte interdiction d'habiter et d'occuper.
 
     Parameters
@@ -703,18 +703,18 @@ def get_interdiction_habiter(page_txt: str) -> bool:
 
     Returns
     -------
-    doc_equip_comm: str
-        Classification de l'arrêté si trouvé, None sinon.
+    doc_int_hab: str
+        Interdiction d'habiter si trouvé, None sinon.
     """
     if page_txt is None:
         return None
-    elif M_INTERDICT_HABIT.search(page_txt):
+    elif P_INT_HAB.search(page_txt):
         return "oui"
     else:
         return "non"
 
 
-def get_demol_deconst(page_txt: str) -> bool:
+def get_demo(page_txt: str) -> bool:
     """Détermine si l'arrêté porte une démolition ou déconstruction.
 
     Parameters
@@ -725,17 +725,17 @@ def get_demol_deconst(page_txt: str) -> bool:
     Returns
     -------
     doc_demol_deconst: str
-        Classification de l'arrêté si trouvé, None sinon.
+        Démolition ou déconstruction si trouvé, None sinon.
     """
     if page_txt is None:
         return None
-    elif M_DEMOL_DECONST.search(page_txt):
+    elif P_DEMO.search(page_txt):
         return "oui"
     else:
         return "non"
 
 
-def get_equipements_communs(page_txt: str) -> bool:
+def get_equ_com(page_txt: str) -> bool:
     """Détermine si l'arrêté porte sur la sécurité des équipements communs.
 
     Parameters
@@ -745,12 +745,12 @@ def get_equipements_communs(page_txt: str) -> bool:
 
     Returns
     -------
-    doc_equip_comm: str
-        Classification de l'arrêté si trouvé, None sinon.
+    doc_equ_com: str
+        Sécurité des équipements communs si trouvé, None sinon.
     """
     if page_txt is None:
         return None
-    elif M_EQUIPEMENTS_COMMUNS.search(page_txt):
+    elif P_EQU_COM.search(page_txt):
         return "oui"
     else:
         return "non"
@@ -804,18 +804,18 @@ def spot_text_structure(
             # - données
             "adresse": get_adr_doc(df_row.pagetxt),
             "parcelle": get_parcelle(df_row.pagetxt),
-            "proprietaire": get_proprietaire(df_row.pagetxt),  # WIP
+            "proprio": get_proprio(df_row.pagetxt),  # WIP
             "syndic": get_syndic(df_row.pagetxt),
-            "gestio": get_gestio(df_row.pagetxt),
+            "gest": get_gest(df_row.pagetxt),
             "date": get_date(df_row.pagetxt),
             #   * arrêté
-            "arr_num": get_num(df_row.pagetxt),
-            "arr_nom": get_nom(df_row.pagetxt),
-            "arr_classification": get_classification(df_row.pagetxt),
-            "arr_proc_urgence": get_urgence(df_row.pagetxt),
-            "arr_demolition": get_demol_deconst(df_row.pagetxt),
-            "arr_interdiction": get_interdiction_habiter(df_row.pagetxt),
-            "arr_equipcomm": get_equipements_communs(df_row.pagetxt),
+            "num_arr": get_num(df_row.pagetxt),
+            "nom_arr": get_nom(df_row.pagetxt),
+            "classe": get_classe(df_row.pagetxt),
+            "urgence": get_urgence(df_row.pagetxt),
+            "demo": get_demo(df_row.pagetxt),
+            "int_hab": get_int_hab(df_row.pagetxt),
+            "equ_com": get_equ_com(df_row.pagetxt),
         }
     else:
         # tous les champs sont vides ("None")
@@ -848,14 +848,14 @@ def process_files(
         rec_struct = spot_text_structure(df_row)
         indics_struct.append(
             {
-                "filename": df_row.filename,
+                "pdf": df_row.pdf,
                 "fullpath": df_row.fullpath,
                 "pagenum": df_row.pagenum,
             }
             | rec_struct  # python >= 3.9 (dict union)
         )
     df_indics = pd.DataFrame.from_records(indics_struct)
-    df_proc = pd.merge(df_meta, df_indics, on=["filename", "fullpath"])
+    df_proc = pd.merge(df_meta, df_indics, on=["pdf", "fullpath"])
     df_proc = df_proc.astype(dtype=DTYPE_META_NTXT_PROC)
     return df_proc
 

@@ -26,32 +26,34 @@ DTYPE_DATA = {
     "idu": "string",  # identifiant unique
     # arrêté
     "arr_date": "string",
-    "arr_num": "string",
-    "arr_nom": "string",
-    "arr_classification": "string",
-    "arr_proc_urgence": "string",
-    "arr_demolition": "string",
-    "arr_interdiction": "string",
-    "arr_equipcomm": "string",
-    "arr_nom_pdf": "string",  # = filename
+    "arr_num_arr": "string",
+    "arr_nom_arr": "string",
+    "arr_classe": "string",
+    "arr_urgence": "string",
+    "arr_demo": "string",
+    "arr_int_hab": "string",
+    "arr_equ_com": "string",
+    "arr_pdf": "string",  # = filename
     "arr_url": "string",  # TODO URL serveur
     # adresse
     "adr_ad_brute": "string",  # adresse brute
-    "adr_adresse": "string",  # adresse normalisée
     "adr_num": "string",  # numéro de la voie
     "adr_ind": "string",  # indice de répétition
     "adr_voie": "string",  # nom de la voie
     "adr_compl": "string",  # complément d'adresse
     "adr_cpostal": "string",  # code postal
     "adr_ville": "string",  # ville
+    "adr_adresse": "string",  # adresse normalisée
     "adr_codeinsee": "string",  # code insee (5 chars)
     # parcelle
     "par_ref_cad": "string",  # référence cadastrale
     # notifié
-    "not_nom_propri": "string",  # nom des propriétaries
-    "not_ide_syndic": "string",  # identification du syndic
-    "not_nom_syndic": "string",  # nom du syndic
-    "not_ide_gestio": "string",  # identification du gestionnaire
+    "not_id_proprio": "string",  # identification du propriétaire
+    "not_proprio": "string",  # nom des propriétaries
+    "not_id_syndic": "string",  # identification du syndic
+    "not_syndic": "string",  # nom du syndic
+    "not_id_gest": "string",  # identification du gestionnaire
+    "not_gest": "string",  # nom du gestionnaire
 }
 
 
@@ -268,46 +270,46 @@ def create_docs_dataframe(
                 if pd.notna(getattr(df_row, "arr_date"))
                 else None
             ),
-            "arr_num": (
-                normalize_string(getattr(df_row, "arr_num"))
-                if pd.notna(getattr(df_row, "arr_num"))
+            "arr_num_arr": (
+                normalize_string(getattr(df_row, "num_arr"))
+                if pd.notna(getattr(df_row, "num_arr"))
                 else None
             ),
-            "arr_nom": (
-                normalize_string(getattr(df_row, "arr_nom"))
-                if pd.notna(getattr(df_row, "arr_nom"))
+            "arr_nom_arr": (
+                normalize_string(getattr(df_row, "nom_arr"))
+                if pd.notna(getattr(df_row, "nom_arr"))
                 else None
             ),
-            "arr_classification": (
-                normalize_string(getattr(df_row, "arr_classification"))
-                if pd.notna(getattr(df_row, "arr_classification"))
+            "arr_classe": (
+                normalize_string(getattr(df_row, "classe"))
+                if pd.notna(getattr(df_row, "classe"))
                 else None
             ),
-            "arr_proc_urgence": (
-                normalize_string(getattr(df_row, "arr_proc_urgence"))
-                if pd.notna(getattr(df_row, "arr_proc_urgence"))
+            "arr_urgence": (
+                normalize_string(getattr(df_row, "urgence"))
+                if pd.notna(getattr(df_row, "urgence"))
                 else None
             ),
-            "arr_demolition": (
-                normalize_string(getattr(df_row, "arr_demolition"))
-                if pd.notna(getattr(df_row, "arr_demolition"))
+            "arr_demo": (
+                normalize_string(getattr(df_row, "demo"))
+                if pd.notna(getattr(df_row, "demo"))
                 else None
             ),  # TODO affiner
-            "arr_interdiction": (
-                normalize_string(getattr(df_row, "arr_interdiction"))
-                if pd.notna(getattr(df_row, "arr_interdiction"))
+            "arr_int_hab": (
+                normalize_string(getattr(df_row, "int_hab"))
+                if pd.notna(getattr(df_row, "int_hab"))
                 else None
             ),  # TODO affiner
-            "arr_equipcomm": (
-                normalize_string(getattr(df_row, "arr_equipcomm"))
-                if pd.notna(getattr(df_row, "arr_equipcomm"))
+            "arr_equ_com": (
+                normalize_string(getattr(df_row, "equ_com"))
+                if pd.notna(getattr(df_row, "equ_com"))
                 else None
             ),  # TODO affiner
             # (métadonnées du doc)
-            "arr_nom_pdf": getattr(df_row, "filename"),
+            "arr_pdf": getattr(df_row, "pdf"),
             "arr_url": getattr(
                 df_row, "fullpath"
-            ),  # TODO réécrire avec une URL externe, au moment de l'export
+            ),  # l'URL sera réécrite avec une URL locale (réseau) ou publique, au moment de l'export
         }
         # adresse
         # - nettoyer a minima de l'adresse brute
@@ -330,13 +332,13 @@ def create_docs_dataframe(
         doc_adr = {
             # adresse
             "adr_ad_brute": adr_ad_brute,  # adresse brute
-            "adr_adresse": adr_adresse,  # adresse normalisée
             "adr_num": adr_fields["adr_num"],  # numéro de la voie
             "adr_ind": adr_fields["adr_ind"],  # indice de répétition
             "adr_voie": adr_fields["adr_voie"],  # nom de la voie
             "adr_compl": adr_fields["adr_compl"],  # complément d'adresse
             "adr_cpostal": adr_fields["adr_cpostal"],  # code postal
             "adr_ville": adr_commune_maire,  # ville
+            "adr_adresse": adr_adresse,  # adresse normalisée
             "adr_codeinsee": None,  # code insee (5 chars)  # complété en aval par "enrichi"
         }
         # parcelle cadastrale
@@ -350,22 +352,24 @@ def create_docs_dataframe(
         }
         # notifiés
         doc_not = {
-            "not_nom_propri": (
-                normalize_string(getattr(df_row, "proprietaire"))
-                if pd.notna(getattr(df_row, "proprietaire"))
+            "not_id_proprio": (
+                normalize_string(getattr(df_row, "proprio"))
+                if pd.notna(getattr(df_row, "proprio"))
                 else None
             ),  # identification des propriétaires
-            "not_ide_syndic": (
+            "not_proprio": "TODO_proprio",  # TODO liste des noms des propriétaires
+            "not_id_syndic": (
                 normalize_string(getattr(df_row, "syndic"))
                 if pd.notna(getattr(df_row, "syndic"))
                 else None
             ),  # identification du syndic
-            "not_nom_syndic": "TODO_syndic",  # nom du syndic
-            "not_ide_gestio": (
-                normalize_string(getattr(df_row, "gestio"))
-                if pd.notna(getattr(df_row, "gestio"))
+            "not_syndic": "TODO_syndic",  # nom du syndic
+            "not_id_gest": (
+                normalize_string(getattr(df_row, "gest"))
+                if pd.notna(getattr(df_row, "gest"))
                 else None
             ),  # identification du gestionnaire
+            "not_gest": "TODO_gest",  # nom du gestionnaire
         }
         doc_data = doc_idu | doc_arr | doc_adr | doc_par | doc_not
         doc_rows.append(doc_data)

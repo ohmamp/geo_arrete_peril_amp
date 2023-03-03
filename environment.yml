@@ -10,7 +10,7 @@ dependencies:
   - numpy >= 1.23.3
   - ocrmypdf >= 14.0.1
   - pandas >= 1.5.1
-  - pdfplumber >= 0.7.5
+  # - pdfplumber >= 0.7.5
   - pdftotext >= 2.2.2
   - pip
   - poppler >= 22.10.0  # dep(pdf2image), dep(pdftotext)?
@@ -23,9 +23,11 @@ dependencies:
   - wheel  # dep(spacy)
   - pip:
     - black[jupyter] >= 22.10.0
+    # - cmake  # dep(python-poppler)
     - dateparser >= 1.1.1  # 1.1.2
     - doccano
     - pandera[io] >= 0.13.2
+    - pikepdf >= 5.1
     - python-poppler >= 0.3.0  # metadata
     - pdf2image >= 1.16.0  # pdf2image
     - spacy-lookups-data

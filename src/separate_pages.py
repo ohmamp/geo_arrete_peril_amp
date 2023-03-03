@@ -15,7 +15,7 @@ from extract_native_text import DTYPE_META_NTXT
 
 # champs des documents copiés pour les pages: métadonnées du fichier PDF et du TXT
 # nom du fichier, chemin PDF original, chemin TXT, nombre de pages
-COLS_DOC = ["filename", "fullpath", "fullpath_txt", "nb_pages"]
+COLS_DOC = ["pdf", "fullpath", "fullpath_txt", "nb_pages"]
 
 # format des données de sortie
 DTYPE_NTXT_PAGES = {x: DTYPE_META_NTXT[x] for x in COLS_DOC} | {

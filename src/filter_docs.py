@@ -44,10 +44,10 @@ def process_files(
         Liste de métadonnées des pages traitées, avec indications des éléments de
         structure détectés.
     """
-    df_mmod = df_meta.assign(exclude=(lambda x: x.filename.isin(SET_EXCLUDE)))
+    df_mmod = df_meta.assign(exclude=(lambda x: x.pdf.isin(SET_EXCLUDE)))
     df_mmod = df_mmod.astype(dtype=DTYPE_META_NTXT_FILT)
 
-    df_tmod = df_txts.assign(exclude=(lambda x: x.filename.isin(SET_EXCLUDE)))
+    df_tmod = df_txts.assign(exclude=(lambda x: x.pdf.isin(SET_EXCLUDE)))
     df_tmod = df_tmod.astype(dtype=DTYPE_NTXT_PAGES_FILT)
 
     return df_mmod, df_tmod

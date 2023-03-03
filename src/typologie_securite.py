@@ -109,7 +109,7 @@ RE_CLASS_ABRO_INT = (
 )
 M_CLASS_ABRO_INT = re.compile(RE_CLASS_ABRO_INT, re.MULTILINE | re.IGNORECASE)
 # toutes classes
-RE_CLASS_ALL = r"|".join(
+RE_CLASSE = r"|".join(
     [
         RE_CLASS_PGI_MOD,
         RE_CLASS_PGI,
@@ -128,34 +128,32 @@ RE_CLASS_ALL = r"|".join(
         RE_CLASS_INS,
     ]
 )
-M_CLASS_ALL = re.compile(RE_CLASS_ALL, re.MULTILINE | re.IGNORECASE)
+P_CLASSE = re.compile(RE_CLASSE, re.MULTILINE | re.IGNORECASE)
 
 # interdiction d'habiter
-RE_INTERDICT_HABIT = (
+RE_INT_HAB = (
     r"""(?:"""
     + r"""interdiction\s+d['’]habiter\s+et\s+d['’]occuper"""
     + r"""|interdiction\s+d['’]habiter\s+l['’]appartement"""
     + r""")"""
 )
-M_INTERDICT_HABIT = re.compile(RE_INTERDICT_HABIT, re.MULTILINE | re.IGNORECASE)
+P_INT_HAB = re.compile(RE_INT_HAB, re.MULTILINE | re.IGNORECASE)
 
 # démolition / déconstruction
 # TODO à affiner: démolition d'un mur? déconstruction et reconstruction? etc
 # TODO filtrer les pages copiées des textes réglementaires
-RE_DEMOL_DECONST = (
+RE_DEMO = (
     r"""(?:"""
     + r"""d[ée]molir"""
     + r"""|d[ée]molition"""
     + r"""|d[ée]construction"""
     + r""")"""
 )
-M_DEMOL_DECONST = re.compile(RE_DEMOL_DECONST, re.MULTILINE | re.IGNORECASE)
+P_DEMO = re.compile(RE_DEMO, re.MULTILINE | re.IGNORECASE)
 
 # (insécurité des) équipements communs
-RE_EQUIPEMENTS_COMMUNS = (
-    r"""s[ée]curit[ée](?:\s+imminente)\s+des\s+[ée]quipements\s+communs"""
-)
-M_EQUIPEMENTS_COMMUNS = re.compile(RE_EQUIPEMENTS_COMMUNS, re.MULTILINE | re.IGNORECASE)
+RE_EQU_COM = r"""s[ée]curit[ée](?:\s+imminente)\s+des\s+[ée]quipements\s+communs"""
+P_EQU_COM = re.compile(RE_EQU_COM, re.MULTILINE | re.IGNORECASE)
 
 # TODO exclure les arrêtés de mise en place d'un périmètre de sécurité
 # (sauf s'ils ont un autre motif conjoint, eg. périmètre + interdiction d'occuper)

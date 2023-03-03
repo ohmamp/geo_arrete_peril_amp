@@ -45,7 +45,7 @@ COM2INSEE = {
 
 
 # TODO fuzzyjoin ?
-def fill_code_insee(df_row: NamedTuple) -> str:
+def fill_codeinsee(df_row: NamedTuple) -> str:
     """Ajouter le code INSEE de la commune à une entrée.
 
     Parameters
@@ -126,7 +126,7 @@ def generate_refcadastrale_norm(df_row: NamedTuple) -> str:
             except AssertionError:
                 # FIXME améliorer le warning ; écrire une expectation sur le dataset final
                 logging.warning(
-                    f"{df_row.arr_nom_pdf}: conflit entre code INSEE ({codeinsee}, via code postal {df_row.adr_cpostal}) et référence cadastrale {arrt}"
+                    f"{df_row.arr_pdf}: conflit entre code INSEE ({codeinsee}, via code postal {df_row.adr_cpostal}) et référence cadastrale {arrt}"
                 )
         else:
             codeinsee = f"13{arrt}"
@@ -162,7 +162,7 @@ def create_docs_dataframe(
     """
     doc_rows = []
     for i, df_row in enumerate(df_agg.itertuples()):
-        df_row_enr = fill_code_insee(df_row)
+        df_row_enr = fill_codeinsee(df_row)
         df_row_enr = generate_refcadastrale_norm(df_row_enr)
         doc_rows.append(df_row_enr)
     df_docs = pd.DataFrame(doc_rows)

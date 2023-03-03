@@ -43,24 +43,22 @@ DTYPE_PARSE_AGG = {
     "pages_cc": "object",  # List[int]
     "pages_cc_art": "object",  # List[int]
     # - arrêté
-    # "arrete_date": "object",  # List[string]
-    # "arrete_num": "object",  # List[string]
-    # "arrete_nom": "object",  # List[string]
-    "arr_classification": "string",
-    "arr_proc_urgence": "string",
-    "arr_demolition": "string",
-    "arr_interdiction": "string",
-    "arr_equipcomm": "string",
+    "arr_date": "string",
+    "num_arr": "string",
+    "nom_arr": "string",
+    "classe": "string",
+    "urgence": "string",
+    "demo": "string",
+    "int_hab": "string",
+    "equ_com": "string",
     # - adresse
     "adresse_brute": "string",
     # - parcelle
     "parcelle": "string",
     # - notifiés
-    "proprietaire": "string",
+    "proprio": "string",
     "syndic": "string",
-    "gestio": "string",
-    "arr_date": "string",
-    "arr_num": "string",
+    "gest": "string",
 }
 
 
@@ -200,9 +198,9 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
     # t6 = time.time()
-    rec_propri = {
-        "proprietaire": first(
-            grp, "proprietaire"
+    rec_proprio = {
+        "proprio": first(
+            grp, "proprio"
         ),  # TODO expectation: 1-n (TODO normalisation: casse, accents etc?) ; vide pour abrogation?
     }
     rec_syndi = {
@@ -210,9 +208,9 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
             grp, "syndic"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
-    rec_gestio = {
-        "gestio": first(
-            grp, "gestio"
+    rec_gest = {
+        "gest": first(
+            grp, "gest"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
     # t7 = time.time()
@@ -223,8 +221,8 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
     }
     # t8 = time.time()
     rec_num = {
-        "arr_num": first(
-            grp, "arr_num"
+        "num_arr": first(
+            grp, "num_arr"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
     # t9 = time.time()
@@ -235,25 +233,25 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
             + f"\tsyndic: {t7 - t6:.3f}\tdate: {t8 - t7:.3f}\tnum: {t9 - t8:.3f}"
         )
     rec_nom = {
-        "arr_nom": first(
-            grp, "arr_nom"
+        "nom_arr": first(
+            grp, "nom_arr"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
     rec_classi = {
-        "arr_classification": first(
-            grp, "arr_classification"
+        "classe": first(
+            grp, "classe"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
-        "arr_proc_urgence": first(
-            grp, "arr_proc_urgence"
+        "urgence": first(
+            grp, "urgence"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
-        "arr_demolition": first(
-            grp, "arr_demolition"
+        "demo": first(
+            grp, "demo"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
-        "arr_interdiction": first(
-            grp, "arr_interdiction"
+        "int_hab": first(
+            grp, "int_hab"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
-        "arr_equipcomm": first(
-            grp, "arr_equipcomm"
+        "equ_com": first(
+            grp, "equ_com"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
     }
     rec_struct = (
@@ -263,9 +261,9 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
         | rec_regl
         | rec_adre
         | rec_parce
-        | rec_propri
+        | rec_proprio
         | rec_syndi
-        | rec_gestio
+        | rec_gest
         | rec_date
         | rec_num
         | rec_nom

@@ -1,0 +1,20 @@
+name: agperils-amp
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python  # cur: 3.10.4
+  - numpy >= 1.23.3
+  # - ocrmypdf >= 14.0.1  # install after env creation (2)
+  - pandas >= 1.5.1
+  - pdftotext >= 2.2.2
+  - pip
+  - poppler >= 22.10.0  # dep(pdf2image), dep(pdftotext)?
+  - pytesseract >= 0.3.10
+  - pip:
+    - cmake  # dep(python-poppler)
+    - dateparser >= 1.1.1  # 1.1.2
+    - pandera[io] >= 0.13.2
+    - pikepdf >= 5.1
+    # - python-poppler >= 0.3.0  # metadata  # install after env creation (1)
+    - pdf2image >= 1.16.0  # pdf2image

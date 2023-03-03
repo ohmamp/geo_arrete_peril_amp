@@ -6,11 +6,11 @@ import re
 
 from adresse import RE_ADRESSE, RE_COMMUNE
 from str_date import RE_DATE
-from typologie_securite import RE_CLASS_ALL
+from typologie_securite import RE_CLASSE
 
 
 # numéro de l'arrêté
-RE_ARR_NUM = (
+RE_NUM_ARR = (
     r"(?:"
     + r"Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°"
     + r"|Réf\s+:"
@@ -21,22 +21,22 @@ RE_ARR_NUM = (
     + r"|ARRETE\s+N°"
     # + r"|^N°"  # motif trop peu spécifique, capture par exemple un numéro de parcelle
     + r")"
-    + r"\s*(?P<arr_num>[^,;\n(]+)"
+    + r"\s*(?P<num_arr>[^,;\n(]+)"
 )
-P_ARR_NUM = re.compile(RE_ARR_NUM, re.MULTILINE | re.IGNORECASE)
+P_NUM_ARR = re.compile(RE_NUM_ARR, re.MULTILINE | re.IGNORECASE)
 # 2e motif pour reconnaître le numéro d'arrêté, très générique donc à n'utiliser qu'en 2e lame (ou dernier recours)
-RE_ARR_NUM_FALLBACK = (
+RE_NUM_ARR_FALLBACK = (
     r"(?:"
     + r"^N°"  # Gardanne?
     + r"|^ARR-[^-]{2,3}-"  # Gemenos ; la 2e partie du préfixe varie selon les références (au même acte!): JUR, SG, ST, DGS... donc le numéro est la partie stable qui vient après
     + r")"
-    + r"\s*(?P<arr_num>[^,;\n(]+)"
+    + r"\s*(?P<num_arr>[^,;\n(]+)"
 )
-P_ARR_NUM_FALLBACK = re.compile(RE_ARR_NUM_FALLBACK, re.MULTILINE | re.IGNORECASE)
+P_NUM_ARR_FALLBACK = re.compile(RE_NUM_ARR_FALLBACK, re.MULTILINE | re.IGNORECASE)
 
 # nom de l'arrêté
-RE_ARR_OBJET = r"Objet:\s+(?P<arr_nom>[^\n]+)"  # on laisse volontairement de côté la capture de "OBJET :\n\nARRÊTÉ DE PÉRIL\nORDINAIRE..." (Peyrolles) qu'il faudra traiter proprement par le layout 2 colonnes
-P_ARR_OBJET = re.compile(RE_ARR_OBJET, re.MULTILINE | re.IGNORECASE)
+RE_NOM_ARR = r"Objet:\s+(?P<nom_arr>[^\n]+)"  # on laisse volontairement de côté la capture de "OBJET :\n\nARRÊTÉ DE PÉRIL\nORDINAIRE..." (Peyrolles) qu'il faudra traiter proprement par le layout 2 colonnes
+P_NOM_ARR = re.compile(RE_NOM_ARR, re.MULTILINE | re.IGNORECASE)
 
 # tous arrêtés
 RE_VU = r"""^\s*VU[^e]"""
@@ -82,21 +82,20 @@ P_MAIRE_COMMUNE = re.compile(RE_MAIRE_COMMUNE, re.MULTILINE | re.IGNORECASE)
 # TODO choisir la ou les bonnes adresses quand il y a risque de confusion
 # (ex compliqué: "59, rue Peysonnel 13003 - PGI 18.06.20.pdf")
 RE_ADR_DOC = (
-    r"""(?:situ[ée](?:\s+au)?"""
-    + r"""|désordres\s+sur\s+le\s+bâtiment\s+sis"""
-    + r"""|immeuble\s+(?:du|numéroté)"""
-    + r"""|sis[e]?(?:\s+à)?"""
-    + r"""|(?:"""
-    + r"""Objet\s*:"""
-    + rf"""(?:\s+{RE_CLASS_ALL}\s*[,:–-]?)?"""
-    + r""")"""
-    + r""")\s+"""
-    + rf"""(?P<adresse>{RE_ADRESSE})"""  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
-    + r"""(?:\s+"""
+    r"(?:situ[ée](?:\s+au)?"
+    + r"|désordres\s+sur\s+le\s+bâtiment\s+sis"
+    + r"|immeuble\s+(?:du|numéroté)"
+    + r"|sis[e]?(?:\s+à)?"
+    + r"|(?:Objet\s*:"
+    + rf"(?:\s+{RE_CLASSE}\s*[,:–-]?)?"
+    + r")"
+    + r")\s+"
+    + rf"(?P<adresse>{RE_ADRESSE})"  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
+    + r"(?:\s+"
     + r"(?:[,:–-]\s+|[(])?"
     + r"(?:susceptible|parcelle|référence|concernant"
     + r"|est\s+pris\s+en|à\s+l[’']exception|de\s+mettre\s+fin)"
-    + r""")?"""
+    + r")?"
 )
 M_ADR_DOC = re.compile(RE_ADR_DOC, re.MULTILINE | re.IGNORECASE)
 
@@ -112,7 +111,7 @@ RE_PROPRIO_MONO = (
     + r"[àa]\s+(?:la\s+|l['’]\s*)?"
     + r"|au(?:x)?"
     + r")"
-    + r"(?P<propri>[^,–]+)"  # identité du propriétaire
+    + r"(?P<proprio>[^,–]+)"  # identité du propriétaire
     + r"[,]?\s+(?:sis(?:e)?|domicilié(?:e)?)\s+"
     + r"(?P<prop_adr>"
     + r"[\s\S]*?"  # complément d'adresse non-capturé dans RE_ADRESSE (ex: "Les toits de la Pounche")
@@ -124,17 +123,17 @@ P_PROPRIO_MONO = re.compile(RE_PROPRIO_MONO, re.MULTILINE | re.IGNORECASE)
 
 
 # - propriétaire
-RE_PROPRI = (
+RE_PROPRIO = (
     r"(?:"
     + r"(?:appartenant\s+à|propriété\s+de)"
     + r"\s+la)"
-    + r"(?P<propri>(?:Société\s+Civile\s+Immobilière|SCI)\s+.+)"
+    + r"(?P<proprio>(?:Société\s+Civile\s+Immobilière|SCI)\s+.+)"
     + r"[,]?\s+sise\s+"
     + r"(?P<prop_adr>"
     + rf"{RE_ADRESSE}"
     + r")"
 )
-M_PROPRI = re.compile(RE_PROPRI, re.MULTILINE | re.IGNORECASE)
+P_PROPRIO = re.compile(RE_PROPRIO, re.MULTILINE | re.IGNORECASE)
 
 # - syndic
 # TODO syndic judiciaire?
@@ -174,7 +173,7 @@ RE_GESTIO = (
     + rf"{RE_ADRESSE}"
     + r")"
 )
-P_GESTIO = re.compile(RE_GESTIO, re.MULTILINE | re.IGNORECASE)
+P_GEST = re.compile(RE_GESTIO, re.MULTILINE | re.IGNORECASE)
 
 
 # date de l'arrêté

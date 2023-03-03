@@ -70,7 +70,7 @@ def _guess_duplicates(
         ].isnull().all(axis="columns")
         logging.warning(f"WIP: {s_dups_all.sum()}")
         for k, grp in df[s_dups_all].groupby(subset, sort=False, dropna=False):
-            logging.warning(f"Doublons: {grp['filename'].values}")
+            logging.warning(f"Doublons: {grp['pdf'].values}")
     return df_dup
 
 
@@ -87,7 +87,7 @@ def guess_duplicates_meta(df_meta: pd.DataFrame):
     df_mmod: pd.DataFrame
         Métadonnées des fichiers PDF, avec des colonnes booléennes "dup_*" indiquant les fichiers doublons.
     """
-    # détection stricte: doublons sur toutes les infos (sauf "filename" et "fullpath")
+    # détection stricte: doublons sur toutes les infos (sauf "pdf" et "fullpath")
     # (trop de faux négatifs?)
     cols_dups_allinfo = [
         # infos fichier

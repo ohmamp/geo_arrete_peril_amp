@@ -20,46 +20,51 @@ from extract_data import DTYPE_DATA
 # dtype des tables de sortie
 DTYPE_ARRETE = {
     "idu": "string",  # identifiant unique
-    "date": "string",
-    "num": "string",
-    "nom": "string",
-    "classification": "string",
-    "proc_urgence": "string",
-    "demolition": "string",
-    "interdiction": "string",
-    "equipcomm": "string",
-    "nom_pdf": "string",  # = filename
-    "url": "string",  # TODO URL serveur
+    "date": "string",  # date de l'arrêté ; TODO type date
+    "num_arr": "string",  # numéro de l'arrêté
+    "nom_arr": "string",  # nom de l'arrêté
+    "classe": "string",  # classification
+    "urgence": "string",  # procédure d'urgence
+    "demo": "string",  # démolition  ; vals = "par"(tielle), "tot"(ale), "non"
+    "int_hab": "string",  # interdiction d'habiter
+    "equ_com": "string",  # équipements communs
+    "pdf": "string",  # = filename ; nom du PDF
+    "url": "string",  # lien vers l'arrêté ; TODO URL serveur
     "codeinsee": "string",  # code insee (5 chars)
+    "datemaj": "string",  # date de mise à jour de la donnée ; TODO type date
 }
 
 DTYPE_ADRESSE = {
     "idu": "string",  # identifiant unique
     "ad_brute": "string",  # adresse brute
-    "adresse": "string",  # adresse normalisée
     "num": "string",  # numéro de la voie
     "ind": "string",  # indice de répétition
     "voie": "string",  # nom de la voie
     "compl": "string",  # complément d'adresse
     "cpostal": "string",  # code postal
     "ville": "string",  # ville
+    "adresse": "string",  # adresse normalisée
     "codeinsee": "string",  # code insee (5 chars)
+    "datemaj": "string",  # date de mise à jour de la donnée ; TODO date
 }
 
 DTYPE_PARCELLE = {
     "idu": "string",  # identifiant unique
     "ref_cad": "string",  # référence cadastrale
     "codeinsee": "string",  # code insee (5 chars)
+    "datemaj": "string",  # date de mise à jour de la donnée ; TODO date
 }
 
 DTYPE_NOTIFIE = {
     "idu": "string",  # identifiant unique
-    "ide_propri": "string",  # identification des propriétaires
-    "nom_propri": "string",  # nom des propriétaries
-    "ide_syndic": "string",  # identification du syndic
-    "nom_syndic": "string",  # nom du syndic
-    "ide_gestio": "string",  # identification du gestionnaire
+    "id_proprio": "string",  # identification du propriétaire
+    "proprio": "string",  # nom des propriétaries
+    "id_syndic": "string",  # identification du syndic
+    "syndic": "string",  # nom du syndic
+    "id_gest": "string",  # identification du gestionnaire
+    "gest": "string",  # nom du gestionnaire
     "codeinsee": "string",  # code insee (5 chars)
+    "datemaj": "string",  # date de mise à jour de la donnée ; TODO date
 }
 
 DTYPE_TABLES = {
@@ -76,6 +81,9 @@ PREFIX_TABLES = {
     "parcelle": "par_",
     "notifie": "not_",
 }
+
+# URL stable pour les PDF: "yyyy" sera remplacé par l'année de l'arrêté, "pdf" par le nom du fichier
+FS_URL = "https://sig.ampmetropole.fr/geodata/geo_arretes/peril/{yyyy}/{pdf}"
 
 
 if __name__ == "__main__":
@@ -121,7 +129,8 @@ if __name__ == "__main__":
     # on crée le dossier parent (récursivement) si besoin
     out_dir = Path(args.out_dir).resolve()
     out_files = {
-        x: out_dir / f"{x}.csv" for x in ["arrete", "adresse", "parcelle", "notifie"]
+        x: out_dir / f"paquet_{x}.csv"
+        for x in ["arrete", "adresse", "parcelle", "notifie"]
     }
     if out_dir.is_dir():
         for out_file in out_files.values():
@@ -138,11 +147,17 @@ if __name__ == "__main__":
         )
         out_dir.mkdir(exist_ok=True)
 
-    # ouvrir le fichier d'entrée
+    # 1. ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV {in_file}")
     df_meta = pd.read_csv(in_file, dtype=DTYPE_DATA)
-    # TODO générer URL stable pour arr_url: https://sig.ampmetropole.fr/geodata/geo_arretes/peril/aaaa/xxxx.pdf
-    # sauvegarder les infos extraites dans un fichier CSV
+    # 2. générer une URL stable pour le champ "url" de la table des arrêtés
+    if False:  # TODO activer
+        df_meta = df_meta.assign(
+            arr_url=FS_URL.format(yyyy=df_meta["arr_date"].year, pdf=df_meta["pdf"])
+        )
+    # 3. initialiser la date de mise à jour au jour du traitement: dd/mm/yyyy
+    df_meta = df_meta.assign(datemaj=datetime.now().date().strftime("%d/%m/%Y"))
+    # 4. sauvegarder les infos extraites dans un fichier CSV
     for out_key, out_file in out_files.items():
         # sélectionner les données
         # - colonnes à conserver
@@ -150,8 +165,8 @@ if __name__ == "__main__":
         sel_cols = (
             ["idu"]
             + [x for x in df_meta.columns if x.startswith(prefix_tab)]
-            # ajout du code insee dans toutes les tables (rmq_iteration_2.docx, 2023-02-14)
-            + ["adr_codeinsee"]
+            # ajout du code insee et date de màj, dans toutes les tables (rmq_iteration_2.docx, 2023-02-14)
+            + ["adr_codeinsee", "datemaj"]
         )
         # - dtypes de ces colonnes
         sel_dtype = DTYPE_TABLES[out_key]

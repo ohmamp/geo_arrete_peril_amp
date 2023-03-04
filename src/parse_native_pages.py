@@ -621,7 +621,15 @@ def get_classe(page_txt: str) -> bool:
     doc_class: str
         Classification de l'arrêté si trouvé, None sinon.
     """
+    # NB: l'ordre d'application des règles de matching est important:
+    # les mainlevées incluent généralement l'intitulé de l'arrêté (ou du type d'arrêté) précédent
     if (
+        M_CLASS_ML.search(page_txt)
+        or M_CLASS_ABRO_DE.search(page_txt)
+        or M_CLASS_ABRO_INT.search(page_txt)
+    ):
+        return "Arrêté de mainlevée"
+    elif (
         M_CLASS_PS_PO_MOD.search(page_txt)
         or M_CLASS_MS_MOD.search(page_txt)
         or M_CLASS_PGI_MOD.search(page_txt)
@@ -639,16 +647,12 @@ def get_classe(page_txt: str) -> bool:
         or M_CLASS_INT.search(page_txt)
     ):
         return "Arrêté de mise en sécurité"
-    elif (
-        M_CLASS_ML.search(page_txt)
-        or M_CLASS_ABRO_DE.search(page_txt)
-        or M_CLASS_ABRO_INT.search(page_txt)
-    ):
-        return "Arrêté de mainlevée"
     else:
         return None
 
 
+# TODO expectation: "urgen" in "nom_arr" => urgence=True
+# anomalies: csvcut -c arr_nom_arr,arr_urgence data/interim/arretes_peril_compil_data_enr_struct.csv |grep -i urgen |grep ",$"
 def get_urgence(page_txt: str) -> bool:
     """Récupère le caractère d'urgence de l'arrêté.
 

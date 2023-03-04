@@ -133,15 +133,17 @@ RE_ADR_RCONT = (
 # TODO choisir la ou les bonnes adresses quand il y a risque de confusion
 # (ex compliqué: "59, rue Peysonnel 13003 - PGI 18.06.20.pdf")
 RE_ADR_DOC = (
-    r"(?:situ[ée](?:\s+au)?"
+    r"(?:"
+    + r"situ[ée](?:\s+au)?"
     + r"|désordres\s+sur\s+le\s+bâtiment\s+sis"
     + r"|un\s+péril\s+grave\s+et\s+imminent\s+au"
     + r"|immeuble\s+(?:du|numéroté)"
     # + r"|sis[e]?(?:\s+à)?"
-    + r"|(?<!Risques, )sis[e]?(?:\s+à)?"  # éviter un match sur l'adresse d'un service municipal
+    + r"|(?:(?<!Risques, )sis[e]?(?:\s+à)?)"  # éviter un match sur l'adresse d'un service municipal
     + r"|(?:Objet\s*:"
     + rf"(?:\s+{RE_CLASSE}\s*[,:–-]?)?"
     + r")"  # fin "Objet:(classe)?"
+    + rf"|(?:{RE_CLASSE}\s*[–-])"  # <classe> - <adresse>
     + r")\s+"  # fin alternatives contexte gauche
     + rf"(?P<adresse>{RE_ADRESSE})"  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     + r"(?:\s+"

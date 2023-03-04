@@ -21,14 +21,17 @@ RE_NUM_IND_VOIE = (
     + r"""(?:\s?(?P<ind_voie>A|bis|ter))?"""
 )
 RE_TYP_VOIE = (
-    r"(?:allée[s]?"
+    r"(?:all[ée]e[s]?"
     + r"|avenue"
     + r"|boulevard|bd"
     + r"|(?:ancien\s*)?chemin"
     + r"|cours"
+    + r"|domaine"
     + r"|impasse"
+    + r"|mont[ée]e"
     + r"|place"
     + r"|quai"
+    + r"|route"
     + r"|rue"
     + r"|traverse)"
 )
@@ -60,7 +63,7 @@ RE_COMMUNE = (
 
 # complément d'adresse: résidence (+ bât ou immeuble)
 RE_RESID = (
-    r"r[ée]sidence\s+[^,–]+"
+    r"(?:r[ée]sidence|cit[ée])\s+[^,–]+"
     + r"(?:"
     + r"(?:\s+[,–-])?"  # séparateur optionnel
     + r"\s+(?:B[âa]timent|B[âa]t|Immeuble)\s*[^,–]+"
@@ -93,12 +96,12 @@ RE_ADR_COMPL = (
 
 # contextes: "objet:" (objet de l'arrêté),
 # TODO double adresse: 2 rue X / 31 rue Y 13001 Marseille (RE distincte, pour les named groups)
+# TODO adresse sur la Canebière: "174, la Canebière" (pas de type de voie !)
 RE_ADRESSE = (
     r"""(?:"""
     + rf"(?:(?P<compl_ini>{RE_ADR_COMPL})(?:\s*[,–-]\s*)?)?"  # WIP complément d'adresse
     + rf"(?P<num_ind_voie>{RE_NUM_IND_VOIE})[,]?\s+)?"
-    + rf"(?P<type_voie>{RE_TYP_VOIE})"
-    + rf"\s+(?P<nom_voie>{RE_NOM_VOIE})"
+    + rf"(?P<type_voie>{RE_TYP_VOIE})\s+(?P<nom_voie>{RE_NOM_VOIE})"
     + r"(?:"  # optionnel: complément d'adresse (post)
     + r"(?:\s*[,–-]\s*)?"
     + rf"(?P<compl_fin>{RE_ADR_COMPL})"

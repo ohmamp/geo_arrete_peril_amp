@@ -78,23 +78,75 @@ RE_MAIRE_COMMUNE = (
 P_MAIRE_COMMUNE = re.compile(RE_MAIRE_COMMUNE, re.MULTILINE | re.IGNORECASE)
 
 # - adresse
+# contexte droit (lookahead) possible pour une adresse de document
+RE_ADR_RCONT = (
+    r"(?:"
+    + r"parcelle|section|référence|cadastr[ée]|situé"
+    + r"|copropriété"
+    + r"|concernant"
+    + r"|ainsi"
+    + r"|assorti"
+    + r"|signé"
+    + r"|et\s+concerné"
+    + r"|et\s+installation"
+    + r"|sur\s+une\s+largeur"
+    + r"|sur\s+la\s+base"
+    + r"|suivant\s+annexe"
+    + r"|(?:pour$)"
+    + r"|(?:pris$)"
+    + r"|(?:(?:est|sont|ont\s+été|est\s+de|doit|doivent)$)"
+    + r"|avec\s+risque"
+    + r"|et\s+sur\s+l"
+    # + r"|(?:[.]$)"  # RESUME HERE
+    + r"|susceptible|permettant"
+    + r"|menace\s+de|et\s+des\s+risques"
+    + r"|est\s+à\s+l['’]état|jusqu'à\s+nouvel"
+    + r"|est\s+pris\s+en|pris\s+en\s+l"
+    + r"|à\s+l[’']exception|de\s+mettre\s+fin"
+    + r"|(?:est|sont|reste|restent)\s+interdit"  # (?:e|s|es)?
+    + r"|est\s+strictement\s+interdit"
+    + r"|et(?:\s+à\s+en)?\s+interdire"
+    + r"|(?:et\s+son\s+)?occupation"
+    + r"|(?:doivent|doit)\s+sous\s+un\s+délai"
+    + r"|(?:doivent|doit)\s+prendre"
+    + r"|et\s+ordonne"
+    + r"|et\s+notamment"
+    + r"|peuvent\s+exploiter"
+    + r"|condamner|faire\s+réaliser"
+    + r"|réalisé|effectué|établi"
+    + r"|mentionné"
+    + r"|ce\s+diagnostic"
+    + r"|ces\s+derniers"
+    + r"|présente"
+    + r"|(?:peut|peuvent|doit|doivent|devra|devront|il\s+devra)\s+être"
+    + r"|il\s+sera"
+    + r"|n['’]a\s+pas\s+de"
+    + r"|ont\s+été\s+évacués"
+    + r"|selon\s+les\s+hachures|à\s+leur\s+jonction|qui\s+se\s+retrouve"
+    + r"|lors\s+de"
+    + r"|(?:est|sont)\s+de\s+nouveau"
+    + r"|et\s+au\s+cabinet"
+    + r"|(?:^Nous,\s+Maire)|(?:^vu)|(?:^consid[ée]rant)|(?:^article)"
+    + r")"
+)
 # adresse du bâtiment visé par l'arrêté
 # TODO choisir la ou les bonnes adresses quand il y a risque de confusion
 # (ex compliqué: "59, rue Peysonnel 13003 - PGI 18.06.20.pdf")
 RE_ADR_DOC = (
     r"(?:situ[ée](?:\s+au)?"
     + r"|désordres\s+sur\s+le\s+bâtiment\s+sis"
+    + r"|un\s+péril\s+grave\s+et\s+imminent\s+au"
     + r"|immeuble\s+(?:du|numéroté)"
-    + r"|sis[e]?(?:\s+à)?"
+    # + r"|sis[e]?(?:\s+à)?"
+    + r"|(?<!Risques, )sis[e]?(?:\s+à)?"  # éviter un match sur l'adresse d'un service municipal
     + r"|(?:Objet\s*:"
     + rf"(?:\s+{RE_CLASSE}\s*[,:–-]?)?"
-    + r")"
-    + r")\s+"
+    + r")"  # fin "Objet:(classe)?"
+    + r")\s+"  # fin alternatives contexte gauche
     + rf"(?P<adresse>{RE_ADRESSE})"  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     + r"(?:\s+"
     + r"(?:[,:–-]\s+|[(])?"
-    + r"(?:susceptible|parcelle|référence|concernant"
-    + r"|est\s+pris\s+en|à\s+l[’']exception|de\s+mettre\s+fin)"
+    + rf"{RE_ADR_RCONT}"
     + r")?"
 )
 M_ADR_DOC = re.compile(RE_ADR_DOC, re.MULTILINE | re.IGNORECASE)

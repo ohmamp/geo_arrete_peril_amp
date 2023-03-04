@@ -17,7 +17,7 @@ from typing import Dict
 
 import pandas as pd
 
-from adresse import M_ADRESSE
+from adresse import P_ADRESSE, P_CP
 from aggregate_pages import DTYPE_META_NTXT_DOC
 from str_date import RE_MOIS
 
@@ -138,11 +138,10 @@ def process_adresse_brute(adr_ad_brute: str) -> Dict:
     adr_fields: dict
         Champs d'adresse
     """
-    if (adr_ad_brute is not None) and (m_adresse := M_ADRESSE.search(adr_ad_brute)):
-        m_dict = m_adresse.groupdict()
+    if (adr_ad_brute is not None) and (m_adresse := P_ADRESSE.search(adr_ad_brute)):
         # traitement spécifique pour la voie: type + nom
         adr_voie = " ".join(
-            m_dict[x] for x in ["type_voie", "nom_voie"] if m_dict[x] is not None
+            m_adresse[x] for x in ["type_voie", "nom_voie"] if m_adresse[x] is not None
         ).strip()
         if adr_voie == "":
             adr_voie = None
@@ -159,6 +158,14 @@ def process_adresse_brute(adr_ad_brute: str) -> Dict:
             "adr_cpostal": m_adresse["code_postal"],
             "adr_commune": m_adresse["commune"],
         }
+        # WIP code postal disparait
+        if (m_adresse["code_postal"] is None) and P_CP.search(adr_ad_brute):
+            # WIP survient pour les adresses doubles: la fin de la 2e adresse est envoyée en commune
+            # TODO détecter et analyser spécifiquement les adresses doubles
+            logging.warning(
+                f"aucun code postal n'a été extrait de {adr_ad_brute}: {m_adresse.groupdict()}"
+            )
+        # end WIP code postal
         return adr_fields
     else:
         adr_fields = {

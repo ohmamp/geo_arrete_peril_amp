@@ -12,7 +12,7 @@ import re
 CP_MARSEILLE = [f"130{i:02}" for i in range(1, 17)]
 
 # regex générique pour ce qu'on considérera comme un "token" (plus ou moins, un mot) dans un nom de voie ou de commune
-RE_TOK = r"""[^,;:–(\s]+"""
+RE_TOK = r"[^,;:–(\s]+"
 
 # TODO comment gérer plusieurs numéros? ex: "10-12-14 boulevard ...""
 # pour le moment on ne garde que le premier
@@ -21,18 +21,33 @@ RE_NUM_IND_VOIE = (
     + r"""(?:\s?(?P<ind_voie>A|bis|ter))?"""
 )
 RE_TYP_VOIE = (
-    r"""(?:avenue|boulevard|bd|(?:ancien\s*)?chemin|cours|impasse|place|rue|traverse)"""
+    r"(?:allée[s]?"
+    + r"|avenue"
+    + r"|boulevard|bd"
+    + r"|(?:ancien\s*)?chemin"
+    + r"|cours"
+    + r"|impasse"
+    + r"|place"
+    + r"|quai"
+    + r"|rue"
+    + r"|traverse)"
 )
 
 # code postal
-RE_CP = r"""\d{5}"""
+RE_CP = r"\d{5}"
+P_CP = re.compile(RE_CP)
 
 # RE_NOM_VOIE = rf"""(?:{RE_TOK}(?:[\s-]{RE_TOK})*)"""
+# TODO gérer "chemin de X *à* Y" (interférence avec "à" comme borne)
+# TODO gérer "15 *à* 21 avenue de..." (interférence avec "à" comme borne)
 RE_NOM_VOIE = (
     r"[\s\S]+?"  # n'importe quelle suite de caractères, vides ou non, jusqu'à un séparateur ou un code postal
     # (NB: c'est une "lookahead assertion", qui ne consomme pas les caractères)
-    + r"(?=\s*,\s+|\s*–\s*|\s+-\s+"  # séparateurs: ,-– (ex: 2 rue xxx[,] 13420 GEMENOS)
-    + r"|\s+à\s+"  # à : "2 rue xxx à GEMENOS" (rare et source potentielle de confusion, à valider)
+    + r"(?=\s*,\s+"  # séparateur "," (ex: 2 rue xxx[,] 13420 GEMENOS)
+    + r"|\s*–\s*"  # séparateur "–"
+    + r"|\s+-\s+"  # séparateur "–"
+    + r"|\s*[/]\s*"  # séparateur "/" (double adresse: "2 rue X / 31 rue Y 13001 Marseille")
+    + r"|\s+à\s+"  # à : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
     + rf"|\s*{RE_CP}"  # code postal
     + r")"
 )
@@ -77,7 +92,7 @@ RE_ADR_COMPL = (
 )
 
 # contextes: "objet:" (objet de l'arrêté),
-# TODO ajouter du contexte pour être plus précis? "désordres sur le bâtiment sis... ?"
+# TODO double adresse: 2 rue X / 31 rue Y 13001 Marseille (RE distincte, pour les named groups)
 RE_ADRESSE = (
     r"""(?:"""
     + rf"(?:(?P<compl_ini>{RE_ADR_COMPL})(?:\s*[,–-]\s*)?)?"  # WIP complément d'adresse
@@ -90,11 +105,12 @@ RE_ADRESSE = (
     + r")?"  # fin complément d'adresse
     + r"(?:"
     + r"(?:(?:\s*[,–-])|(?:\s+à))?"  # ex: 2 rue xxx[,] 13420 GEMENOS
-    + r"\s+"  # sinon: \s*–\s+ | ...
-    + r"(?:"
+    + r"(?:\s*"  # \s+  # sinon: \s*–\s+ | ...  # optionnel code postal
     + rf"(?P<code_postal>{RE_CP})"
-    + r"\s+)?"
-    + rf"(?P<commune>{RE_COMMUNE})?"  # WIP: ?  # RESUME HERE
+    + r")?"  # fin optionnel code postal
+    + r"(?:\s*"  # optionnel commune
+    + rf"(?P<commune>{RE_COMMUNE})"
+    + r")?"  # fin optionnel commune
     + r")?"
 )
-M_ADRESSE = re.compile(RE_ADRESSE, re.MULTILINE | re.IGNORECASE)
+P_ADRESSE = re.compile(RE_ADRESSE, re.MULTILINE | re.IGNORECASE)

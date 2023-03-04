@@ -76,7 +76,7 @@ from text_structure import (
     RE_COMMUNE,
     P_MAIRE_COMMUNE,
     M_ADR_DOC,
-    RE_ADRESSE,  # pour le nettoyage de l'adresse récupérée
+    RE_ADR_RCONT,  # pour le nettoyage de l'adresse récupérée
     P_PROPRIO,  # fallback propriétaire (WIP)
     P_PROPRIO_MONO,  # mono-propriétaire (WIP)
     M_SYNDIC,
@@ -456,18 +456,10 @@ def get_parcelle(page_txt: str) -> bool:
 # nettoyage de l'adresse récupérée: on supprime le contexte droit
 RE_ADR_CLEANUP = (
     # rf"""(?P<adresse>{RE_ADRESSE})"""
-    r"""(?:\s*[-–,])?\s+"""
-    + r"""(?:"""
-    + r"""parcelle|section|référence|(?:cadastr[ée])"""
-    + r"""|copropriété"""
-    + r"""|susceptible|concernant"""
-    + r"""|(?:est\s+à\s+l['’]état)|(?:jusqu'à\s+nouvel\s+ordre)"""
-    + r"""|(?:est\s+strictement\s+interdit)|(?:et\s+[àà]\s+en\s+interdire)"""
-    + r"""|ainsi|situé"""  # Marseille
-    + r"""|(?:pour$)"""
-    + r"""|(?:^Nous,\s+Maire)|(?:^vu)|(?:^consid[ée]rant)|(?:^article)"""
-    + r""")"""
-    + r"""[\s\S]*"""
+    r"(?:[(]"  # parenthèse ou
+    + r"|(?:\s*[-–,])?\s+)"  # séparateur puis espace(s)
+    + rf"{RE_ADR_RCONT}"
+    + r"[\s\S]*"
 )
 # M_ADR_CLEANUP = re.compile(RE_ADR_CLEANUP, re.MULTILINE | re.IGNORECASE)
 
@@ -487,8 +479,14 @@ def get_adr_doc(page_txt: str) -> bool:
     """
     if m_adr := M_ADR_DOC.search(page_txt):
         adr = m_adr.group("adresse")
-        # nettoyage de la valeur récupérée
+        # nettoyer la valeur récupérée
+        # - couper sur certains contextes droits
         adr = re.sub(RE_ADR_CLEANUP, "", adr, flags=(re.MULTILINE | re.IGNORECASE))
+        # - enlever l'éventuelle ponctuation finale
+        if adr.endswith((".", ",")):
+            adr = adr[:-1]
+        # - remplacer les retours à la ligne par des espaces
+        adr = adr.replace("\n", " ")  # 2023-03-04
         return adr
     else:
         return None

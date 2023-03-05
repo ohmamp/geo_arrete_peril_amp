@@ -22,7 +22,7 @@ from typing import NamedTuple
 import pandas as pd
 
 from actes import P_STAMP, P_ACCUSE
-from cadastre import M_PARCELLE
+from cadastre import P_PARCELLE, P_PARCELLE_MARSEILLE_NOCONTEXT
 from cadre_reglementaire import (
     P_CGCT,
     P_CGCT_ART,
@@ -449,8 +449,13 @@ def get_parcelle(page_txt: str) -> bool:
         Référence d'une ou plusieurs parcelles cadastrales si détectées dans le texte,
         None sinon.
     """
-    m_parc = M_PARCELLE.search(page_txt)
-    return m_parc.group("cadastre_id") if m_parc is not None else None
+    # TODO extraire plusieurs références
+    if m_parc := P_PARCELLE.search(page_txt):
+        return m_parc.group("cadastre_id")
+    elif m_parc_mrs := P_PARCELLE_MARSEILLE_NOCONTEXT.search(page_txt):
+        return m_parc_mrs.group("cadastre_id")
+    else:
+        return None
 
 
 # nettoyage de l'adresse récupérée: on supprime le contexte droit
@@ -602,6 +607,7 @@ def get_nom(page_txt: str) -> bool:
     doc_nom: str
         Nom de l'arrêté si trouvé, None sinon.
     """
+    # TODO nettoyer à gauche ("Dossier suivi par") et à droite: "\nNous,"
     if m_nom := P_NOM_ARR.search(page_txt):
         return m_nom.group("nom_arr")
     else:

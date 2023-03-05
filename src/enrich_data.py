@@ -7,12 +7,12 @@ import argparse
 from datetime import datetime
 import logging
 from pathlib import Path
-import re
 from typing import NamedTuple
 
 import pandas as pd
 
 from adresse import CP_MARSEILLE
+from cadastre import P_CAD_AUTRES_NG, P_CAD_MARSEILLE_NG
 from extract_data import DTYPE_DATA
 from knowledge_bases import load_codes_insee_amp
 
@@ -72,24 +72,6 @@ def fill_codeinsee(df_row: NamedTuple) -> str:
     return df_row_enr
 
 
-# FIXME déplacer+refactoriser vers un module spécifique cadastre
-RE_CAD_ARRT_QUAR = (
-    r"""(?P<arrt>2[01]\d)"""  # 3 derniers chiffres du code INSEE de l'arrondissement
-    + r"""\s*"""
-    + r"""(?P<quar>\d{3})"""  # code quartier
-)
-# toutes communes: section et numéro
-RE_CAD_SEC = r"""(?P<sec>[A-Z]{1,2})"""
-RE_CAD_NUM = r"""(?P<num>\d{1,4})"""
-# expression complète
-# - Marseille
-RE_CAD_MARSEILLE = rf"""(?:(?:n°\s?){RE_CAD_ARRT_QUAR}\s+{RE_CAD_SEC}\s?{RE_CAD_NUM})"""
-M_CAD_MARSEILLE = re.compile(RE_CAD_MARSEILLE, re.MULTILINE | re.IGNORECASE)
-# - autres communes
-RE_CAD_AUTRES = rf"""(?:(?:n°\s?)?{RE_CAD_SEC}(?:\sn°)?\s?{RE_CAD_NUM})"""
-M_CAD_AUTRES = re.compile(RE_CAD_AUTRES, re.MULTILINE | re.IGNORECASE)
-
-
 def generate_refcadastrale_norm(df_row: NamedTuple) -> str:
     """Génère une référence cadastrale normalisée à une entrée.
 
@@ -115,11 +97,10 @@ def generate_refcadastrale_norm(df_row: NamedTuple) -> str:
     refcad = df_row.par_ref_cad
     if pd.isna(refcad):
         refcad = None
-    elif m_mars := M_CAD_MARSEILLE.match(refcad):
+    elif m_mars := P_CAD_MARSEILLE_NG.search(refcad):
         # match(): on ne garde que le 1er match
         # TODO gérer 2 ou plusieurs références cadastrales
-        m_dict = m_mars.groupdict()
-        arrt = m_dict["arrt"]
+        arrt = m_mars["arrt"]
         if codeinsee and codeinsee != "13055":
             try:
                 assert codeinsee[-3:] == arrt
@@ -131,12 +112,11 @@ def generate_refcadastrale_norm(df_row: NamedTuple) -> str:
         else:
             codeinsee = f"13{arrt}"
         # Marseille: code insee arrondissement + code quartier (3 chiffres) + section + parcelle
-        refcad = f"{codeinsee}{m_dict['quar']}{m_dict['sec']:>02}{m_dict['num']:>04}"
-    elif m_autr := M_CAD_AUTRES.match(refcad):
-        m_dict = m_autr.groupdict()
+        refcad = f"{codeinsee}{m_mars['quar']}{m_mars['sec']:>02}{m_mars['num']:>04}"
+    elif m_autr := P_CAD_AUTRES_NG.search(refcad):
         # hors Marseille: code insee commune + 000 + section + parcelle
         codequartier = "000"
-        refcad = f"{codeinsee}{codequartier}{m_dict['sec']:>02}{m_dict['num']:>04}"
+        refcad = f"{codeinsee}{codequartier}{m_autr['sec']:>02}{m_autr['num']:>04}"
     else:
         refcad = None
     df_row_enr = df_row._replace(par_ref_cad=refcad)

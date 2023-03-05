@@ -5,6 +5,7 @@
 import re
 
 from adresse import RE_ADRESSE, RE_COMMUNE
+from domain_vocab import RE_NO
 from str_date import RE_DATE
 from typologie_securite import RE_CLASSE
 
@@ -12,14 +13,14 @@ from typologie_securite import RE_CLASSE
 # numéro de l'arrêté
 RE_NUM_ARR = (
     r"(?:"
-    + r"Extrait\s+du\s+registre\s+des\s+arrêtés\s+N°"
+    + rf"Extrait\s+du\s+registre\s+des\s+arrêtés\s+{RE_NO}"
     + r"|Réf\s+:"
     + r"|^Nos\s+Réf\s+:"  # Gardanne
-    + r"|^A\.M\s+N°"  # Martigues
-    + r"|^Décision\s+N°"  # Marseille (1)
-    + r"|Arrêté\s+n°"  # en-tête Peyrolles-en-Provence
-    + r"|ARRETE\s+N°"
-    # + r"|^N°"  # motif trop peu spécifique, capture par exemple un numéro de parcelle
+    + rf"|^A\.M\s+{RE_NO}"  # Martigues
+    + rf"|^Décision\s+{RE_NO}"  # Marseille (1)
+    + rf"|Arrêté\s+{RE_NO}"  # en-tête Peyrolles-en-Provence
+    + rf"|ARRETE\s+{RE_NO}"
+    # + rf"|^{RE_NO}"  # motif trop peu spécifique, capture par exemple un numéro de parcelle
     + r")"
     + r"\s*(?P<num_arr>[^,;\n(]+)"
 )
@@ -27,7 +28,7 @@ P_NUM_ARR = re.compile(RE_NUM_ARR, re.MULTILINE | re.IGNORECASE)
 # 2e motif pour reconnaître le numéro d'arrêté, très générique donc à n'utiliser qu'en 2e lame (ou dernier recours)
 RE_NUM_ARR_FALLBACK = (
     r"(?:"
-    + r"^N°"  # Gardanne?
+    + rf"^{RE_NO}"  # Gardanne?
     + r"|^ARR-[^-]{2,3}-"  # Gemenos ; la 2e partie du préfixe varie selon les références (au même acte!): JUR, SG, ST, DGS... donc le numéro est la partie stable qui vient après
     + r")"
     + r"\s*(?P<num_arr>[^,;\n(]+)"
@@ -232,15 +233,15 @@ P_GEST = re.compile(RE_GESTIO, re.MULTILINE | re.IGNORECASE)
 
 # date de l'arrêté
 RE_DATE_SIGNAT = (
-    r"""(?:"""
-    + r"""^Fait\s+à\s+\S+[,]?\s+le"""  # Roquevaire (fin)
-    + r"""|^Fait\s+à\s+Aix-en-Provence,\s+en\s+l['’]Hôtel\s+de\s+Ville,\nle"""  # Aix-en-Provence (fin)
-    + r"""|^Gardanne,\s+le"""  # Gardanne
-    + r"""|^Signé\s+le\s*:\s+"""
-    + r"""|^Arrêté\s+n°[\s\S]+?\s+du"""  # Peyrolles-en-Provence (en-tête), Martigues (fin)
-    + r""")"""
-    + r"""\s+(?P<arr_date>"""
-    + rf"""{RE_DATE}"""
-    + r""")"""
+    r"(?:"
+    + r"^Fait\s+à\s+\S+[,]?\s+le"  # Roquevaire (fin)
+    + r"|^Fait\s+à\s+Aix-en-Provence,\s+en\s+l['’]Hôtel\s+de\s+Ville,\nle"  # Aix-en-Provence (fin)
+    + r"|^Gardanne,\s+le"  # Gardanne
+    + r"|^Signé\s+le\s*:\s+"
+    + rf"|^Arrêté\s+{RE_NO}[\s\S]+?\s+du"  # Peyrolles-en-Provence (en-tête), Martigues (fin)
+    + r")"
+    + r"\s+(?P<arr_date>"
+    + RE_DATE
+    + r")"
 )
 P_DATE_SIGNAT = re.compile(RE_DATE_SIGNAT, re.MULTILINE | re.IGNORECASE)

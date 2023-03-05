@@ -5,6 +5,7 @@ Motifs de reconnaissance des en-têtes, pieds-de-page et annexes.
 
 import re
 
+from domain_vocab import RE_NO
 
 # en-têtes
 RE_HEADERS = [
@@ -40,7 +41,7 @@ RE_HEADERS = [
     ("Gardanne", r"^Ville\s+de\s+Gardanne$"),  # p. 1
     (
         "Gardanne",
-        r"""Arrêté\s+n°\d{4}-\d{2}-ARR-SIHI\s+""" + r"""Page\s+\d{1,2}/\d{1,2}""",
+        r"Arrêté\s+" + RE_NO + r"\d{4}-\d{2}-ARR-SIHI\s+" + r"Page\s+\d{1,2}/\d{1,2}",
     ),  # p.2 et suiv
     # TODO vérifier après OCR
     # ("La Ciotat", r"^Ville\s+de\s+La\s+Ciotat$"),  # p. 1

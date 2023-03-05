@@ -17,7 +17,7 @@ from typing import Dict
 
 import pandas as pd
 
-from adresse import P_ADRESSE, P_CP
+from adresse import P_ADRESSE_NG, P_CP
 from aggregate_pages import DTYPE_META_NTXT_DOC
 from str_date import RE_MOIS
 
@@ -138,18 +138,16 @@ def process_adresse_brute(adr_ad_brute: str) -> Dict:
     adr_fields: dict
         Champs d'adresse
     """
-    if (adr_ad_brute is not None) and (m_adresse := P_ADRESSE.search(adr_ad_brute)):
-        # traitement spécifique pour la voie: type + nom
-        adr_voie = " ".join(
-            m_adresse[x] for x in ["type_voie", "nom_voie"] if m_adresse[x] is not None
-        ).strip()
-        if adr_voie == "":
-            adr_voie = None
+    if (adr_ad_brute is not None) and (m_adresse := P_ADRESSE_NG.search(adr_ad_brute)):
+        # traitement spécifique pour la voie: type + nom (legacy?)
+        # adr_voie = m_adresse["voie"].strip()
+        # if adr_voie == "":
+        #     adr_voie = None
         #
         adr_fields = {
             "adr_num": m_adresse["num_voie"],
             "adr_ind": m_adresse["ind_voie"],
-            "adr_voie": adr_voie,
+            "adr_voie": m_adresse["voie"],
             "adr_compl": " ".join(
                 m_adresse[x]
                 for x in ["compl_ini", "compl_fin"]

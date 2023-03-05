@@ -33,6 +33,7 @@ RE_TYP_VOIE = (
     + r"|quai"
     + r"|route"
     + r"|rue"
+    # + r"|voie"  # negative lookahead: \s(?:publique|de\scirculation|d['’]effondrement|d'['’]affichage|sur|le\slong|allant|précitée|administrative|électronique|dématérialisée|de\srecours|de\sconséquence|...)
     + r"|traverse)"
 )
 
@@ -95,13 +96,45 @@ RE_ADR_COMPL = (
 )
 
 # contextes: "objet:" (objet de l'arrêté),
+RE_VOIE = (
+    r"(?:"
+    + r"(?:"  # motif classique: <type_voie> <nom_voie>
+    + rf"(?:{RE_TYP_VOIE})\s+(?:{RE_NOM_VOIE})"
+    + r")"
+    + r"|(?:"  # cas particulier: la canebière
+    + r"la\s+Can[n]?ebi[èe]re"  # inclut l'ancienne graphie "nn"
+    + r")"
+    + r")"
+)
+
 # TODO double adresse: 2 rue X / 31 rue Y 13001 Marseille (RE distincte, pour les named groups)
-# TODO adresse sur la Canebière: "174, la Canebière" (pas de type de voie !)
 RE_ADRESSE = (
+    r"(?:"
+    + rf"(?:(?:{RE_ADR_COMPL})(?:\s*[,–-]\s*)?)?"  # WIP complément d'adresse
+    + rf"(?:{RE_NUM_IND_VOIE})[,]?\s+)?"  # numéro et indice de répétition (ex: 1 bis)
+    + rf"(?:{RE_VOIE})"  # type et nom de la voie (ex: rue Jean Roques ; la Canebière)
+    + r"(?:"  # optionnel: complément d'adresse (post)
+    + r"(?:\s*[,–-]\s*)?"
+    + rf"(?:{RE_ADR_COMPL})"
+    + r")?"  # fin complément d'adresse
+    + r"(?:"
+    + r"(?:(?:\s*[,–-])|(?:\s+à))?"  # ex: 2 rue xxx[,] 13420 GEMENOS
+    + r"(?:\s*"  # \s+  # sinon: \s*–\s+ | ...  # optionnel code postal
+    + rf"(?:{RE_CP})"
+    + r")?"  # fin optionnel code postal
+    + r"(?:\s*"  # optionnel commune
+    + rf"(?:{RE_COMMUNE})"
+    + r")?"  # fin optionnel commune
+    + r")?"
+)
+P_ADRESSE = re.compile(RE_ADRESSE, re.MULTILINE | re.IGNORECASE)
+
+# idem, avec named groups
+RE_ADRESSE_NG = (
     r"""(?:"""
     + rf"(?:(?P<compl_ini>{RE_ADR_COMPL})(?:\s*[,–-]\s*)?)?"  # WIP complément d'adresse
     + rf"(?P<num_ind_voie>{RE_NUM_IND_VOIE})[,]?\s+)?"
-    + rf"(?P<type_voie>{RE_TYP_VOIE})\s+(?P<nom_voie>{RE_NOM_VOIE})"
+    + rf"(?P<voie>{RE_VOIE})"
     + r"(?:"  # optionnel: complément d'adresse (post)
     + r"(?:\s*[,–-]\s*)?"
     + rf"(?P<compl_fin>{RE_ADR_COMPL})"
@@ -116,4 +149,4 @@ RE_ADRESSE = (
     + r")?"  # fin optionnel commune
     + r")?"
 )
-P_ADRESSE = re.compile(RE_ADRESSE, re.MULTILINE | re.IGNORECASE)
+P_ADRESSE_NG = re.compile(RE_ADRESSE_NG, re.MULTILINE | re.IGNORECASE)

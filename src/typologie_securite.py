@@ -10,8 +10,8 @@
 
 import re
 
-# "arrếté" et ses variantes de graphies
-RE_ARRETE = r"Arr[êeé]t[ée](?:\s+municipal)?"
+from domain_vocab import RE_ARRETE
+
 # procédures: orginaire et urgente
 RE_PROCEDURE_ORDINAIRE = r"(?:\s*-)?\s+proc[ée]dure\s+ordinaire"
 RE_PROCEDURE_URGENTE = (
@@ -26,6 +26,8 @@ RE_PROCEDURE_URGENTE = (
 RE_PS_PO = r"p[ée]ril\s+(?:simple|ordinaire|non\s+imminent)"
 RE_CLASS_PS_PO = RE_ARRETE + r"\s+de\s+" + RE_PS_PO
 M_CLASS_PS_PO = re.compile(RE_CLASS_PS_PO, re.MULTILINE | re.IGNORECASE)
+
+# modificatif
 RE_CLASS_PS_PO_MOD = (
     r"(?:"  # arrêté de péril simple|ordinaire modificatif
     + RE_CLASS_PS_PO

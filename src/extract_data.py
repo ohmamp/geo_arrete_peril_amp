@@ -17,7 +17,7 @@ from typing import Dict
 
 import pandas as pd
 
-from adresse import P_ADRESSE_NG, P_CP
+from adresse import P_ADRESSE_NG, P_CP, P_IND_VOIE, P_NUM_VOIE, P_NUM_IND_VOIE
 from aggregate_pages import DTYPE_META_NTXT_DOC
 from str_date import RE_MOIS
 
@@ -126,7 +126,11 @@ def create_adresse_normalisee(adr_fields: Dict, adr_commune_maire: str) -> str:
 
 
 def process_adresse_brute(adr_ad_brute: str) -> Dict:
-    """Extraire les différents champs d'une adresse brute.
+    """Extraire une ou plusieurs adresses d'une adresse brute.
+
+    Chaque adresse comporte différents champs: numéro, indicateur,
+    voie, (éventuellement complement d'adresse,) code postal,
+    commune.
 
     Parameters
     ----------
@@ -135,36 +139,87 @@ def process_adresse_brute(adr_ad_brute: str) -> Dict:
 
     Returns
     -------
-    adr_fields: dict
-        Champs d'adresse
+    adresses: list(dict)
+        Liste d'adresses
     """
+    adresses = []
     if (adr_ad_brute is not None) and (m_adresse := P_ADRESSE_NG.search(adr_ad_brute)):
         # traitement spécifique pour la voie: type + nom (legacy?)
         # adr_voie = m_adresse["voie"].strip()
         # if adr_voie == "":
         #     adr_voie = None
         #
-        adr_fields = {
-            "adr_num": m_adresse["num_voie"],
-            "adr_ind": m_adresse["ind_voie"],
-            "adr_voie": m_adresse["voie"],
-            "adr_compl": " ".join(
-                m_adresse[x]
-                for x in ["compl_ini", "compl_fin"]
-                if m_adresse[x] is not None
-            ),  # FIXME concat?
-            "adr_cpostal": m_adresse["code_postal"],
-            "adr_commune": m_adresse["commune"],
-        }
+        # TODO split adresses, puis itérer sur les adresses
+        # pour chaque adresse
+        voie = m_adresse["voie"]
+        adr_compl = " ".join(
+            m_adresse[x] for x in ["compl_ini", "compl_fin"] if m_adresse[x] is not None
+        )  # FIXME concat?
+        cpostal = m_adresse["code_postal"]
+        commune = m_adresse["commune"]
+        # ...
+        num_ind_list = m_adresse["num_ind_list"]
+        if num_ind_list is None:
+            # pas de numéro (ni d'indicateur)
+            adr_fields = {
+                "adr_num": None,
+                "adr_ind": None,
+                "adr_voie": voie,
+                "adr_compl": adr_compl,
+                "adr_cpostal": cpostal,
+                "adr_commune": commune,
+            }
+            adresses.append(adr_fields)
+        else:
+            # pour chaque numéro et indicateur dans cette voie
+            num_inds = list(P_NUM_IND_VOIE.finditer(num_ind_list))
+            if len(num_inds) > 1:
+                logging.warning(f"plusieurs numéros et indicateurs: {num_inds}")
+            for num_ind in num_inds:
+                # pour chaque numéro et éventuel indicateur
+                num_ind_str = num_ind.group(0)
+                # extraire le numéro
+                m_nums = list(P_NUM_VOIE.finditer(num_ind_str))
+                assert len(m_nums) == 1
+                num = m_nums[0].group(0)
+                # extraire le ou les éventuels indicateurs
+                m_inds = list(P_IND_VOIE.finditer(num_ind_str))
+                if not m_inds:
+                    # pas d'indicateur, juste un numéro
+                    adr_fields = {
+                        "adr_num": num,
+                        "adr_ind": None,
+                        "adr_voie": voie,
+                        "adr_compl": adr_compl,
+                        "adr_cpostal": cpostal,
+                        "adr_commune": commune,
+                    }
+                    adresses.append(adr_fields)
+                else:
+                    # au moins un indicateur
+                    if len(m_inds) > 1:
+                        logging.warning(f"plusieurs indicateurs: {m_inds}")
+                    for m_ind in m_inds:
+                        # pour chaque indicateur
+                        ind = m_ind.group(0)
+                        adr_fields = {
+                            "adr_num": num,
+                            "adr_ind": ind,
+                            "adr_voie": voie,
+                            "adr_compl": adr_compl,
+                            "adr_cpostal": cpostal,
+                            "adr_commune": commune,
+                        }
+                        adresses.append(adr_fields)
         # WIP code postal disparait
-        if (m_adresse["code_postal"] is None) and P_CP.search(adr_ad_brute):
+        if (cpostal is None) and P_CP.search(adr_ad_brute):
             # WIP survient pour les adresses doubles: la fin de la 2e adresse est envoyée en commune
             # TODO détecter et analyser spécifiquement les adresses doubles
             logging.warning(
-                f"aucun code postal n'a été extrait de {adr_ad_brute}: {m_adresse.groupdict()}"
+                f"aucun code postal extrait de {adr_ad_brute}: {m_adresse.groupdict()}"
             )
         # end WIP code postal
-        return adr_fields
+        return adresses
     else:
         adr_fields = {
             "adr_num": None,
@@ -174,7 +229,8 @@ def process_adresse_brute(adr_ad_brute: str) -> Dict:
             "adr_cpostal": None,
             "adr_commune": None,
         }
-        return adr_fields
+        # TODO liste contenant un seul dict aux champs tous None, ou liste vide (à gérer) ?
+        return [adr_fields]
 
 
 # date: extraction précise des champs
@@ -325,6 +381,9 @@ def create_docs_dataframe(
         )
         # - extraire les éléments d'adresse en traitant l'adresse brute
         adr_fields = process_adresse_brute(adr_ad_brute)
+        # WIP 2023-03-05 temporairement, prendre la 1re adresse ; il faudra toutes les écrire
+        adr_fields = adr_fields[0]
+        # end WIP
         # - nettoyer a minima la commune extraite des en-tête ou pied-de-page ou de la mention du maire signataire
         adr_commune_maire = (
             normalize_string(getattr(df_row, "commune_maire"))

@@ -16,10 +16,45 @@ RE_TOK = r"[^,;:–(\s]+"
 
 # TODO comment gérer plusieurs numéros? ex: "10-12-14 boulevard ...""
 # pour le moment on ne garde que le premier
+RE_NUM_VOIE = r"(\d+)"
+P_NUM_VOIE = re.compile(RE_NUM_VOIE, re.IGNORECASE | re.MULTILINE)
+#
+RE_IND_VOIE = r"(?:A|bis|ter)"
+P_IND_VOIE = re.compile(RE_IND_VOIE, re.IGNORECASE | re.MULTILINE)
+#
 RE_NUM_IND_VOIE = (
-    r"""(?P<num_voie>\d+)(\s*[,-/]\s*\d+)*(\s+et\s+\d+)?"""
-    + r"""(?:\s?(?P<ind_voie>A|bis|ter))?"""
+    RE_NUM_VOIE  # numéro  # ?P<num_voie>
+    + r"("  # ?P<ind_voie>  # optionnel: 1 indicateur, ou plusieurs
+    + r"\s?"
+    + r"(?:"  # alternative
+    + rf"(?:{RE_IND_VOIE})"  # 1 indicateur
+    + rf"|(?:"  # ou une liste d'indicateurs entre parenthèses
+    + r"[(]"
+    + RE_IND_VOIE  # 1er indicateur
+    + r"(?:"  # 2e (et éventuellement plus) indicateur
+    + r"(?:(?:\s*[,-/]\s*)|(?:\s+et\s+))"  # séparateur
+    + RE_IND_VOIE  # n-ième indicateur
+    + r")+"  # au moins un 2e indicateur, possible plus
+    + r"[)]"
+    + r")"  # fin liste d'indicateurs
+    + r")"  # fin alternative 1 ou + indicateurs
+    + r")?"  # fin indicateur optionnel
 )
+P_NUM_IND_VOIE = re.compile(RE_NUM_IND_VOIE, re.IGNORECASE | re.MULTILINE)
+
+# liste de numéros et indicateurs: "10-12-14 boulevard ..., 10 / 12 avenue ..."
+# TODO déplier les indicateurs "(BIS/TER)" ou "bis et ter"
+RE_NUM_IND_LIST = (
+    r"(?:"
+    + RE_NUM_IND_VOIE  # un numéro (et éventuellement indicateur)
+    + r"(?:"  # et éventuellement d'autres numéros (éventuellement avec indicateur)
+    + r"(?:(?:\s*[,-/]\s*)|(?:\s+et\s+))"  # séparateur
+    + RE_NUM_IND_VOIE
+    + r")*"  # 0 à N numéros (et indicateurs) supplémentaires
+    + r")"
+)
+
+# types de voies
 RE_TYP_VOIE = (
     r"(?:all[ée]e[s]?"
     + r"|avenue"
@@ -111,7 +146,7 @@ RE_VOIE = (
 RE_ADRESSE = (
     r"(?:"
     + rf"(?:(?:{RE_ADR_COMPL})(?:\s*[,–-]\s*)?)?"  # WIP complément d'adresse
-    + rf"(?:{RE_NUM_IND_VOIE})[,]?\s+)?"  # numéro et indice de répétition (ex: 1 bis)
+    + rf"(?:{RE_NUM_IND_LIST})[,]?\s+)?"  # numéro et indice de répétition (ex: 1 bis)
     + rf"(?:{RE_VOIE})"  # type et nom de la voie (ex: rue Jean Roques ; la Canebière)
     + r"(?:"  # optionnel: complément d'adresse (post)
     + r"(?:\s*[,–-]\s*)?"
@@ -133,8 +168,8 @@ P_ADRESSE = re.compile(RE_ADRESSE, re.MULTILINE | re.IGNORECASE)
 RE_ADRESSE_NG = (
     r"""(?:"""
     + rf"(?:(?P<compl_ini>{RE_ADR_COMPL})(?:\s*[,–-]\s*)?)?"  # WIP complément d'adresse
-    + rf"(?P<num_ind_voie>{RE_NUM_IND_VOIE})[,]?\s+)?"
-    + rf"(?P<voie>{RE_VOIE})"
+    + rf"(?P<num_ind_list>{RE_NUM_IND_LIST})[,]?\s+)?"  # 0 à N numéros et indicateurs de voie
+    + rf"(?P<voie>{RE_VOIE})"  # une voie (type et nom)
     + r"(?:"  # optionnel: complément d'adresse (post)
     + r"(?:\s*[,–-]\s*)?"
     + rf"(?P<compl_fin>{RE_ADR_COMPL})"

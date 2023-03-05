@@ -4,6 +4,7 @@
 
 import re
 
+# TODO gérer "106-108 rue X (102-104 selon cadastre)"
 
 # codes postaux de Marseille
 # à conserver même quand il y aura une table CSV de codes postaux ;
@@ -22,7 +23,7 @@ P_NUM_VOIE = re.compile(RE_NUM_VOIE, re.IGNORECASE | re.MULTILINE)
 RE_IND_VOIE = r"(?:A|bis|ter)"
 P_IND_VOIE = re.compile(RE_IND_VOIE, re.IGNORECASE | re.MULTILINE)
 #
-RE_NUM_IND_VOIE = (
+RE_NUM_IND = (
     RE_NUM_VOIE  # numéro  # ?P<num_voie>
     + r"("  # ?P<ind_voie>  # optionnel: 1 indicateur, ou plusieurs
     + r"\s?"
@@ -40,19 +41,20 @@ RE_NUM_IND_VOIE = (
     + r")"  # fin alternative 1 ou + indicateurs
     + r")?"  # fin indicateur optionnel
 )
-P_NUM_IND_VOIE = re.compile(RE_NUM_IND_VOIE, re.IGNORECASE | re.MULTILINE)
+P_NUM_IND = re.compile(RE_NUM_IND, re.IGNORECASE | re.MULTILINE)
 
 # liste de numéros et indicateurs: "10-12-14 boulevard ..., 10 / 12 avenue ..."
-# TODO déplier les indicateurs "(BIS/TER)" ou "bis et ter"
 RE_NUM_IND_LIST = (
     r"(?:"
-    + RE_NUM_IND_VOIE  # un numéro (et éventuellement indicateur)
+    + RE_NUM_IND  # un numéro (et éventuellement indicateur)
     + r"(?:"  # et éventuellement d'autres numéros (éventuellement avec indicateur)
     + r"(?:(?:\s*[,-/]\s*)|(?:\s+et\s+))"  # séparateur
-    + RE_NUM_IND_VOIE
+    + RE_NUM_IND
     + r")*"  # 0 à N numéros (et indicateurs) supplémentaires
     + r")"
 )
+P_NUM_IND_LIST = re.compile(RE_NUM_IND_LIST, re.IGNORECASE | re.MULTILINE)
+
 
 # types de voies
 RE_TYP_VOIE = (
@@ -86,10 +88,14 @@ RE_NOM_VOIE = (
     + r"|\s*–\s*"  # séparateur "–"
     + r"|\s+-\s+"  # séparateur "–"
     + r"|\s*[/]\s*"  # séparateur "/" (double adresse: "2 rue X / 31 rue Y 13001 Marseille")
+    + r"|\s+et\s+"  # séparateur "et" (double adresse: "2 rue X et 31 rue Y 13001 Marseille")
+    + rf"|(?:\s+(?:{RE_NUM_IND_LIST})[,]?\s+{RE_TYP_VOIE})"  # on bute directement sur une 2e adresse (rare mais ça arrive)
     + r"|\s+à\s+"  # à : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
     + rf"|\s*{RE_CP}"  # code postal
     + r")"
 )
+
+# TODO s'arrêter quand on rencontre une référence cadastrale (lookahead?)
 RE_COMMUNE = (
     rf"[A-Z]{RE_TOK}"  # au moins 1 token qui commence par une majuscule
     + r"(?:[ -]"
@@ -130,7 +136,7 @@ RE_ADR_COMPL = (
     + r")*"  # fin optionnel
 )
 
-# contextes: "objet:" (objet de l'arrêté),
+# (type et) nom de voie
 RE_VOIE = (
     r"(?:"
     + r"(?:"  # motif classique: <type_voie> <nom_voie>
@@ -141,47 +147,66 @@ RE_VOIE = (
     + r")"
     + r")"
 )
+P_VOIE = re.compile(RE_VOIE, re.IGNORECASE | re.MULTILINE)
+
+# numéro, indicateur et voie
+RE_NUM_IND_VOIE = (
+    r"(?:"
+    + rf"(?:(?:{RE_NUM_IND_LIST})[,]?\s+)?"  # numéro et indice de répétition (ex: 1 bis)  # ?P<num_ind_list>
+    + rf"({RE_VOIE})"  # type et nom de la voie (ex: rue Jean Roques ; la Canebière)  # ?P<voie>
+    + r")"
+)
+P_NUM_IND_VOIE = re.compile(RE_NUM_IND_VOIE, re.IGNORECASE | re.MULTILINE)
+# idem, avec named groups
+RE_NUM_IND_VOIE_NG = (
+    r"(?:"
+    + rf"(?:(?P<num_ind_list>{RE_NUM_IND_LIST})[,]?\s+)?"  # numéro et indice de répétition (ex: 1 bis)
+    + rf"(?P<voie>{RE_VOIE})"  # type et nom de la voie (ex: rue Jean Roques ; la Canebière)
+    + r")"
+)
+P_NUM_IND_VOIE_NG = re.compile(RE_NUM_IND_VOIE_NG, re.IGNORECASE | re.MULTILINE)
+
+
+# liste d'adresses courtes: numéro, indicateur et voie
+RE_NUM_IND_VOIE_LIST = (
+    r"(?:"
+    # au moins 1 adresse avec voie et éventuellement numéro et indicateur
+    + RE_NUM_IND_VOIE
+    # plus éventuellement 1 à plusieurs adresses supplémentaires
+    + r"(?:"  # et éventuellement d'autres numéros (éventuellement avec indicateur)
+    + r"(?:(?:\s*[,-/]\s*)|(?:\s+et\s+)|(?:\s+))"  # séparateur (parfois juste "\s+" !)
+    + RE_NUM_IND_VOIE
+    + r")*"  # 0 à N numéros (et indicateurs) supplémentaires
+    + r")"
+)
+P_NUM_IND_VOIE_LIST = re.compile(RE_NUM_IND_VOIE_LIST, re.IGNORECASE | re.MULTILINE)
 
 # TODO double adresse: 2 rue X / 31 rue Y 13001 Marseille (RE distincte, pour les named groups)
 RE_ADRESSE = (
     r"(?:"
-    + rf"(?:(?:{RE_ADR_COMPL})(?:\s*[,–-]\s*)?)?"  # WIP complément d'adresse
-    + rf"(?:{RE_NUM_IND_LIST})[,]?\s+)?"  # numéro et indice de répétition (ex: 1 bis)
-    + rf"(?:{RE_VOIE})"  # type et nom de la voie (ex: rue Jean Roques ; la Canebière)
-    + r"(?:"  # optionnel: complément d'adresse (post)
-    + r"(?:\s*[,–-]\s*)?"
-    + rf"(?:{RE_ADR_COMPL})"
-    + r")?"  # fin complément d'adresse
-    + r"(?:"
+    + rf"(?:(?:{RE_ADR_COMPL})(?:\s*[,–-]\s*)?)?"  # WIP (optionnel) complément d'adresse (pré)
+    + RE_NUM_IND_VOIE_LIST
+    + rf"(?:(?:\s*[,–-]\s*)?(?:{RE_ADR_COMPL}))?"  # WIP (optionnel) complément d'adresse (post)
+    + r"(?:"  # (optionnel) code postal et/ou commune
     + r"(?:(?:\s*[,–-])|(?:\s+à))?"  # ex: 2 rue xxx[,] 13420 GEMENOS
-    + r"(?:\s*"  # \s+  # sinon: \s*–\s+ | ...  # optionnel code postal
-    + rf"(?:{RE_CP})"
-    + r")?"  # fin optionnel code postal
-    + r"(?:\s*"  # optionnel commune
-    + rf"(?:{RE_COMMUNE})"
-    + r")?"  # fin optionnel commune
-    + r")?"
+    + rf"(?:\s*(?:{RE_CP}))?"  # \s+  # sinon: \s*–\s+ | ...  # optionnel code postal
+    + rf"(?:\s*(?:{RE_COMMUNE}))?"  # optionnel commune
+    + r")?"  # fin optionnel code postal et/ou commune
+    + r")"
 )
 P_ADRESSE = re.compile(RE_ADRESSE, re.MULTILINE | re.IGNORECASE)
 
 # idem, avec named groups
 RE_ADRESSE_NG = (
-    r"""(?:"""
-    + rf"(?:(?P<compl_ini>{RE_ADR_COMPL})(?:\s*[,–-]\s*)?)?"  # WIP complément d'adresse
-    + rf"(?P<num_ind_list>{RE_NUM_IND_LIST})[,]?\s+)?"  # 0 à N numéros et indicateurs de voie
-    + rf"(?P<voie>{RE_VOIE})"  # une voie (type et nom)
-    + r"(?:"  # optionnel: complément d'adresse (post)
-    + r"(?:\s*[,–-]\s*)?"
-    + rf"(?P<compl_fin>{RE_ADR_COMPL})"
-    + r")?"  # fin complément d'adresse
-    + r"(?:"
+    r"(?:"
+    + rf"(?:(?P<compl_ini>{RE_ADR_COMPL})(?:\s*[,–-]\s*)?)?"  # WIP (optionnel complément d'adresse (pré)
+    + rf"(?P<num_ind_voie_list>{RE_NUM_IND_VOIE_LIST})"  # 1 à N adresses courtes (numéro, indicateur, voie)
+    + rf"(?:(?:\s*[,–-]\s*)?(?P<compl_fin>{RE_ADR_COMPL}))?"  # WIP (optionnel) complément d'adresse (post)
+    + r"(?:"  # (optionnel) code postal et/ou commune
     + r"(?:(?:\s*[,–-])|(?:\s+à))?"  # ex: 2 rue xxx[,] 13420 GEMENOS
-    + r"(?:\s*"  # \s+  # sinon: \s*–\s+ | ...  # optionnel code postal
-    + rf"(?P<code_postal>{RE_CP})"
-    + r")?"  # fin optionnel code postal
-    + r"(?:\s*"  # optionnel commune
-    + rf"(?P<commune>{RE_COMMUNE})"
-    + r")?"  # fin optionnel commune
-    + r")?"
+    + rf"(?:\s*(?P<code_postal>{RE_CP}))?"  # \s+  # sinon: \s*–\s+ | ...  # optionnel code postal
+    + rf"(?:\s*(?P<commune>{RE_COMMUNE}))?"  # optionnel commune
+    + r")?"  # fin optionnel code postal et/ou commune
+    + r")"
 )
 P_ADRESSE_NG = re.compile(RE_ADRESSE_NG, re.MULTILINE | re.IGNORECASE)

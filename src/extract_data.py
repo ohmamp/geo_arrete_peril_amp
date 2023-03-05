@@ -17,7 +17,16 @@ from typing import Dict
 
 import pandas as pd
 
-from adresse import P_ADRESSE_NG, P_CP, P_IND_VOIE, P_NUM_VOIE, P_NUM_IND_VOIE
+from adresse import (
+    P_ADRESSE_NG,
+    P_CP,
+    P_IND_VOIE,
+    P_NUM_IND,
+    P_NUM_IND_LIST,
+    P_NUM_IND_VOIE_NG,
+    P_NUM_IND_VOIE_LIST,
+    P_NUM_VOIE,
+)
 from aggregate_pages import DTYPE_META_NTXT_DOC
 from str_date import RE_MOIS
 
@@ -144,73 +153,96 @@ def process_adresse_brute(adr_ad_brute: str) -> Dict:
     """
     adresses = []
     if (adr_ad_brute is not None) and (m_adresse := P_ADRESSE_NG.search(adr_ad_brute)):
-        # traitement spécifique pour la voie: type + nom (legacy?)
-        # adr_voie = m_adresse["voie"].strip()
-        # if adr_voie == "":
-        #     adr_voie = None
-        #
-        # TODO split adresses, puis itérer sur les adresses
-        # pour chaque adresse
-        voie = m_adresse["voie"]
+        # récupérer les champs communs à toutes les adresses groupées: complément,
+        # code postal et commune
         adr_compl = " ".join(
             m_adresse[x] for x in ["compl_ini", "compl_fin"] if m_adresse[x] is not None
         )  # FIXME concat?
         cpostal = m_adresse["code_postal"]
         commune = m_adresse["commune"]
-        # ...
-        num_ind_list = m_adresse["num_ind_list"]
-        if num_ind_list is None:
-            # pas de numéro (ni d'indicateur)
-            adr_fields = {
-                "adr_num": None,
-                "adr_ind": None,
-                "adr_voie": voie,
-                "adr_compl": adr_compl,
-                "adr_cpostal": cpostal,
-                "adr_commune": commune,
-            }
-            adresses.append(adr_fields)
-        else:
-            # pour chaque numéro et indicateur dans cette voie
-            num_inds = list(P_NUM_IND_VOIE.finditer(num_ind_list))
-            if len(num_inds) > 1:
-                logging.warning(f"plusieurs numéros et indicateurs: {num_inds}")
-            for num_ind in num_inds:
-                # pour chaque numéro et éventuel indicateur
-                num_ind_str = num_ind.group(0)
-                # extraire le numéro
-                m_nums = list(P_NUM_VOIE.finditer(num_ind_str))
-                assert len(m_nums) == 1
-                num = m_nums[0].group(0)
-                # extraire le ou les éventuels indicateurs
-                m_inds = list(P_IND_VOIE.finditer(num_ind_str))
-                if not m_inds:
-                    # pas d'indicateur, juste un numéro
-                    adr_fields = {
-                        "adr_num": num,
-                        "adr_ind": None,
-                        "adr_voie": voie,
-                        "adr_compl": adr_compl,
-                        "adr_cpostal": cpostal,
-                        "adr_commune": commune,
-                    }
-                    adresses.append(adr_fields)
-                else:
-                    # au moins un indicateur
-                    if len(m_inds) > 1:
-                        logging.warning(f"plusieurs indicateurs: {m_inds}")
-                    for m_ind in m_inds:
-                        # pour chaque indicateur
-                        ind = m_ind.group(0)
+
+        # traitement spécifique pour la voie: type + nom (legacy?)
+        # adr_voie = m_adresse["voie"].strip()
+        # if adr_voie == "":
+        #     adr_voie = None
+        #
+        # extraire la ou les adresses courtes, et les séparer s'il y en a plusieurs
+        # on est obligé de réextraire depuis l'adresse brute, car le RE_VOIE est défini
+        # avec un contexte droit (positive lookahead)
+        # (pénible, mais pour le moment ça fonctionne comme ça)
+        adr_lists = list(P_NUM_IND_VOIE_LIST.finditer(adr_ad_brute))
+        # obligatoire: une liste d'adresses courtes (ou une adresse courte)
+        try:
+            assert len(adr_lists) == 1
+        except AssertionError:
+            raise ValueError(f"adr_lists: {adr_lists}")
+        adr_list = adr_lists[0]
+        # on vérifie qu'on travaille exactement au même endroit, pour se positionner au bon endroit
+        assert adr_list.group(0) == m_adresse["num_ind_voie_list"]
+        # on ne peut pas complètement verrouiller avec adr_list.end(), car il manquerait à nouveau le contexte droit (grmpf)
+        adrs = list(P_NUM_IND_VOIE_NG.finditer(adr_ad_brute, adr_list.start()))
+        if not adrs:
+            raise ValueError(f"Aucune adresse NUM_IND_VOIE trouvée dans {adr_list}")
+        for adr in adrs:
+            # pour chaque adresse courte,
+            # - récupérer la voie
+            voie = adr["voie"]
+            # - récupérer la liste (optionnelle) de numéros et d'indicateurs (optionnels)
+            num_ind_list = adr["num_ind_list"]
+            if not num_ind_list:
+                # pas de liste de numéros et indicateurs:
+                logging.warning(f"adresse courte en voie seule: {adr.group(0)}")
+                # ajouter une adresse sans numéro (ni indicateur)
+                adr_fields = {
+                    "adr_num": None,
+                    "adr_ind": None,
+                    "adr_voie": voie,
+                    "adr_compl": adr_compl,
+                    "adr_cpostal": cpostal,
+                    "adr_commune": commune,
+                }
+                adresses.append(adr_fields)
+            else:
+                # on a une liste de numéros (et éventuellement indicateurs)
+                num_inds = list(P_NUM_IND.finditer(num_ind_list))
+                if len(num_inds) > 1:
+                    logging.warning(f"plusieurs numéros et indicateurs: {num_inds}")
+                for num_ind in num_inds:
+                    # pour chaque numéro et éventuel indicateur
+                    num_ind_str = num_ind.group(0)
+                    # extraire le numéro
+                    m_nums = list(P_NUM_VOIE.finditer(num_ind_str))
+                    assert len(m_nums) == 1
+                    num = m_nums[0].group(0)
+                    # extraire le ou les éventuels indicateurs
+                    m_inds = list(P_IND_VOIE.finditer(num_ind_str))
+                    if not m_inds:
+                        # pas d'indicateur: adresse avec juste un numéro
                         adr_fields = {
                             "adr_num": num,
-                            "adr_ind": ind,
+                            "adr_ind": None,
                             "adr_voie": voie,
                             "adr_compl": adr_compl,
                             "adr_cpostal": cpostal,
                             "adr_commune": commune,
                         }
                         adresses.append(adr_fields)
+                    else:
+                        # au moins un indicateur
+                        if len(m_inds) > 1:
+                            logging.warning(f"plusieurs indicateurs: {m_inds}")
+                        for m_ind in m_inds:
+                            # pour chaque indicateur, adresse avec numéro et indicateur
+                            ind = m_ind.group(0)
+                            adr_fields = {
+                                "adr_num": num,
+                                "adr_ind": ind,
+                                "adr_voie": voie,
+                                "adr_compl": adr_compl,
+                                "adr_cpostal": cpostal,
+                                "adr_commune": commune,
+                            }
+                            adresses.append(adr_fields)
         # WIP code postal disparait
         if (cpostal is None) and P_CP.search(adr_ad_brute):
             # WIP survient pour les adresses doubles: la fin de la 2e adresse est envoyée en commune

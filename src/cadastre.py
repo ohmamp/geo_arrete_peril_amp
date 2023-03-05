@@ -70,7 +70,7 @@ RE_PARCELLE_MARSEILLE_NOCONTEXT = (
     r"(?P<cadastre_id>"  # named group pour la ou les références cadastrales
     + RE_CAD_MARSEILLE  # 1re référence cadastrale
     + r"("  # 1 ou plusieurs références supplémentaires
-    + r"(?:,|\s+et|\s+[-])\s+"
+    + r"(?:,|\s+et|\s+[&]|\s+[-])\s+"
     + RE_CAD_MARSEILLE
     + r")*"  # fin 1 ou plusieurs références supplémentaires
     + r")"  # fin named group

@@ -180,11 +180,15 @@ RE_CLASS_ABRO_DE = (
 M_CLASS_ABRO_DE = re.compile(RE_CLASS_ABRO_DE, re.MULTILINE | re.IGNORECASE)
 #
 RE_CLASS_INS = (
-    rf"{RE_ARRETE}" + r"""\s+d'\s*ins[ée]curit[ée]\s+des\s+[ée]quipements\s+communs"""
+    RE_ARRETE + r"\s+d['’]\s*ins[ée]curit[ée]\s+des\s+[ée]quipements\s+communs"
 )
 M_CLASS_INS = re.compile(RE_CLASS_INS, re.MULTILINE | re.IGNORECASE)
 #
-RE_INTERD_OCCUP = r"interdiction\s+d['’]\s*(?:occuper|occupation)"
+RE_INTERD_OCCUP = (
+    r"interdiction\s+"
+    + r"(?:d['’]\s*(?:acc[èe]s)\s+et\s+)?"
+    + r"d['’]\s*(?:occuper|occupation)"
+)
 RE_CLASS_INT = (
     RE_ARRETE + r"\s+" + r"(?:portant\s+(?:l['’]\s*)?|d['’]\s*)" + RE_INTERD_OCCUP
 )

@@ -254,8 +254,10 @@ def parse_doc_preamble(
     assert len(txt_copy) == len(txt_body)
 
     # a. ce préambule contient (vers la fin) l'intitulé de l'autorité prenant l'arrêté (obligatoire)
-    if match := P_MAIRE_COMMUNE.search(txt_copy, pream_beg, pream_end):
-        # toute la zone reconnue
+    if matches := list(P_MAIRE_COMMUNE.finditer(txt_copy, pream_beg, pream_end)):
+        # on garde la première occurrence, normalement la seule
+        match = matches[0]
+        # * toute la zone reconnue
         span_beg, span_end = match.span()
         content.append(
             {
@@ -265,7 +267,7 @@ def parse_doc_preamble(
                 "span_typ": "par_autorite",
             }
         )
-        # stocker la donnée de la commune
+        # * stocker la donnée de la commune
         content.append(
             {
                 "span_beg": match.start("commune"),
@@ -274,24 +276,55 @@ def parse_doc_preamble(
                 "span_typ": "adr_ville",  # TODO utiliser un autre nom pour éviter le conflit?
             }
         )
-        # effacer l'empan reconnu
+        # * effacer l'empan reconnu
         txt_copy = (
             txt_copy[:span_beg] + " " * (span_end - span_beg) + txt_copy[span_end:]
         )
+
+        # la ou les éventuelles autres occurrences sont des doublons
+        if len(matches) > 1:
+            logging.warning(
+                f"{fn_pdf}: > 1 mention d'autorité trouvée dans le préambule: {matches}"
+            )
+            for match_dup in matches[1:]:
+                # toute la zone reconnue
+                span_dup_beg, span_dup_end = match_dup.span()
+                content.append(
+                    {
+                        "span_beg": span_dup_beg,
+                        "span_end": span_dup_end,
+                        "span_txt": match_dup.group(0),
+                        "span_typ": "par_autorite_dup",
+                    }
+                )
+                # stocker la donnée de la commune
+                content.append(
+                    {
+                        "span_beg": match_dup.start("commune"),
+                        "span_end": match_dup.end("commune"),
+                        "span_txt": match_dup.group("commune"),
+                        "span_typ": "adr_ville_dup",  # TODO utiliser un autre nom pour éviter le conflit?
+                    }
+                )
+                # effacer l'empan reconnu
+                txt_copy = (
+                    txt_copy[:span_dup_beg]
+                    + " " * (span_dup_end - span_dup_beg)
+                    + txt_copy[span_dup_end:]
+                )
+
         # vérifier que la zone de l'autorité est bien en fin de préambule
         try:
             rem_txt = txt_copy[span_end:pream_end].strip()
             assert rem_txt == ""
         except AssertionError:
-            # FIXME log warning
-            print(
-                f"W: {fn_pdf}\tTexte après l'autorité, en fin de préambule: {rem_txt}"
+            logging.warning(
+                f"{fn_pdf}: Texte après l'autorité, en fin de préambule: {rem_txt}"
             )
             if len(rem_txt) < 2:
                 # s'il ne reste qu'un caractère, c'est probablement une typo => avertir et effacer
-                # FIXME warning
-                print(
-                    f"W: {fn_pdf}\tIgnorer le fragment de texte en fin de préambule, probablement une typo: {rem_txt}"
+                logging.warning(
+                    f"{fn_pdf}: Ignorer le fragment de texte en fin de préambule, probablement une typo: {rem_txt}"
                 )
                 txt_copy = (
                     txt_copy[:span_end]
@@ -396,7 +429,7 @@ def parse_doc_preamble(
         # WIP
         if rem_txt and content[-1]["span_typ"] == "nom_arr":
             arr_nom = content[-1]["span_txt"].replace("\n", " ")
-            print(f"W: {fn_pdf} - nom: {arr_nom}")
+            logging.warning(f"{fn_pdf}: texte restant et nom: {arr_nom}")
         # end WIP
 
     # print(content)  # WIP

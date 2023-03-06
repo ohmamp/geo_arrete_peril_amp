@@ -95,7 +95,8 @@ RE_NOM_VOIE = (
     + r"|\s*[/]\s*"  # séparateur "/" (double adresse: "2 rue X / 31 rue Y 13001 Marseille")
     + r"|\s+et\s+"  # séparateur "et" (double adresse: "2 rue X et 31 rue Y 13001 Marseille")
     + rf"|(?:\s+(?:{RE_NUM_IND_LIST})[,]?\s+{RE_TYP_VOIE})"  # on bute directement sur une 2e adresse (rare mais ça arrive)
-    + r"|\s+à\s+"  # à : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
+    + r"|(?:\s+à\s+(?!vent\s+))"  # à : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
+    + r"|(?<!du )b[âa]timent"  # bâtiment, sauf si "du bâtiment" ("rue du bâtiment" existe dans certaines communes)
     + rf"|\s*{RE_CP}"  # code postal
     + r")"
 )
@@ -109,36 +110,38 @@ RE_COMMUNE = (
 )  # r"""[^,;]+"""  # 1 à 4 tokens séparés par des espaces?
 
 # complément d'adresse: résidence (+ bât ou immeuble)
-RE_RESID = (
-    r"(?:r[ée]sidence|cit[ée])\s+[^,–]+"
-    + r"(?:"
-    + r"(?:\s+[,–-])?"  # séparateur optionnel
-    + r"\s+(?:B[âa]timent|B[âa]t|Immeuble)\s*[^,–]+"
-    + r")?"  # fin bat/imm optionnel
-    + r"(?:"
-    + r"(?:\s+[,–-])?"  # séparateur optionnel
-    + r"\s+(?:Appartement|Appart|Apt)\s*[^,–]+"
-    + r")?"  # fin bat/imm optionnel
+RE_RESID = r"(?:r[ée]sidence|cit[ée])"
+RE_BAT = r"(?:B[âa]timent|B[âa]t|Immeuble)"
+RE_APT = r"(?:Appartement|Appart|Apt)"
+
+# éléments possibles de complément d'adresse
+RE_ADR_COMPL_ELT = (
+    r"(?:"  # groupe global
+    + rf"(?:{RE_RESID}|{RE_BAT}|{RE_APT})"  # résidence | bâtiment | appartement
+    + r"\s+[^,–]+?"  # \s*[^,–]+ # contenu: nom de résidence, du bâtiment, de l'appartement...
+    + r")"
+    # FIXME le lookahead ne fonctionne pas parfaitement ; il faut peut-être faire autrement (ex: 2e routine qui cherche un code postal et retire tout ce qui est à droite)
+    # FIXME ex: "26-28 RUE DE LA BUTINEUSE / 75-83 TRAVERSE DU MOULIN À VENT BATIMENT B - 13015"
+    # (NB: c'est une "lookahead assertion", qui ne consomme pas les caractères)
+    + r"(?=\s*,\s+"  # séparateur "," (ex: 2 rue xxx[,] 13420 GEMENOS)
+    + r"|\s*–\s*"  # séparateur "–"
+    + r"|\s+-\s+"  # séparateur "-"
+    # + r"|\s*[/]\s*"  # séparateur "/" (double adresse: "2 rue X / 31 rue Y 13001 Marseille")
+    # + r"|\s+et\s+"  # séparateur "et" (double adresse: "2 rue X et 31 rue Y 13001 Marseille")
+    + rf"|(?:\s+(?:{RE_NUM_IND_LIST})[,]?\s+{RE_TYP_VOIE})"  # on bute directement sur une 2e adresse (rare mais ça arrive)
+    # + r"|(?:\s+à\s+(?!vent\s+))"  # à : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
+    + rf"|\s*{RE_CP}"  # code postal
+    + r")"
 )
-
-RE_BAT = r"(?:B[âa]timent|B[âa]t|Immeuble)\s*[^,–]+"
-
-RE_APT = r"(?:Appartement|Appart|Apt)\s*[^,–]+"
-
+# un complément d'adresse = un ou plusieurs éléments de complément d'adresse
 RE_ADR_COMPL = (
-    r"(?:"  # optionnel
-    + rf"{RE_BAT}|{RE_APT}"  # bâtiment | appartement
+    r"(?:"  # englobant général
+    + RE_ADR_COMPL_ELT
+    + r"(?:"  # éventuels blocs 2-n
     + r"(?:\s*[,–-]\s*)?"  # séparateur optionnel
-    + r")?"  # fin optionnel
-    + r"(?:"  # optionnel
-    + rf"{RE_BAT}|{RE_APT}"  # bâtiment | appartement
-    + r"(?:\s*[,–-]\s*)?"  # séparateur optionnel
-    + r")?"  # fin optionnel
-    + rf"{RE_RESID}"  # résidence: obligatoire (arbitrairement décidé)
-    + r"(?:"  # optionnel
-    + r"(?:\s*[,–-]\s*)?"  # séparateur optionnel
-    + rf"{RE_BAT}|{RE_APT}"  # bâtiment | appartement
-    + r")*"  # fin optionnel
+    + RE_ADR_COMPL_ELT
+    + r")*"  # fin éventuels blocs 2-n
+    + r")"
 )
 
 # (type et) nom de voie
@@ -189,9 +192,9 @@ P_NUM_IND_VOIE_LIST = re.compile(RE_NUM_IND_VOIE_LIST, re.IGNORECASE | re.MULTIL
 # TODO double adresse: 2 rue X / 31 rue Y 13001 Marseille (RE distincte, pour les named groups)
 RE_ADRESSE = (
     r"(?:"
-    + rf"(?:(?:{RE_ADR_COMPL})(?:\s*[,–-]\s*)?)?"  # WIP (optionnel) complément d'adresse (pré)
+    + rf"(?:(?:{RE_ADR_COMPL})(?:\s*[,–-])?\s*)?"  # WIP (optionnel) complément d'adresse (pré)
     + RE_NUM_IND_VOIE_LIST
-    + rf"(?:(?:\s*[,–-]\s*)?(?:{RE_ADR_COMPL}))?"  # WIP (optionnel) complément d'adresse (post)
+    + rf"(?:(?:\s*[,–-])?\s*(?:{RE_ADR_COMPL}))?"  # WIP (optionnel) complément d'adresse (post)
     + r"(?:"  # (optionnel) code postal et/ou commune
     + r"(?:(?:\s*[,–-])|(?:\s+à))?"  # ex: 2 rue xxx[,] 13420 GEMENOS
     + rf"(?:\s*(?:{RE_CP}))?"  # \s+  # sinon: \s*–\s+ | ...  # optionnel code postal
@@ -288,8 +291,12 @@ def process_adresse_brute(adr_ad_brute: str) -> Dict:
         # récupérer les champs communs à toutes les adresses groupées: complément,
         # code postal et commune
         adr_compl = " ".join(
-            m_adresse[x] for x in ["compl_ini", "compl_fin"] if m_adresse[x] is not None
+            m_adresse[x] for x in ["compl_ini", "compl_fin"] if m_adresse[x]
         )  # FIXME concat?
+        if adr_compl:
+            logging.warning(
+                f"complément: {m_adresse['compl_ini'], m_adresse['compl_fin']} dans adr_ad_brute: {adr_ad_brute}"
+            )
         cpostal = m_adresse["code_postal"]
         commune = m_adresse["commune"]
 

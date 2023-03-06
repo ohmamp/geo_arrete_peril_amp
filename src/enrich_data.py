@@ -106,6 +106,7 @@ def generate_refcadastrale_norm(df_row: NamedTuple) -> str:
                 assert codeinsee[-3:] == arrt
             except AssertionError:
                 # FIXME améliorer le warning ; écrire une expectation sur le dataset final
+                # 2023-03-06: 16 conflits
                 logging.warning(
                     f"{df_row.arr_pdf}: conflit entre code INSEE ({codeinsee}, via code postal {df_row.adr_cpostal}) et référence cadastrale {arrt}"
                 )

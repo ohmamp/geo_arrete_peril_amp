@@ -3,8 +3,11 @@
 """
 
 # TODO améliorer la couverture:
-# data_enr_struct.csv: 289 arrêtés sans référence cadastrale (dont 288 avec un code insee), sur 2452 (11.79%) (2023-03-05)
-# meta_ntxt_doc_struct.csv: 350 arrêtés
+# data_enr_struct.csv: 830 arrêtés sans référence cadastrale sur 2452 (33.85%) (2023-03-05)
+# (dont 288 avec un code insee, dont 5 avec un 13055)
+#
+# 55 arrêtés 13055 (dont 5 sans référence cadastrale):
+# csvcut -c arr_nom_arr,adr_ad_brute,adr_codeinsee,par_ref_cad data/interim/arretes_peril_compil_data_enr_struct.csv |grep ",13055," |less
 
 # FIXME trouver un moyen de forcer le strict parallélisme avec les expressions sans groupes nommés
 

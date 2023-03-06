@@ -1,8 +1,13 @@
-"""Reconnaissance générique des adresses.
+"""Reconnaissance et traitement des adresses.
 
 """
 
+import logging
 import re
+from typing import Dict
+
+from text_utils import normalize_string
+
 
 # TODO gérer "106-108 rue X (102-104 selon cadastre)"
 
@@ -210,3 +215,183 @@ RE_ADRESSE_NG = (
     + r")"
 )
 P_ADRESSE_NG = re.compile(RE_ADRESSE_NG, re.MULTILINE | re.IGNORECASE)
+
+
+def create_adresse_normalisee(adr_fields: Dict, adr_commune_maire: str) -> str:
+    """Créer une adresse normalisée.
+
+    L'adresse normalisée rassemble les champs extraits de l'adresse brute, et
+    la commune extraite par ailleurs, qui doivent être cohérents.
+
+    Parameters
+    ----------
+    adr_fields: dict
+        Champs de l'adresse, extraits de l'adresse brute
+    adr_commune_maire: str
+        Commune de l'arrêté
+
+    Returns
+    -------
+    adr_norm: str
+        Adresse normalisée
+    """
+    adr_commune_brute = adr_fields["adr_commune"]
+    # TODO retenir la graphie standard, prise par exemple dans la table des codes INSEE ?
+    # croisement entre la commune qui prend l'arrêté et l'éventuelle commune extraite de l'adresse brute
+    if (adr_commune_brute is None) and (adr_commune_maire is None):
+        # pas de commune  # TODO émettre un warning?
+        commune = None
+    elif adr_commune_brute is None:
+        commune = adr_commune_maire  # TODO normaliser?
+    elif adr_commune_maire is None:
+        commune = adr_commune_brute  # TODO normaliser?
+    elif (adr_commune_brute is not None) and (adr_commune_maire is not None):
+        # deux mentions potentiellement différentes de la commune ; normalement de simples variantes de graphie
+        # pour le moment on retient la commune qui prend l'arrêté (commune_maire)
+        # TODO comparer les graphies, définir et retenir une forme canonique
+        commune = adr_commune_maire  # TODO normaliser?
+
+    adr_norm_parts = [
+        adr_fields["adr_num"],
+        adr_fields["adr_ind"],
+        adr_fields["adr_voie"],
+        adr_fields["adr_compl"],
+        adr_fields["adr_cpostal"],
+        commune,
+    ]
+    adr_norm = " ".join(
+        x for x in adr_norm_parts if x is not None
+    )  # TODO normaliser la graphie?
+    adr_norm = normalize_string(adr_norm)
+    return adr_norm
+
+
+def process_adresse_brute(adr_ad_brute: str) -> Dict:
+    """Extraire une ou plusieurs adresses d'une adresse brute.
+
+    Chaque adresse comporte différents champs: numéro, indicateur,
+    voie, (éventuellement complement d'adresse,) code postal,
+    commune.
+
+    Parameters
+    ----------
+    adr_ad_brute: str
+        Adresse brute
+
+    Returns
+    -------
+    adresses: list(dict)
+        Liste d'adresses
+    """
+    adresses = []
+    if (adr_ad_brute is not None) and (m_adresse := P_ADRESSE_NG.search(adr_ad_brute)):
+        # récupérer les champs communs à toutes les adresses groupées: complément,
+        # code postal et commune
+        adr_compl = " ".join(
+            m_adresse[x] for x in ["compl_ini", "compl_fin"] if m_adresse[x] is not None
+        )  # FIXME concat?
+        cpostal = m_adresse["code_postal"]
+        commune = m_adresse["commune"]
+
+        # traitement spécifique pour la voie: type + nom (legacy?)
+        # adr_voie = m_adresse["voie"].strip()
+        # if adr_voie == "":
+        #     adr_voie = None
+        #
+        # extraire la ou les adresses courtes, et les séparer s'il y en a plusieurs
+        # on est obligé de réextraire depuis l'adresse brute, car le RE_VOIE est défini
+        # avec un contexte droit (positive lookahead)
+        # (pénible, mais pour le moment ça fonctionne comme ça)
+        adr_lists = list(P_NUM_IND_VOIE_LIST.finditer(adr_ad_brute))
+        # obligatoire: une liste d'adresses courtes (ou une adresse courte)
+        try:
+            assert len(adr_lists) == 1
+        except AssertionError:
+            raise ValueError(f"adr_lists: {adr_lists}")
+        adr_list = adr_lists[0]
+        # on vérifie qu'on travaille exactement au même endroit, pour se positionner au bon endroit
+        assert adr_list.group(0) == m_adresse["num_ind_voie_list"]
+        # on ne peut pas complètement verrouiller avec adr_list.end(), car il manquerait à nouveau le contexte droit (grmpf)
+        adrs = list(P_NUM_IND_VOIE_NG.finditer(adr_ad_brute, adr_list.start()))
+        if not adrs:
+            raise ValueError(f"Aucune adresse NUM_IND_VOIE trouvée dans {adr_list}")
+        for adr in adrs:
+            # pour chaque adresse courte,
+            # - récupérer la voie
+            voie = adr["voie"]
+            # - récupérer la liste (optionnelle) de numéros et d'indicateurs (optionnels)
+            num_ind_list = adr["num_ind_list"]
+            if not num_ind_list:
+                # pas de liste de numéros et indicateurs:
+                logging.warning(f"adresse courte en voie seule: {adr.group(0)}")
+                # ajouter une adresse sans numéro (ni indicateur)
+                adr_fields = {
+                    "adr_num": None,
+                    "adr_ind": None,
+                    "adr_voie": voie,
+                    "adr_compl": adr_compl,
+                    "adr_cpostal": cpostal,
+                    "adr_commune": commune,
+                }
+                adresses.append(adr_fields)
+            else:
+                # on a une liste de numéros (et éventuellement indicateurs)
+                num_inds = list(P_NUM_IND.finditer(num_ind_list))
+                if len(num_inds) > 1:
+                    logging.warning(f"plusieurs numéros et indicateurs: {num_inds}")
+                for num_ind in num_inds:
+                    # pour chaque numéro et éventuel indicateur
+                    num_ind_str = num_ind.group(0)
+                    # extraire le numéro
+                    m_nums = list(P_NUM_VOIE.finditer(num_ind_str))
+                    assert len(m_nums) == 1
+                    num = m_nums[0].group(0)
+                    # extraire le ou les éventuels indicateurs
+                    m_inds = list(P_IND_VOIE.finditer(num_ind_str))
+                    if not m_inds:
+                        # pas d'indicateur: adresse avec juste un numéro
+                        adr_fields = {
+                            "adr_num": num,
+                            "adr_ind": None,
+                            "adr_voie": voie,
+                            "adr_compl": adr_compl,
+                            "adr_cpostal": cpostal,
+                            "adr_commune": commune,
+                        }
+                        adresses.append(adr_fields)
+                    else:
+                        # au moins un indicateur
+                        if len(m_inds) > 1:
+                            logging.warning(f"plusieurs indicateurs: {m_inds}")
+                        for m_ind in m_inds:
+                            # pour chaque indicateur, adresse avec numéro et indicateur
+                            ind = m_ind.group(0)
+                            adr_fields = {
+                                "adr_num": num,
+                                "adr_ind": ind,
+                                "adr_voie": voie,
+                                "adr_compl": adr_compl,
+                                "adr_cpostal": cpostal,
+                                "adr_commune": commune,
+                            }
+                            adresses.append(adr_fields)
+        # WIP code postal disparait
+        if (cpostal is None) and P_CP.search(adr_ad_brute):
+            # WIP survient pour les adresses doubles: la fin de la 2e adresse est envoyée en commune
+            # TODO détecter et analyser spécifiquement les adresses doubles
+            logging.warning(
+                f"aucun code postal extrait de {adr_ad_brute}: {m_adresse.groupdict()}"
+            )
+        # end WIP code postal
+        return adresses
+    else:
+        adr_fields = {
+            "adr_num": None,
+            "adr_ind": None,
+            "adr_voie": None,
+            "adr_compl": None,
+            "adr_cpostal": None,
+            "adr_commune": None,
+        }
+        # TODO liste contenant un seul dict aux champs tous None, ou liste vide (à gérer) ?
+        return [adr_fields]

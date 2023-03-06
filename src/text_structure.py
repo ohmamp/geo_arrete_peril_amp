@@ -245,7 +245,7 @@ RE_DATE_SIGNAT = (
     + rf"|^Arrêté\s+{RE_NO}[\s\S]+?\s+du"  # Peyrolles-en-Provence (en-tête), Martigues (fin)
     + r")"
     + r"\s+(?P<arr_date>"
-    + RE_DATE
+    + RE_DATE  # TODO str_date.RE_DATE_PREC ?
     + r")"
 )
 P_DATE_SIGNAT = re.compile(RE_DATE_SIGNAT, re.MULTILINE | re.IGNORECASE)

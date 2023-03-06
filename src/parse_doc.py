@@ -369,8 +369,12 @@ def parse_doc_preamble(
         # print(f"num arr: {content[-1]['span_txt']}")  # DEBUG
     else:
         # pas de numéro d'arrêté (ex: Aubagne)
-        # FIXME log warning
-        print(f"{fn_pdf}: Pas de numéro d'arrêté\n{txt_copy[pream_beg:pream_end]}")
+        logging.warning(
+            f"{fn_pdf}: Pas de numéro d'arrêté trouvé: "
+            + '"'
+            + txt_copy[pream_beg:pream_end].replace("\n", " ").strip()
+            + '"'
+        )
         pass
 
     # c. entre les deux doit se trouver le titre ou objet de l'arrêté (obligatoire)
@@ -423,9 +427,13 @@ def parse_doc_preamble(
                 }
             )
         else:
-            raise ValueError(
-                f"Pas de texte trouvé pour le nom!?\n{txt_copy[pream_beg:pream_end]}"
+            logging.warning(
+                f"{fn_pdf}: Pas de texte restant pour le nom de l'arrêté: "
+                + '"'
+                + txt_copy[pream_beg:pream_end].replace("\n", " ").strip()
+                + '"'
             )
+
         # WIP
         if rem_txt and content[-1]["span_typ"] == "nom_arr":
             arr_nom = content[-1]["span_txt"].replace("\n", " ")

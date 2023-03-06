@@ -66,12 +66,13 @@ RE_HEADERS = [
         "Martigues",
         r"^Direction\s+des\s+Affaires\s+Civiles,\nJuridiques\s+et\s+Funéraires\nRéglementation\s+Administrative$",
     ),  # p. 1
+    ("Peyrolles-en-Provence", r"^Mairie\s+de\s+Peyrolles-en-Provence$"),  # p. 1
     (
         "Peyrolles-en-Provence",
-        r"^Affaire\s+suivie\s+par\s+:\s+[^\n]+\n(?:[^\n]+\n)?"
-        + r"Service\s+:\s+[^\n]+\n(?:[^\n]+\n)?"
-        + r"Tél\s+:\s+04\.42\.57\.89\.74",
+        r"^Affaire\s+suivie\s+par\s+:\s+[^\n]+\n(?:[^\n]+\n)?",
     ),  # p. 1
+    ("Peyrolles-en-Provence", r"^Service\s+:\s+[^\n]+\n(?:[^\n]+\n)?"),  # p. 1
+    ("Peyrolles-en-Provence", r"^Tél\s+:\s+\d{2}\.\d{2}\.\d{2}\.\d{2}\.\d{2}$"),  # p. 1
     (
         "Roquevaire",
         r"^COMMUNE\s+DE\s+ROQUEVAIRE\n+"

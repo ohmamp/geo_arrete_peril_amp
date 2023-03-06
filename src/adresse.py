@@ -11,6 +11,9 @@ from text_utils import normalize_string
 
 # TODO gérer "106-108 rue X (102-104 selon cadastre)"
 
+# TODO 52 arrêtés 13055 (dont 5 sans référence cadastrale):
+# csvcut -c arr_nom_arr,adr_ad_brute,adr_codeinsee,par_ref_cad data/interim/arretes_peril_compil_data_enr_struct.csv |grep ",13055," |less
+
 # codes postaux de Marseille
 # à conserver même quand il y aura une table CSV de codes postaux ;
 # cette liste permet de changer de stratégie de reconnaissance des parcelles cadastrales
@@ -111,14 +114,22 @@ RE_COMMUNE = (
 
 # complément d'adresse: résidence (+ bât ou immeuble)
 RE_RESID = r"(?:r[ée]sidence|cit[ée])"
-RE_BAT = r"(?:B[âa]timent|B[âa]t|Immeuble)"
+RE_BAT = (
+    r"(?:B[âa]timent|B[âa]t|Immeuble)"
+    + r"(?!\s+"  # negative lookahead qui commence par des espaces
+    + r"(?:"  # alternative
+    + r"sis"  # bâtiment|immeuble sis
+    + r"|menaçant"  # bâtiment|immeuble menaçant (ruine)
+    + r")"  # fin alternative
+    + r")"  # fin negative lookahead
+)
 RE_APT = r"(?:Appartement|Appart|Apt)"
 
 # éléments possibles de complément d'adresse
 RE_ADR_COMPL_ELT = (
     r"(?:"  # groupe global
     + rf"(?:{RE_RESID}|{RE_BAT}|{RE_APT})"  # résidence | bâtiment | appartement
-    + r"\s+[^,–]+?"  # \s*[^,–]+ # contenu: nom de résidence, du bâtiment, de l'appartement...
+    + r"\s*[^,–]*?"  # \s*[^,–]+ # contenu: nom de résidence, du bâtiment, de l'appartement...
     + r")"
     # FIXME le lookahead ne fonctionne pas parfaitement ; il faut peut-être faire autrement (ex: 2e routine qui cherche un code postal et retire tout ce qui est à droite)
     # FIXME ex: "26-28 RUE DE LA BUTINEUSE / 75-83 TRAVERSE DU MOULIN À VENT BATIMENT B - 13015"
@@ -128,7 +139,7 @@ RE_ADR_COMPL_ELT = (
     + r"|\s+-\s+"  # séparateur "-"
     # + r"|\s*[/]\s*"  # séparateur "/" (double adresse: "2 rue X / 31 rue Y 13001 Marseille")
     # + r"|\s+et\s+"  # séparateur "et" (double adresse: "2 rue X et 31 rue Y 13001 Marseille")
-    + rf"|(?:\s+(?:{RE_NUM_IND_LIST})[,]?\s+{RE_TYP_VOIE})"  # on bute directement sur une 2e adresse (rare mais ça arrive)
+    + rf"|(?:\s*(?:{RE_NUM_IND_LIST})[,]?\s+(?:{RE_TYP_VOIE}|la\s+Can[n]?ebi[èe]re))"  # on bute directement sur une 2e adresse (rare mais ça arrive)
     # + r"|(?:\s+à\s+(?!vent\s+))"  # à : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
     + rf"|\s*{RE_CP}"  # code postal
     + r")"
@@ -262,9 +273,7 @@ def create_adresse_normalisee(adr_fields: Dict, adr_commune_maire: str) -> str:
         adr_fields["adr_cpostal"],
         commune,
     ]
-    adr_norm = " ".join(
-        x for x in adr_norm_parts if x is not None
-    )  # TODO normaliser la graphie?
+    adr_norm = " ".join(x for x in adr_norm_parts if x)  # TODO normaliser la graphie?
     adr_norm = normalize_string(adr_norm)
     return adr_norm
 
@@ -291,11 +300,11 @@ def process_adresse_brute(adr_ad_brute: str) -> Dict:
         # récupérer les champs communs à toutes les adresses groupées: complément,
         # code postal et commune
         adr_compl = " ".join(
-            m_adresse[x] for x in ["compl_ini", "compl_fin"] if m_adresse[x]
+            m_adresse[x].strip() for x in ["compl_ini", "compl_fin"] if m_adresse[x]
         )  # FIXME concat?
         if adr_compl:
             logging.warning(
-                f"complément: {m_adresse['compl_ini'], m_adresse['compl_fin']} dans adr_ad_brute: {adr_ad_brute}"
+                f"complément d'adresse trouvé, pré: {m_adresse['compl_ini']} ; post: {m_adresse['compl_fin']} dans adr_ad_brute: {adr_ad_brute}"
             )
         cpostal = m_adresse["code_postal"]
         commune = m_adresse["commune"]
@@ -317,7 +326,12 @@ def process_adresse_brute(adr_ad_brute: str) -> Dict:
             raise ValueError(f"adr_lists: {adr_lists}")
         adr_list = adr_lists[0]
         # on vérifie qu'on travaille exactement au même endroit, pour se positionner au bon endroit
-        assert adr_list.group(0) == m_adresse["num_ind_voie_list"]
+        try:
+            assert adr_list.group(0) == m_adresse["num_ind_voie_list"]
+        except AssertionError:
+            raise ValueError(
+                f"Problème sur {m_adresse.groupdict()}\nadr_list.group(0): {adr_list.group(0)} ; {m_adresse['num_ind_voie_list']}"
+            )
         # on ne peut pas complètement verrouiller avec adr_list.end(), car il manquerait à nouveau le contexte droit (grmpf)
         adrs = list(P_NUM_IND_VOIE_NG.finditer(adr_ad_brute, adr_list.start()))
         if not adrs:

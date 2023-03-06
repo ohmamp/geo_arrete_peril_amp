@@ -104,6 +104,7 @@ P_CAD_AUTRES_NG = re.compile(RE_CAD_AUTRES_NG, re.MULTILINE | re.IGNORECASE)
 
 # Marseille ou autres communes
 RE_CAD_SECNUM = r"(?:" + RE_CAD_MARSEILLE + r"|" + RE_CAD_AUTRES + r")"
+P_CAD_SECNUM = re.compile(RE_CAD_SECNUM, re.IGNORECASE | re.MULTILINE)
 
 # avec le contexte gauche
 RE_PARCELLE = (

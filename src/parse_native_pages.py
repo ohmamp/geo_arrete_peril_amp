@@ -22,7 +22,13 @@ from typing import NamedTuple
 import pandas as pd
 
 from actes import P_STAMP, P_ACCUSE
-from cadastre import P_PARCELLE, P_PARCELLE_MARSEILLE_NOCONTEXT
+from cadastre import (
+    P_PARCELLE,
+    P_PARCELLE_MARSEILLE_NOCONTEXT,
+    P_CAD_SECNUM,
+    P_CAD_AUTRES_NG,
+    P_CAD_MARSEILLE_NG,
+)
 from cadre_reglementaire import (
     P_CGCT,
     P_CGCT_ART,
@@ -435,7 +441,7 @@ def contains_cc_art(page_txt: str) -> bool:
 
 
 # - données
-def get_parcelle(page_txt: str) -> bool:
+def get_parcelle(page_txt: str) -> str:
     """Récupère la ou les références de parcelles cadastrales.
 
     Parameters
@@ -449,11 +455,53 @@ def get_parcelle(page_txt: str) -> bool:
         Référence d'une ou plusieurs parcelles cadastrales si détectées dans le texte,
         None sinon.
     """
-    # TODO extraire plusieurs références
+    # WIP extraire plusieurs références
     if m_parc := P_PARCELLE.search(page_txt):
-        return m_parc.group("cadastre_id")
+        # liste des identifiants de parcelles
+        m_cad_str = m_parc.group("cadastre_id")
+        # WIP
+        if m_parcs_mrs := list(
+            P_CAD_MARSEILLE_NG.finditer(
+                page_txt, m_parc.start("cadastre_id"), m_parc.end("cadastre_id")
+            )
+        ):
+            # essayer d'abord de repérer des références Marseille, plus longues et qui peuvent générer de faux positifs si analysées
+            # comme des références hors Marseille (ex: "208837 D0607 ET 208837 D0290" => "ET 2088" serait repéré comme une parcelle...)
+            m_parcs = m_parcs_mrs
+            if len(m_parcs) > 1:
+                logging.warning(
+                    f"{len(m_parcs)} parcelles (Marseille 1) dans {m_cad_str}: {[x.group(0) for x in m_parcs]}"
+                )
+        elif m_parcs_aut := list(
+            P_CAD_SECNUM.finditer(
+                page_txt, m_parc.start("cadastre_id"), m_parc.end("cadastre_id")
+            )
+        ):
+            # sinon essayer de repérer des références d'autres communes
+            m_parcs = m_parcs_aut
+            if len(m_parcs) > 1:
+                logging.warning(
+                    f"{len(m_parcs)} parcelles (toutes communes) dans {m_cad_str}: {[x.group(0) for x in m_parcs]}"
+                )
+        else:
+            raise ValueError(f"Pas de référence retrouvée dans la zone? {m_cad_str}")
+        # end WIP
+        return m_cad_str
     elif m_parc_mrs := P_PARCELLE_MARSEILLE_NOCONTEXT.search(page_txt):
-        return m_parc_mrs.group("cadastre_id")
+        # liste des identifiants de parcelles
+        m_cad_str = m_parc_mrs.group("cadastre_id")
+        # WIP
+        m_parcs = list(
+            P_CAD_MARSEILLE_NG.finditer(
+                page_txt, m_parc_mrs.start("cadastre_id"), m_parc_mrs.end("cadastre_id")
+            )
+        )
+        if len(m_parcs) > 1:
+            logging.warning(
+                f"{len(m_parcs)} parcelles (Marseille 2) dans {m_cad_str}: {[x.group(0) for x in m_parcs]}"
+            )
+        # end WIP
+        return m_cad_str
     else:
         return None
 

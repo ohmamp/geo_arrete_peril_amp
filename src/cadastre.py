@@ -3,8 +3,8 @@
 """
 
 # TODO améliorer la couverture:
-# data_enr_struct.csv: 830 arrêtés sans référence cadastrale sur 2452 (33.85%) (2023-03-05)
-# (dont 288 avec un code insee, dont 5 avec un 13055)
+# data_enr_struct.csv: 827 arrêtés sans référence cadastrale sur 2452 (33.73%) (2023-03-06)
+# (dont 285 avec un code insee, dont 4 avec un 13055)
 #
 
 # FIXME trouver un moyen de forcer le strict parallélisme avec les expressions sans groupes nommés

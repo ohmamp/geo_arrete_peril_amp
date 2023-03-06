@@ -9,9 +9,10 @@ from typing import Dict
 from text_utils import normalize_string
 
 
-# TODO gérer "106-108 rue X (102-104 selon cadastre)"
+# TODO gérer "106-108 rue X *(102-104 selon cadastre)*"
+# TODO gérer "24 rue X / *angle* 2 rue Y"
 
-# TODO 52 arrêtés 13055 (dont 5 sans référence cadastrale):
+# TODO 47 arrêtés 13055 (dont 4 sans référence cadastrale):
 # csvcut -c arr_nom_arr,adr_ad_brute,adr_codeinsee,par_ref_cad data/interim/arretes_peril_compil_data_enr_struct.csv |grep ",13055," |less
 
 # codes postaux de Marseille
@@ -66,10 +67,12 @@ P_NUM_IND_LIST = re.compile(RE_NUM_IND_LIST, re.IGNORECASE | re.MULTILINE)
 
 # types de voies
 RE_TYP_VOIE = (
-    r"(?:all[ée]e[s]?"
+    r"(?:"
+    + r"all[ée]e[s]?"
+    + r"|ancien\s+chemin"
     + r"|avenue"
-    + r"|boulevard|bd"
-    + r"|(?:ancien\s*)?chemin"
+    + r"|boulevard|bld|bd"
+    + r"|chemin|che|ch"
     + r"|cours"
     + r"|domaine"
     + r"|impasse"
@@ -79,7 +82,9 @@ RE_TYP_VOIE = (
     + r"|route"
     + r"|rue"
     # + r"|voie"  # negative lookahead: \s(?:publique|de\scirculation|d['’]effondrement|d'['’]affichage|sur|le\slong|allant|précitée|administrative|électronique|dématérialisée|de\srecours|de\sconséquence|...)
-    + r"|traverse)"
+    + r"|traverse"
+    + r"|vc"  # "voie communale"
+    + r")"
 )
 
 # code postal

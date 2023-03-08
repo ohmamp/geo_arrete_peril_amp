@@ -7,6 +7,16 @@
 # (dont 285 avec un code insee, dont 4 avec un 13055)
 #
 
+# FIXME variante "immeuble sis 44 rue Barsotti – 13003 MARSEILLE 3EME, parcelle cadastrée\nsection 813H, numéro 86"
+# FIXME faux positifs
+# - "parcelle *du 10* rue du ..."
+# FIXME ? identifiant de parcelle mais pas concerné par le péril:
+# - "limite séparative entre les parcelles 213886 E0047 et 213886 E0089" (105 chemin des Jonquilles)
+# FIXME? référence de parcelle mal formée:
+# - "21388O0142" => "213888O0142" ("7, bld lacordaire.pdf")
+# - "2015899 H0064" => "215899 H0064" ("91 bld Oddo 13015 - Péril simple 06.03.20.pdf")
+# - "23813 E0176" => "203813 E0176" ("Arrêté de péril imminent - 39, rue François Barbini - 13003.pdf")
+
 # FIXME trouver un moyen de forcer le strict parallélisme avec les expressions sans groupes nommés
 
 import re
@@ -109,9 +119,9 @@ P_CAD_SECNUM = re.compile(RE_CAD_SECNUM, re.IGNORECASE | re.MULTILINE)
 # avec le contexte gauche
 RE_PARCELLE = (
     r"(?:"  # contexte gauche
-    + r"(?:cadastré(?:e|es|s)?(?:\s+section)?)"
-    + r"|(?:référence(?:s)?\s+cadastrale(?:s)?)"
-    + r"|(?:référencé(?:e|es|s)?\s+au\s+cadastre\s+sous\s+le)"  # référence au cadastre sous le (n°)
+    + r"(?:cadastr[ée](?:e|es|s)?(?:\s+section)?)"
+    + r"|(?:r[ée]f[ée]rence(?:s)?\s+cadastrale(?:s)?)"
+    + r"|(?:r[ée]f[ée]renc[ée](?:e|es|s)?\s+au\s+cadastre\s+sous\s+le)"  # référence au cadastre sous le (n°)
     + r"|(?:parcelle(?:s)?)"
     + r")\s+"  # fin contexte gauche
     + r"(?P<cadastre_id>"  # named group pour la ou les références cadastrales

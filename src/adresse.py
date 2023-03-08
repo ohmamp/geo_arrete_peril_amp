@@ -144,7 +144,7 @@ RE_ADR_COMPL_ELT = (
     + r"|\s+-\s+"  # séparateur "-"
     # + r"|\s*[/]\s*"  # séparateur "/" (double adresse: "2 rue X / 31 rue Y 13001 Marseille")
     # + r"|\s+et\s+"  # séparateur "et" (double adresse: "2 rue X et 31 rue Y 13001 Marseille")
-    + rf"|(?:\s*(?:{RE_NUM_IND_LIST})[,]?\s+(?:{RE_TYP_VOIE}|la\s+Can[n]?ebi[èe]re))"  # on bute directement sur une 2e adresse (rare mais ça arrive)
+    + rf"|(?:\s*(?:{RE_NUM_IND_LIST})(?:\s*,)?\s+(?:{RE_TYP_VOIE}|la\s+Can[n]?ebi[èe]re))"  # on bute directement sur une 2e adresse (rare mais ça arrive)
     # + r"|(?:\s+à\s+(?!vent\s+))"  # à : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
     + rf"|\s*{RE_CP}"  # code postal
     + r")"
@@ -176,7 +176,7 @@ P_VOIE = re.compile(RE_VOIE, re.IGNORECASE | re.MULTILINE)
 # numéro, indicateur et voie
 RE_NUM_IND_VOIE = (
     r"(?:"
-    + rf"(?:(?:{RE_NUM_IND_LIST})[,]?\s+)?"  # numéro et indice de répétition (ex: 1 bis)  # ?P<num_ind_list>
+    + rf"(?:(?:{RE_NUM_IND_LIST})(?:\s*,)?\s+)?"  # numéro et indice de répétition (ex: 1 bis)  # ?P<num_ind_list>
     + rf"({RE_VOIE})"  # type et nom de la voie (ex: rue Jean Roques ; la Canebière)  # ?P<voie>
     + r")"
 )

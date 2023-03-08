@@ -156,7 +156,7 @@ EXCLUDE_FILES = [
 ]
 
 EXCLUDE_FIXME_FILES = [
-    # fichiers problématiques
+    # FIXME fichiers problématiques
     "2, rue Kruger Gardanne - PO.pdf",  # FIXME "Considérant", "Vu", "Considérant" => autoriser ces transitions ?
     "2 rue Léon Gambetta Martigues.pdf",  # FIXME erreur "Pas de Vu en page 1" mais se produit en p. 3 !?
     "69 rue Félix Piat 13003 MARSEILLE.pdf",  # FIXME traiter spécifiquement: ré-océriser tout ou seulement la p. 2 ? la p. 2 est la carte du cadastre, qui contient du texte invisible car en sous-couche du texte principal !

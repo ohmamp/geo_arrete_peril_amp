@@ -194,28 +194,73 @@ RE_PROPRIO = (
 )
 P_PROPRIO = re.compile(RE_PROPRIO, re.MULTILINE | re.IGNORECASE)
 
+# expression générique "sis <ADRESSE> | domicilié (au)? <ADRESSE>"
+RE_SIS_DOMICILIE_ADR = (
+    r"(?:"  # début global
+    + r"(?:"
+    + r"(?:sis(?:e|es)?)"
+    + r"|(?:domicilié(?:e|s|es)?(?:\s+(?:au|à))?)"
+    + r")(?:\s*,)?\s+"
+    + rf"(?:{RE_ADRESSE})?"
+    + r")"  # fin global
+)
+
+# syndic ou administrateur, en formes courtes et longues
+RE_SYNDIC_ADMIN = (
+    r"(?:"
+    + r"(?:syndic(?:\s+de\s+copropriété)?)"
+    + r"|(?:syndicat\s+des\s+copropriétaires)"
+    + r"|(?:administrateur\s+(?:judiciaire|provisoire))"
+    + r")"
+)
+
 # - syndic
+# FIXME retrouver le syndic de "/home/mathieu/dev/agperils-amp/data/raw/arretes_peril_compil/évacuation au 08.11.2019.pdf"
+# FIXME retrouver le syndic de "/home/mathieu/dev/agperils-amp/data/raw/arretes_peril_compil/modif 57 rue Louis Merlino 13014 le Super Belvédère.pdf"
+# FIXME (syndic) "bénévole X"
+# FIXME "pris en la personne ..."
 # TODO syndic judiciaire?
 # TODO M. ... en qualité de syndic?
-# TODO administrateur?
 # ex: "Considérant que le syndicat des copropriétaires de cet immeuble est pris en la personne du Cabinet xxxx syndic, domicilié 11, avenue du Dol - 13001 MARSEILLE,"
 RE_SYNDIC = (
-    r"("
-    # + r"le syndic(?:\s+de\s+copropriété)?"
+    r"(?:"
+    + r"(?P<syndic_pre>"
+    # contexte 1: syndic|administrateur (de cet immeuble) pris en la personne de|du <syndic>
+    r"(?:"
     # + r"|syndic\s+:"
-    + r"(?:syndic|syndicat\s+des\s+copropriétaires)"
-    + r"(?:\s+de\s+(?:cet\s+|l['’]\s*)(?:immeuble|ensemble\s+immobilier))?"
-    + r"(?:\s+est|,)?"  # + r"(?:\s+est|,)?"  # FIXME confusions possibles ancien/nouveau syndic (ex: "1 cours Jean Ballard 13001.pdf")
-    + r"\s+pris\s+en\s+la\s+personne\s+(?:du|de)"
-    + r"|syndicat\s+des\s+copropriétaires\s+représenté\s+par"
-    + r")\s+"
-    + r"(?P<syndic>[^,.]+?)"  # [\s\S]+?
+    + RE_SYNDIC_ADMIN
+    + r"(?:"  # optionnel: immeuble
+    + r"\s+de\s+(?:cet\s+|l['’]\s*)(?:immeuble|ensemble\s+immobilier)"
+    # + rf"(?:\s+sis\s+{RE_ADRESSE})?"  # option dans l'option: adresse de l'immeuble
+    + r")?"  # fin optionnel: immeuble
+    + r"(?:\s+est|(?:\s*,))?"  # + r"(?:\s+est|,)?"  # FIXME confusions possibles ancien/nouveau syndic (ex: "1 cours Jean Ballard 13001.pdf")
+    + r"\s+pris\s+en\s+la\s+personne\s+(?:de|du)"
+    + r")"  # fin contexte 1
+    # contexte 2: syndicat des copropriétaires représenté par <syndic>
+    + r"|(?:syndicat\s+des\s+copropriétaires(?:\s*,)?\s+représenté\s+par"
+    + r"(?:\s+(?:le\s+syndic)|(?:l['’]\s*administrateur\s+(?:judiciaire|provisoire)))?"
+    + r")"  # fin contexte 2
+    + r")\s+"  # fin syndic_pre
+    + r"(?P<syndic>"
+    # + r"(?:Cabinet\s+ACTIV[’']\s+SYNDIC)"
+    # + r"(?:Cabinet\s+LE\s+BON\s+SYNDIC)"
+    + r"(?:M\s*[.]\s+[^,]+?)"  # M. (monsieur) xxx
+    + r"|(?:(le\s+)?cabinet\s+[^,]+?)"
+    + r"|(?:[^,.]+?)"
+    + r")"  # attrape tout  # [\s\S]+?  # fin alternative syndic
     # + r"(?:(?:,)?\s*syndic)?"  # "syndic" peut faire partie du nom: "le bon syndic", "activ' syndic"
+    + r"(?:"  # contexte droit: rien (,|.) ou adresse du syndic et éventuellement qualité
+    + r"(?:\s*[.]\s+)"  # s'arrêter au point ".", sauf pour "M." (monsieur)
+    + r"|(?:\s*,\s+(?!(?:sis|domicilié|syndic|administrateur)))"  # s'arrêter à la virgule "," sauf si... negative lookahead
+    + r"|(?P<syndic_post>"
+    + r"(?:\s*,)?\s+"  # adresse et/ou qualité du syndic, mais il faut au moins l'un des deux
     + r"(?:"
-    + r"[,.]"
-    + r"|[,]?\s+(?:sis(?:e)?|domicilié(?:e)?)\s+"
-    + rf"{RE_ADRESSE}"
-    + r")"
+    + rf"(?:(?:{RE_SIS_DOMICILIE_ADR})(?:(?:\s*,)?\s+{RE_SYNDIC_ADMIN})?)"  # adresse + éventuellement qualité du syndic|admin
+    + rf"|(?:(?:{RE_SYNDIC_ADMIN})(?:(?:\s*,)?\s+{RE_SIS_DOMICILIE_ADR})?)"  # qualité du syndic|admin + éventuellement adresse
+    + r")"  # fin optionnel: adresse et/ou qualité du syndic
+    + r")"  # fin syndic_post
+    + r")"  # fin contexte droit
+    + r")"  # fin global
 )
 M_SYNDIC = re.compile(RE_SYNDIC, re.MULTILINE | re.IGNORECASE)
 

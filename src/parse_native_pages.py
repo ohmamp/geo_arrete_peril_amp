@@ -8,6 +8,8 @@ Découpe chaque arrêté en zones:
 * postambule (?)
 """
 
+# FIXME comment gérer les administrateurs provisoires? syndic ou gestionnaire? ("Considérant que l’Administrateur provisoire de cet immeuble est pris en la personne du SCP...")
+
 # TODO repérer les rapports d'expertise (ex: "mise en sécurité 15 rue de la Mairie Peyrolles en Provence.pdf" p. 3 à 10)
 # TODO repérer les citations des textes réglementaires en annexe (ex: "mise en sécurité 15 rue de la Mairie Peyrolles en Provence.pdf" p. 11 à 15)
 # TODO mieux traiter les pages d'AR @ctes (ex: "mise en sécurité 15 rue de la Mairie Peyrolles en Provence.pdf" p. 16)
@@ -455,6 +457,17 @@ def get_parcelle(page_txt: str) -> str:
         Référence d'une ou plusieurs parcelles cadastrales si détectées dans le texte,
         None sinon.
     """
+    # WIP chercher le ou les empans distincts contenant au moins une référence à une parcelle
+    if matches := list(P_PARCELLE.finditer(page_txt)):
+        logging.warning(
+            f"{len(matches)} empans PARCELLE: {[x.group(0) for x in matches]}"
+        )
+    if matches := list(P_PARCELLE_MARSEILLE_NOCONTEXT.finditer(page_txt)):
+        logging.warning(
+            f"{len(matches)} empans PARC_MRS: {[x.group(0) for x in matches]}"
+        )
+    # end WIP
+
     # WIP extraire plusieurs références
     if m_parc := P_PARCELLE.search(page_txt):
         # liste des identifiants de parcelles
@@ -581,8 +594,13 @@ def get_syndic(page_txt: str) -> bool:
     syndic: str
         Nom de syndic si détecté, None sinon.
     """
-    m_synd = M_SYNDIC.search(page_txt)
-    return m_synd.group("syndic") if m_synd is not None else None
+    if m_synd := M_SYNDIC.search(page_txt):
+        logging.warning(
+            f"Syndic: {m_synd.group(0)}\n{m_synd.group('syndic_pre')} / {m_synd.group('syndic')} / {m_synd.group('syndic_post')}"
+        )
+        return m_synd.group("syndic")
+    else:
+        return None
 
 
 def get_gest(page_txt: str) -> str:
@@ -835,6 +853,7 @@ def spot_text_structure(
     if pd.notna(df_row.pagetxt) and (
         not df_row.exclude
     ):  # WIP " and (not df_row.exclude)"
+        logging.warning(f"{df_row.pdf} / {df_row.pagenum}")  # WIP
         rec_struct = {
             # @ctes
             "has_stamp": is_stamped_page(df_row.pagetxt),

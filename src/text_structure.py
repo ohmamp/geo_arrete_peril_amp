@@ -208,13 +208,17 @@ RE_SIS_DOMICILIE_ADR = (
 # syndic ou administrateur, en formes courtes et longues
 RE_SYNDIC_ADMIN = (
     r"(?:"
-    + r"(?:syndic(?:\s+de\s+copropriété)?)"
+    + r"(?:syndic(?:\s+(?:bénévole|judiciaire|provisoire))?(?:\s+de\s+copropriété)?)"
     + r"|(?:syndicat\s+des\s+copropriétaires)"
     + r"|(?:administrateur\s+(?:judiciaire|provisoire))"
     + r")"
 )
 
 # - syndic
+# FIXME nettoyer le texte en amont: convertir les accents combinés (U+0300 \xcc\x80, U+0301 \xcc\x81...): e\xcc\x81 => é
+# ====> https://docs.python.org/3/howto/unicode.html#comparing-strings
+# RESUME HERE
+
 # FIXME retrouver le syndic de "/home/mathieu/dev/agperils-amp/data/raw/arretes_peril_compil/évacuation au 08.11.2019.pdf"
 # FIXME retrouver le syndic de "/home/mathieu/dev/agperils-amp/data/raw/arretes_peril_compil/modif 57 rue Louis Merlino 13014 le Super Belvédère.pdf"
 # FIXME (syndic) "bénévole X"
@@ -238,14 +242,19 @@ RE_SYNDIC = (
     + r")"  # fin contexte 1
     # contexte 2: syndicat des copropriétaires représenté par <syndic>
     + r"|(?:syndicat\s+des\s+copropriétaires(?:\s*,)?\s+représenté\s+par"
-    + r"(?:\s+(?:le\s+syndic)|(?:l['’]\s*administrateur\s+(?:judiciaire|provisoire)))?"
+    + r"(?:\s+"
+    + r"(?:le\s+syndic(?:\s+(?:bénévole|judiciaire|provisoire))?)"
+    + r"|(?:l['’]\s*administrateur\s+(?:judiciaire|provisoire))"
+    + r")?"
     + r")"  # fin contexte 2
     + r")\s+"  # fin syndic_pre
     + r"(?P<syndic>"
-    # + r"(?:Cabinet\s+ACTIV[’']\s+SYNDIC)"
-    # + r"(?:Cabinet\s+LE\s+BON\s+SYNDIC)"
-    + r"(?:M\s*[.]\s+[^,]+?)"  # M. (monsieur) xxx
-    + r"|(?:(le\s+)?cabinet\s+[^,]+?)"
+    + r"(?:(?:M\s*[.]|Mr(\s*[.])?|Mme|Monsieur|Madame)\s+[^,]+?)"  # M. (monsieur) xxx
+    # WIP syndics avec le terme "syndic" dans leur nom, pour éviter la capture à droite
+    + r"|(?:(le\s+)?Cabinet\s+ACTIV[’']\s+SYNDIC)"
+    + r"|(?:(le\s+)?Cabinet\s+LE\s+BON\s+SYNDIC)"
+    # end WIP syndics ayant "syndic" dans leur nom
+    + r"|(?:(?:(le\s+)?cabinet|(?:(l['’]\s*)?agence))\s+[^,]+?)"
     + r"|(?:[^,.]+?)"
     + r")"  # attrape tout  # [\s\S]+?  # fin alternative syndic
     # + r"(?:(?:,)?\s*syndic)?"  # "syndic" peut faire partie du nom: "le bon syndic", "activ' syndic"

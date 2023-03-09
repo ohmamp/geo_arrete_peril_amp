@@ -43,7 +43,12 @@ from cadre_reglementaire import (
     P_CC,
     P_CC_ART,
 )
-
+from ents_logement import (
+    P_PROPRIO,  # fallback propriétaire (WIP)
+    P_PROPRIO_MONO,  # mono-propriétaire (WIP)
+    P_SYNDIC,
+    P_GEST,
+)
 from typologie_securite import (
     #   * classification + procédure d'urgence
     M_CLASS_PS_PO,
@@ -85,10 +90,6 @@ from text_structure import (
     P_MAIRE_COMMUNE,
     M_ADR_DOC,
     RE_ADR_RCONT,  # pour le nettoyage de l'adresse récupérée
-    P_PROPRIO,  # fallback propriétaire (WIP)
-    P_PROPRIO_MONO,  # mono-propriétaire (WIP)
-    M_SYNDIC,
-    P_GEST,
     P_DATE_SIGNAT,
 )
 
@@ -594,7 +595,7 @@ def get_syndic(page_txt: str) -> bool:
     syndic: str
         Nom de syndic si détecté, None sinon.
     """
-    if m_synd := M_SYNDIC.search(page_txt):
+    if m_synd := P_SYNDIC.search(page_txt):
         logging.warning(
             f"Syndic: {m_synd.group(0)}\n{m_synd.group('syndic_pre')} / {m_synd.group('syndic')} / {m_synd.group('syndic_post')}"
         )

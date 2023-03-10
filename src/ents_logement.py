@@ -68,24 +68,30 @@ RE_PROPRIO = (
 P_PROPRIO = re.compile(RE_PROPRIO, re.MULTILINE | re.IGNORECASE)
 
 
-# syndic ou administrateur, en formes courtes et longues
-RE_SYNDIC_ADMIN = (
-    r"(?:"
-    + r"(?:syndic(?:\s+(?:bénévole|judiciaire|provisoire))?(?:\s+de\s+copropriété)?)"
-    + r"|(?:syndicat\s+des\s+copropriétaires)"
-    + r"|(?:administrateur\s+(?:judiciaire|provisoire))"
+# syndic en formes courtes et longues
+RE_SYNDIC = (
+    r"(?:syndic"
+    + r"(?:\s+(?:bénévole|judiciaire|provisoire))?"
+    + r"(?:\s+de\s+copropriété)?"
     + r")"
 )
+# administrateur judiciaire|provisoire
+RE_ADMIN = r"(?:administrateur\s+(?:judiciaire|provisoire))"
+# syndicat des copropriétaires
+RE_SYNDICAT_COPRO = r"(?:syndicat\s+des\s+copropriétaires)"
+
+
+RE_SYNDIC_ADMIN = r"(?:" + RE_SYNDIC + rf"|{RE_SYNDICAT_COPRO}" + rf"|{RE_ADMIN}" + r")"
 
 # - syndic
 # FIXME retrouver le syndic de "/home/mathieu/dev/agperils-amp/data/raw/arretes_peril_compil/évacuation au 08.11.2019.pdf"
 # FIXME retrouver le syndic de "/home/mathieu/dev/agperils-amp/data/raw/arretes_peril_compil/modif 57 rue Louis Merlino 13014 le Super Belvédère.pdf"
-# FIXME (syndic) "bénévole X"
 # FIXME "pris en la personne ..."
 # TODO syndic judiciaire?
 # TODO M. ... en qualité de syndic?
 # ex: "Considérant que le syndicat des copropriétaires de cet immeuble est pris en la personne du Cabinet xxxx syndic, domicilié 11, avenue du Dol - 13001 MARSEILLE,"
-RE_SYNDIC = (
+RE_PRIS_EN_LA_PERSONNE_DE = r"(?:pris\s+en\s+la\s+personne\s+(?:de\s+|du\s+|d['’]\s*)?)"
+RE_SYNDIC_LONG = (
     r"(?:"
     + r"(?P<syndic_pre>"
     # contexte 1: syndic|administrateur (de cet immeuble) pris en la personne de|du <syndic>
@@ -97,16 +103,17 @@ RE_SYNDIC = (
     # + rf"(?:\s+sis\s+{RE_ADRESSE})?"  # option dans l'option: adresse de l'immeuble
     + r")?"  # fin optionnel: immeuble
     + r"(?:\s+est|(?:\s*,))?"  # + r"(?:\s+est|,)?"  # FIXME confusions possibles ancien/nouveau syndic (ex: "1 cours Jean Ballard 13001.pdf")
-    + r"\s+pris\s+en\s+la\s+personne\s+(?:de|du)"
+    + rf"\s+{RE_PRIS_EN_LA_PERSONNE_DE}"
     + r")"  # fin contexte 1
     # contexte 2: syndicat des copropriétaires représenté par <syndic>
-    + r"|(?:syndicat\s+des\s+copropriétaires(?:\s*,)?\s+représenté\s+par"
-    + r"(?:\s+"
-    + r"(?:le\s+syndic(?:\s+(?:bénévole|judiciaire|provisoire))?)"
-    + r"|(?:l['’]\s*administrateur\s+(?:judiciaire|provisoire))"
-    + r")?"
+    + rf"|(?:{RE_SYNDICAT_COPRO}(?:\s*,)?\s+représenté\s+par\s+"
+    + r"(?:"  # optionnel: le syndic | l'admin | un admin pris en la personne de
+    + rf"(?:le\s+{RE_SYNDIC}\s+)"  # TODO (pris en la personne de...)?
+    + rf"|(?:l['’]\s*{RE_ADMIN}\s+(?:{RE_PRIS_EN_LA_PERSONNE_DE})?)"  # TODO (pris en la personne de ...)?
+    + rf"|(?:un\s+{RE_ADMIN}\s+{RE_PRIS_EN_LA_PERSONNE_DE})"  # WIP à généraliser à "un syndic..."?
+    + r")?"  # fin optionnel
     + r")"  # fin contexte 2
-    + r")\s+"  # fin syndic_pre
+    + r")"  # fin syndic_pre
     + r"(?P<syndic>"
     # - personnes physiques ; il faut notamment capturer explicitement les formes "M./Mr."
     # sinon le "." arrête la capture (et le syndic extrait est seulement "M" ou "Mr"...)
@@ -128,13 +135,14 @@ RE_SYNDIC = (
     + r"(?:\s*,)?\s+"  # adresse et/ou qualité du syndic, mais il faut au moins l'un des deux
     + r"(?:"
     + rf"(?:(?:{RE_SIS_DOMICILIE_ADR})(?:(?:\s*,)?\s+{RE_SYNDIC_ADMIN})?)"  # adresse + éventuellement qualité du syndic|admin
-    + rf"|(?:(?:{RE_SYNDIC_ADMIN})(?:(?:\s*,)?\s+{RE_SIS_DOMICILIE_ADR})?)"  # qualité du syndic|admin + éventuellement adresse
+    + rf"|(?:(?:(?<!un ){RE_SYNDIC_ADMIN})(?:(?:\s*,)?\s+{RE_SIS_DOMICILIE_ADR})?)"  # qualité du syndic|admin + éventuellement adresse
     + r")"  # fin optionnel: adresse et/ou qualité du syndic
     + r")"  # fin syndic_post
     + r")"  # fin contexte droit
     + r")"  # fin global
 )
-P_SYNDIC = re.compile(RE_SYNDIC, re.MULTILINE | re.IGNORECASE)
+P_SYNDIC = re.compile(RE_SYNDIC_LONG, re.MULTILINE | re.IGNORECASE)
+
 
 # gestionnaire
 RE_GEST = (
@@ -143,9 +151,9 @@ RE_GEST = (
     + r"(?:"
     + r"gestionnaire"
     + r"\s+de\s+(?:cet\s+|l['’]\s*)immeuble"
-    + r"(?:"  # alternative: est | ( est|,) pris en la personne de|du
-    + r"(?:\s+est\s+(?!pris\s+en\s+la\s+personne\s+))"
-    + r"|(?:(?:\s+est|\s*,)?\s+pris\s+en\s+la\s+personne\s+(?:du|de)\s+)"
+    + r"(?:"  # alternative: est | ( est|,)? pris en la personne de|du
+    + rf"(?:\s+est\s+(?!{RE_PRIS_EN_LA_PERSONNE_DE}))"
+    + rf"|(?:(?:\s+est|\s*,)?\s+{RE_PRIS_EN_LA_PERSONNE_DE})"
     + r")"  # fin alternative "est"
     + r")"
     # fin contexte gauche

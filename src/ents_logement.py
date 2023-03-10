@@ -35,7 +35,7 @@ RE_PROPRIO_MONO = (
     + r"|au(?:x)?"
     + r")"
     + r"(?P<proprio>[^,–]+)"  # identité du propriétaire
-    + r"[,]?\s+(?:sis(?:e)?|domicilié(?:e)?)\s+"
+    + r"[,]?\s+(?:sis(?:e)?|domicili[ée](?:e)?)\s+"
     + r"(?P<prop_adr>"
     + r"[\s\S]*?"  # complément d'adresse non-capturé dans RE_ADRESSE (ex: "Les toits de la Pounche")
     + rf"{RE_ADRESSE}"  # adresse du propriétaire
@@ -78,10 +78,6 @@ RE_SYNDIC_ADMIN = (
 )
 
 # - syndic
-# FIXME nettoyer le texte en amont: convertir les accents combinés (U+0300 \xcc\x80, U+0301 \xcc\x81...): e\xcc\x81 => é
-# ====> https://docs.python.org/3/howto/unicode.html#comparing-strings
-# RESUME HERE
-
 # FIXME retrouver le syndic de "/home/mathieu/dev/agperils-amp/data/raw/arretes_peril_compil/évacuation au 08.11.2019.pdf"
 # FIXME retrouver le syndic de "/home/mathieu/dev/agperils-amp/data/raw/arretes_peril_compil/modif 57 rue Louis Merlino 13014 le Super Belvédère.pdf"
 # FIXME (syndic) "bénévole X"

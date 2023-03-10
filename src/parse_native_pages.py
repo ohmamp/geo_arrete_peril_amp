@@ -574,9 +574,11 @@ def get_proprio(page_txt: str) -> bool:
     """
     # on essaie d'abord de détecter un mono-propriétaire (WIP)
     if match := P_PROPRIO_MONO.search(page_txt):
+        logging.warning(f"mono-propriétaire: {match}\n{match.group(0)}")
         return match.group("proprio")
     # puis sinon les multi-propriétaires (TODO proprement)
     elif match := P_PROPRIO.search(page_txt):
+        logging.warning(f"mono- ou multi-propriétaire: {match}\n{match.group(0)}")
         return match.group("proprio")
     else:
         return None

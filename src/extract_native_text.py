@@ -6,6 +6,8 @@ Le texte natif représente:
 * pour les PDF natifs ("PDF texte"), l'intégralité du texte ;
 * pour les PDF non-natifs ("PDF image"), du texte extrait par OCR (de qualité variable)
 ou des fragments de texte issus d'ajout d'objets natifs, eg. tampon, accusé de réception.
+
+Le texte est normalisé en forme NFC: <https://docs.python.org/3/howto/unicode.html#comparing-strings>.
 """
 
 # TODO layout sur 2 colonnes (ex: Peyrolles)
@@ -27,6 +29,7 @@ from importlib.metadata import version  # pour récupérer la version de pdftote
 import logging
 from pathlib import Path
 from typing import NamedTuple
+import unicodedata
 
 import pandas as pd
 import pdftotext
@@ -53,6 +56,8 @@ def extract_native_text_pdftotext(
     sinon aucun fichier TXT n'est produit et un code d'erreur est renvoyé.
 
     Les pages sont séparées par un "form feed" ("\x0c", "\f" en python).
+
+    Le texte est normalisé en forme NFC (NEW 2023-03-10, NFC plutôt que NFKC car ce dernier transforme "º" en "o").
 
     Parameters
     ----------
@@ -82,10 +87,13 @@ def extract_native_text_pdftotext(
     # pdftotext.PDF a getitem(), mais ne permet pas de récupérer un slice
     # donc il faut créer un range et itérer manuellement
     txt = "".join(pdf[i] for i in range(page_beg_ix, page_end))
-    if txt:
+    # normaliser le texte extrait en forme NFC
+    norm_txt = unicodedata.normalize("NFC", txt)
+    #
+    if norm_txt:
         # stocker le texte dans un fichier .txt
         with open(fp_txt_out, "w") as f_txt:
-            f_txt.write(txt)
+            f_txt.write(norm_txt)
         # code ok
         return 0
     else:

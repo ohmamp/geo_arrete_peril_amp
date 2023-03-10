@@ -35,7 +35,7 @@ RE_PROPRIO_MONO = (
     + r"|au(?:x)?"
     + r")"
     + r"(?P<proprio>[^,–]+)"  # identité du propriétaire
-    + r"[,]?\s+(?:sis(?:e)?|domicili[ée](?:e)?)\s+"
+    + r"[,]?\s+(?:sis(?:e)?|domicili[ée](?:e)?)\s+(?:[,–-]\s*)?"
     + r"(?P<prop_adr>"
     + r"[\s\S]*?"  # complément d'adresse non-capturé dans RE_ADRESSE (ex: "Les toits de la Pounche")
     + rf"{RE_ADRESSE}"  # adresse du propriétaire
@@ -119,11 +119,11 @@ RE_SYNDIC_LONG = (
     # sinon le "." arrête la capture (et le syndic extrait est seulement "M" ou "Mr"...)
     + r"(?:(?:M\s*[.]|Mr(\s*[.])?|Mme|Monsieur|Madame)\s+[^,]+?)"
     # - liste explicite de syndics dont le nom inclut "syndic", pour éviter la capture à droite
-    + r"|(?:(le\s+)?Cabinet\s+ACTIV[’']\s+SYNDIC)"
+    + r"|(?:(le\s+)?Cabinet\s+ACTIV[’']?\s+SYNDIC)"
     + r"|(?:(le\s+)?Cabinet\s+LE\s+BON\s+SYNDIC)"
     # - "le cabinet | l'agence immobilière ..."
     + r"|(?:"
-    + r"(?:(le\s+)?cabinet|(?:(l['’]\s*)?agence(?:immobili[èe]re)?))"
+    + r"(?:(?:(le\s+)?cabinet)|(?:(l['’]\s*)?agence(?:\s+immobili[èe]re)?))"
     + r"\s+[^,]+?"  # nom attrape-tout sauf virgules
     + r")"
     + r"|(?:[^,.]+?)"  # attrape tout, sauf les points (acceptés pour les personnes physiques et cabinets)  # [\s\S]+?

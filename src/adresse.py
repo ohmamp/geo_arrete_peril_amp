@@ -22,7 +22,7 @@ from text_utils import normalize_string
 CP_MARSEILLE = [f"130{i:02}" for i in range(1, 17)]
 
 # regex générique pour ce qu'on considérera comme un "token" (plus ou moins, un mot) dans un nom de voie ou de commune
-RE_TOK = r"[^,;:–(\s]+"
+RE_TOK = r"[^,;:–(\s.]+"  # r"[A-Za-zÀ-ÿ]+"  # r"\w+"
 
 # TODO comment gérer plusieurs numéros? ex: "10-12-14 boulevard ...""
 # pour le moment on ne garde que le premier
@@ -67,7 +67,8 @@ P_NUM_IND_LIST = re.compile(RE_NUM_IND_LIST, re.IGNORECASE | re.MULTILINE)
 
 # types de voies
 RE_TYP_VOIE = (
-    r"(?:"
+    r"(?:\b"  # "word boundary" pour éviter les matches sur "cou*che*", "par*cours*" etc
+    + r"(?:"
     + r"all[ée]e[s]?"
     + r"|ancien\s+chemin"
     + r"|avenue"
@@ -84,6 +85,7 @@ RE_TYP_VOIE = (
     # + r"|voie"  # negative lookahead: \s(?:publique|de\scirculation|d['’]effondrement|d'['’]affichage|sur|le\slong|allant|précitée|administrative|électronique|dématérialisée|de\srecours|de\sconséquence|...)
     + r"|traverse"
     + r"|vc"  # "voie communale"
+    + r")"
     + r")"
 )
 
@@ -103,19 +105,19 @@ RE_NOM_VOIE = (
     + r"|\s*[/]\s*"  # séparateur "/" (double adresse: "2 rue X / 31 rue Y 13001 Marseille")
     + r"|\s+et\s+"  # séparateur "et" (double adresse: "2 rue X et 31 rue Y 13001 Marseille")
     + rf"|(?:\s+(?:{RE_NUM_IND_LIST})[,]?\s+{RE_TYP_VOIE})"  # on bute directement sur une 2e adresse (rare mais ça arrive)
-    + r"|(?:\s+à\s+(?!vent\s+))"  # à : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
-    + r"|(?<!du )b[âa]timent"  # bâtiment, sauf si "du bâtiment" ("rue du bâtiment" existe dans certaines communes)
-    + rf"|\s*{RE_CP}"  # code postal
+    + r"|(?:\s+à\s+(?!vent\s+))"  # borne droite "à", sauf "à vent" : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
+    + r"|(?<!du )b[âa]timent"  # borne droite "bâtiment", sauf si "du bâtiment" ("rue du bâtiment" existe dans certaines communes)
+    + rf"|\s*{RE_CP}"  # borne droite <code_postal>
     + r")"
 )
 
 # TODO s'arrêter quand on rencontre une référence cadastrale (lookahead?)
 RE_COMMUNE = (
-    rf"[A-Z]{RE_TOK}"  # au moins 1 token qui commence par une majuscule
-    + r"(?:[ -]"
+    rf"[A-ZÀ-Ý]{RE_TOK}"  # au moins 1 token qui commence par une majuscule
+    + r"(?:[ '’-]"  # séparateur: tiret, apostrophe, espace
     + rf"{RE_TOK}"
-    + r"){0,4}"  # + 0 à 3 tokens séparés par espace ou tiret
-)  # r"""[^,;]+"""  # 1 à 4 tokens séparés par des espaces?
+    + r"){0,4}"  # + 0 à 3 tokens après séparateur
+)  # r"""[^,;]+"""  # 1 à 4 tokens au total
 
 # complément d'adresse: résidence (+ bât ou immeuble)
 RE_RESID = r"(?:r[ée]sidence|cit[ée])"

@@ -37,8 +37,10 @@ RE_NUM_IND = (
     + r"("  # ?P<ind_voie>  # optionnel: 1 indicateur, ou plusieurs
     + r"\s?"
     + r"(?:"  # alternative
-    + rf"(?:{RE_IND_VOIE})"  # 1 indicateur
-    + rf"|(?:"  # ou une liste d'indicateurs entre parenthèses
+    # 1 indicateur
+    + rf"(?:{RE_IND_VOIE})"
+    # ou une liste d'indicateurs entre parenthèses
+    + rf"|(?:"
     + r"[(]"
     + RE_IND_VOIE  # 1er indicateur
     + r"(?:"  # 2e (et éventuellement plus) indicateur
@@ -47,6 +49,15 @@ RE_NUM_IND = (
     + r")+"  # au moins un 2e indicateur, possible plus
     + r"[)]"
     + r")"  # fin liste d'indicateurs
+    # ou une liste d'indicateurs sans parenthèses
+    + rf"|(?:"
+    + RE_IND_VOIE  # 1er indicateur
+    + r"(?:"  # 2e (et éventuellement plus) indicateur
+    + r"(?:(?:\s*[,-/]\s*)|(?:\s+et\s+))"  # séparateur
+    + RE_IND_VOIE  # n-ième indicateur
+    + r")+"  # au moins un 2e indicateur, possible plus
+    + r")"
+    # fin liste d'indicateurs sans parenthèses
     + r")"  # fin alternative 1 ou + indicateurs
     + r")?"  # fin indicateur optionnel
 )
@@ -59,7 +70,7 @@ RE_NUM_IND_LIST = (
     + r"(?:"  # et éventuellement d'autres numéros (éventuellement avec indicateur)
     # séparateur: "-", "/", ",", " et ", " à "
     # TODO signaler le "à" dans le rapport => devra être déplié manuellement en plusieurs adresses
-    + r"(?:(?:\s*[,-/]\s*)|(?:\s+et\s+)|(?:\s+à\s+))"  # séparateur
+    + r"(?:(?:\s*[,-/]\s*)|(?:\s+et\s+)|(?:\s+à\s+)|(?:\s+))"  # séparateur
     + RE_NUM_IND
     + r")*"  # 0 à N numéros (et indicateurs) supplémentaires
     + r")"

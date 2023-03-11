@@ -135,6 +135,7 @@ RE_ADR_RCONT = (
     + r"|réalisé|effectué|établi"
     + r"|selon\s+les\s+hachures"
     + r"|signé"
+    + r"|sont\s+accessibles"
     + r"|sur\s+une\s+largeur"
     + r"|sur\s+la\s+base"
     + r"|susceptible|permettant"

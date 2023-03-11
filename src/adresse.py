@@ -57,7 +57,9 @@ RE_NUM_IND_LIST = (
     r"(?:"
     + RE_NUM_IND  # un numéro (et éventuellement indicateur)
     + r"(?:"  # et éventuellement d'autres numéros (éventuellement avec indicateur)
-    + r"(?:(?:\s*[,-/]\s*)|(?:\s+et\s+))"  # séparateur
+    # séparateur: "-", "/", ",", " et ", " à "
+    # TODO signaler le "à" dans le rapport => devra être déplié manuellement en plusieurs adresses
+    + r"(?:(?:\s*[,-/]\s*)|(?:\s+et\s+)|(?:\s+à\s+))"  # séparateur
     + RE_NUM_IND
     + r")*"  # 0 à N numéros (et indicateurs) supplémentaires
     + r")"
@@ -101,7 +103,7 @@ RE_NOM_VOIE = (
     # (NB: c'est une "lookahead assertion", qui ne consomme pas les caractères)
     + r"(?=\s*,\s+"  # séparateur "," (ex: 2 rue xxx[,] 13420 GEMENOS)
     + r"|\s*–\s*"  # séparateur "–"
-    + r"|\s+-\s+"  # séparateur "–"
+    + r"|\s+-\s*"  # séparateur "-"
     + r"|\s*[/]\s*"  # séparateur "/" (double adresse: "2 rue X / 31 rue Y 13001 Marseille")
     + r"|\s+et\s+"  # séparateur "et" (double adresse: "2 rue X et 31 rue Y 13001 Marseille")
     + rf"|(?:\s+(?:{RE_NUM_IND_LIST})[,]?\s+{RE_TYP_VOIE})"  # on bute directement sur une 2e adresse (rare mais ça arrive)
@@ -199,10 +201,11 @@ RE_NUM_IND_VOIE_LIST = (
     # au moins 1 adresse avec voie et éventuellement numéro et indicateur
     + RE_NUM_IND_VOIE
     # plus éventuellement 1 à plusieurs adresses supplémentaires
-    + r"(?:"  # et éventuellement d'autres numéros (éventuellement avec indicateur)
+    + r"(?:"
     + r"(?:(?:\s*[,-/]\s*)|(?:\s+et\s+)|(?:\s+))"  # séparateur (parfois juste "\s+" !)
+    + r"(?:angle\s+)?"  # optionnel: 2 rue X / angle rue Y
     + RE_NUM_IND_VOIE
-    + r")*"  # 0 à N numéros (et indicateurs) supplémentaires
+    + r")*"  # 0 à N adresses supplémentaires
     + r")"
 )
 P_NUM_IND_VOIE_LIST = re.compile(RE_NUM_IND_VOIE_LIST, re.IGNORECASE | re.MULTILINE)

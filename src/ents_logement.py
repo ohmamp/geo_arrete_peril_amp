@@ -90,7 +90,7 @@ RE_SYNDICAT_COPRO = r"(?:syndicat\s+des\s+copropriétaires)"
 RE_SYNDIC_ADMIN = r"(?:" + RE_SYNDIC + rf"|{RE_ADMIN}" + r")"
 
 # - syndic
-# FIXME retrouver le syndic de "/home/mathieu/dev/agperils-amp/data/raw/arretes_peril_compil/évacuation au 08.11.2019.pdf"
+# FIXME retrouver le syndic de "évacuation au 08.11.2019.pdf"
 # TODO M. ... en qualité de syndic?
 RE_PRIS_EN_LA_PERSONNE_DE = r"(?:pris\s+en\s+la\s+personne\s+(?:de\s+|du\s+|d['’]\s*)?)"
 #

@@ -530,7 +530,7 @@ RE_ADR_CLEANUP = (
 )
 # M_ADR_CLEANUP = re.compile(RE_ADR_CLEANUP, re.MULTILINE | re.IGNORECASE)
 
-
+# TODO plusieurs adresses, ex: "32, rue Félix Zoccola, 1-3-5, rue Edgar Quinet.pdf"
 def get_adr_doc(page_txt: str) -> bool:
     """Extrait l'adresse visée par le document.
 

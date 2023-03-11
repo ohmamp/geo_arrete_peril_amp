@@ -165,8 +165,10 @@ if __name__ == "__main__":
         sel_cols = (
             ["idu"]
             + [x for x in df_meta.columns if x.startswith(prefix_tab)]
-            # ajout du code insee et date de màj, dans toutes les tables (rmq_iteration_2.docx, 2023-02-14)
-            + ["adr_codeinsee", "datemaj"]
+            # ajout du code insee dans les tables autres qu'adresse
+            + (["adr_codeinsee"] if out_key != "adresse" else [])
+            # date de màj, dans toutes les tables (rmq_iteration_2.docx, 2023-02-14)
+            + ["datemaj"]
         )
         # - dtypes de ces colonnes
         sel_dtype = DTYPE_TABLES[out_key]

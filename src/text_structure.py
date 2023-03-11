@@ -162,8 +162,8 @@ RE_ADR_DOC = (
     + rf"(?P<adresse>{RE_ADRESSE})"  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     # contexte droit
     + r"(?:\s+"
-    + r"(?:[,:–-]\s+|[(])?"
-    + rf"{RE_ADR_RCONT}"
+    + r"(?:[,;:–-]\s+|[(])?"  # NEW 2023-03-11: ";"
+    + rf"(?={RE_ADR_RCONT})"
     + r")?"
 )
 M_ADR_DOC = re.compile(RE_ADR_DOC, re.MULTILINE | re.IGNORECASE)

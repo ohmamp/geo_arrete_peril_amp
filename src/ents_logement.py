@@ -24,6 +24,7 @@ RE_SIS_DOMICILIE_ADR = (
 
 # propriétaire
 # - mono propriété
+# TODO cas complexe: plusieurs mono- et copropriétés: "12a, boulevard Dugommier 13001.pdf"
 RE_PROPRIO_MONO = (
     r"appartient"
     + r"(?:"  # optionnel: "selon nos informations à ce jour"
@@ -35,6 +36,11 @@ RE_PROPRIO_MONO = (
     + r"|au(?:x)?"
     + r")"
     + r"(?P<proprio>[^,–]+)"  # identité du propriétaire
+    # optionnel: représentants (si société)
+    + r"(?:"
+    + r"[,]?\s+(?:représenté(?:e)?\s+par)\s+(?:[,–-]\s*)?"
+    + r"[^,–]+"
+    + r")?"
     + r"[,]?\s+(?:sis(?:e)?|domicili[ée](?:e)?)\s+(?:[,–-]\s*)?"
     + r"(?P<prop_adr>"
     + r"[\s\S]*?"  # complément d'adresse non-capturé dans RE_ADRESSE (ex: "Les toits de la Pounche")
@@ -80,17 +86,14 @@ RE_ADMIN = r"(?:administrateur\s+(?:judiciaire|provisoire))"
 # syndicat des copropriétaires
 RE_SYNDICAT_COPRO = r"(?:syndicat\s+des\s+copropriétaires)"
 
-
-RE_SYNDIC_ADMIN = r"(?:" + RE_SYNDIC + rf"|{RE_SYNDICAT_COPRO}" + rf"|{RE_ADMIN}" + r")"
+# + rf"|{RE_SYNDICAT_COPRO}"
+RE_SYNDIC_ADMIN = r"(?:" + RE_SYNDIC + rf"|{RE_ADMIN}" + r")"
 
 # - syndic
 # FIXME retrouver le syndic de "/home/mathieu/dev/agperils-amp/data/raw/arretes_peril_compil/évacuation au 08.11.2019.pdf"
-# FIXME retrouver le syndic de "/home/mathieu/dev/agperils-amp/data/raw/arretes_peril_compil/modif 57 rue Louis Merlino 13014 le Super Belvédère.pdf"
-# FIXME "pris en la personne ..."
-# TODO syndic judiciaire?
 # TODO M. ... en qualité de syndic?
-# ex: "Considérant que le syndicat des copropriétaires de cet immeuble est pris en la personne du Cabinet xxxx syndic, domicilié 11, avenue du Dol - 13001 MARSEILLE,"
 RE_PRIS_EN_LA_PERSONNE_DE = r"(?:pris\s+en\s+la\s+personne\s+(?:de\s+|du\s+|d['’]\s*)?)"
+#
 RE_SYNDIC_LONG = (
     r"(?:"
     + r"(?P<syndic_pre>"
@@ -100,17 +103,33 @@ RE_SYNDIC_LONG = (
     + RE_SYNDIC_ADMIN
     + r"(?:"  # optionnel: immeuble
     + r"\s+de\s+(?:cet\s+|l['’]\s*)(?:immeuble|ensemble\s+immobilier)"
-    # + rf"(?:\s+sis\s+{RE_ADRESSE})?"  # option dans l'option: adresse de l'immeuble
+    # + rf"(?:\s+sis\s+{RE_ADRESSE})?"  # option dans l'option: adresse de l'immeuble  # WIP 2023-03-11
     + r")?"  # fin optionnel: immeuble
     + r"(?:\s+est|(?:\s*,))?"  # + r"(?:\s+est|,)?"  # FIXME confusions possibles ancien/nouveau syndic (ex: "1 cours Jean Ballard 13001.pdf")
     + rf"\s+{RE_PRIS_EN_LA_PERSONNE_DE}"
     + r")"  # fin contexte 1
+    # contexte 1b: syndicat des copropriétaires pris en la personne de|du
+    + rf"|(?:{RE_SYNDICAT_COPRO}"
+    + r"(?:"  # optionnel: immeuble
+    + r"\s+de\s+(?:cet\s+|l['’]\s*)(?:immeuble|ensemble\s+immobilier)"
+    # + rf"(?:\s+sis\s+{RE_ADRESSE})?"  # option dans l'option: adresse de l'immeuble  # WIP 2023-03-11
+    + r")?"  # fin optionnel: immeuble
+    + r"(?:\s+est|(?:\s*,))?"  # + r"(?:\s+est|,)?"  # FIXME confusions possibles ancien/nouveau syndic (ex: "1 cours Jean Ballard 13001.pdf")
+    + rf"\s+{RE_PRIS_EN_LA_PERSONNE_DE}"
+    + r")"  # fin contexte 1b
     # contexte 2: syndicat des copropriétaires représenté par <syndic>
-    + rf"|(?:{RE_SYNDICAT_COPRO}(?:\s*,)?\s+représenté\s+par\s+"
-    + r"(?:"  # optionnel: le syndic | l'admin | un admin pris en la personne de
-    + rf"(?:le\s+{RE_SYNDIC}\s+)"  # TODO (pris en la personne de...)?
-    + rf"|(?:l['’]\s*{RE_ADMIN}\s+(?:{RE_PRIS_EN_LA_PERSONNE_DE})?)"  # TODO (pris en la personne de ...)?
-    + rf"|(?:un\s+{RE_ADMIN}\s+{RE_PRIS_EN_LA_PERSONNE_DE})"  # WIP à généraliser à "un syndic..."?
+    + rf"|(?:{RE_SYNDICAT_COPRO}"
+    + r"(?:"  # optionnel: immeuble
+    + r"\s+de\s+(?:cet\s+|l['’]\s*)(?:immeuble|ensemble\s+immobilier)"
+    # + rf"(?:\s+sis\s+{RE_ADRESSE})?"  # option dans l'option: adresse de l'immeuble  # WIP 2023-03-11
+    + r")?"  # fin optionnel: immeuble
+    + r"(?:\s+est|(?:\s*,))?"
+    + r"\s+représenté\s+par\s+"
+    + r"(?:"  # optionnel:
+    # le syndic | l'admin (pris en la personne de)?
+    + rf"(?:(?:l['’]\s*{RE_ADMIN}|le\s+{RE_SYNDIC})\s+(?:{RE_PRIS_EN_LA_PERSONNE_DE})?)"
+    # un syndic | un admin pris en la personne de
+    + rf"|(?:un\s+(?:{RE_ADMIN}|{RE_SYNDIC})\s+{RE_PRIS_EN_LA_PERSONNE_DE})"  # WIP
     + r")?"  # fin optionnel
     + r")"  # fin contexte 2
     + r")"  # fin syndic_pre
@@ -136,6 +155,7 @@ RE_SYNDIC_LONG = (
     + r"(?:"
     + rf"(?:(?:{RE_SIS_DOMICILIE_ADR})(?:(?:\s*,)?\s+{RE_SYNDIC_ADMIN})?)"  # adresse + éventuellement qualité du syndic|admin
     + rf"|(?:(?:(?<!un ){RE_SYNDIC_ADMIN})(?:(?:\s*,)?\s+{RE_SIS_DOMICILIE_ADR})?)"  # qualité du syndic|admin + éventuellement adresse
+    # TODO? (?:en\s+qualité\s+(?:de\s+|d['’]\s*))? [syndic|administrateur...]
     + r")"  # fin optionnel: adresse et/ou qualité du syndic
     + r")"  # fin syndic_post
     + r")"  # fin contexte droit

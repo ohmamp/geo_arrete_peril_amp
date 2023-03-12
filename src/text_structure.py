@@ -6,11 +6,12 @@ import re
 
 from adresse import RE_ADRESSE, RE_COMMUNE
 from domain_vocab import RE_NO
-from str_date import RE_DATE
+from str_date import RE_DATE  # , RE_MM
 from typologie_securite import RE_CLASSE
 
 
 # numéro de l'arrêté
+# TODO Peyrolles:  + r"|(?:A \d{4}-" + RE_MM + r"-\d{3})"
 RE_NUM_ARR = (
     r"(?:"
     + rf"Extrait\s+du\s+registre\s+des\s+arrêtés\s+{RE_NO}"
@@ -112,6 +113,7 @@ RE_ADR_RCONT = (
     + r"|et\s+l['’]immeuble"  # 2023-03-11
     + r"|et\s+notamment"
     + r"|et\s+ordonne"
+    + r"|et\s+repr[ée]sentant"
     + r"|(?:et\s+son\s+)?occupation"
     + r"|et\s+sur\s+l"
     + r"|étaiement"
@@ -151,11 +153,11 @@ RE_ADR_RCONT = (
 RE_ADR_DOC = (
     r"(?:"
     + r"situ[ée](?:\s+au)?"
-    + r"|désordres\s+sur\s+le\s+bâtiment\s+sis"
-    + r"|un\s+péril\s+grave\s+et\s+imminent\s+au"
+    + r"|désordres\s+(?:importants\s+)?(?:sur|affectant)\s+(?:le\s+bâtiment|l['’]immeuble)\s+sis"
+    + r"|un\s+péril\s+grave\s+et\s+imminent\s+(?:à|au)"
     + r"|immeuble\s+(?:du|numéroté)"
     # + r"|sis[e]?(?:\s+à)?"
-    + r"|(?:(?<!Risques, )sis[e]?(?:\s+à)?)"  # éviter un match sur l'adresse d'un service municipal
+    + r"|(?:(?<!Risques, )sis[e]?(?:\s+(?:[àa]|au))?)"  # éviter un match sur l'adresse d'un service municipal
     # Objet: <classe>? - <adresse> (ex: "Objet: Péril grave et imminent - 8 rue X")
     + r"|(?:Objet\s*:"
     + rf"(?:\s+{RE_CLASSE}(?:\s*[,:–-]|\s+au)?)?"

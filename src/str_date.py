@@ -40,6 +40,8 @@ MAP_MOIS = {
     "dec": "12",
 }
 
+# expression régulière des numéros de mois sur 2 chiffres (left padding 0)
+RE_MM = r"(?:" + r"|".join(rf"{i:02}" for i in range(1, 13)) + r")"
 
 # FIXME harmoniser/fusionner RE_DATE, RE_DATE_PREC
 RE_DATE = (

@@ -13,10 +13,10 @@ import re
 from domain_vocab import RE_ARRETE
 
 # procédures: orginaire et urgente
-RE_PROCEDURE_ORDINAIRE = r"(?:\s*-)?\s+proc[ée]dure\s+ordinaire"
+RE_PROCEDURE_ORDINAIRE = r"(?:\s*[–-])?\s+proc[ée]dure\s+ordinaire"
 RE_PROCEDURE_URGENTE = (
     r"(?:"
-    + r"(?:(?:\s*-)?\s+proc[ée]dure\s+(?:urgente|d['’]\s*urgence))"
+    + r"(?:(?:\s*[–-])?\s+proc[ée]dure\s+(?:urgente|d['’]\s*urgence))"
     + r"|(?:\s+d['’]\s*urgence)"  # "mise en sécurité d'urgence"
     + r")"
 )

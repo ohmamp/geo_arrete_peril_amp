@@ -149,7 +149,7 @@ RE_CLASS_ML_PA = (
     + r"\s+(?:de\s+)?"
     + rf"{RE_ML}"
     + r"\s+partielle"
-    + rf"(?:\s+de(?:{RE_PGI}|{RE_MISE_EN_SECURITE}|{RE_PS_PO}))?"
+    + rf"(?:\s+de\s+(?:{RE_PGI}|{RE_MISE_EN_SECURITE}|{RE_PS_PO}))?"
     + r")"
     + r"|(?:"
     + rf"{RE_ML}"

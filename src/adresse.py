@@ -135,7 +135,7 @@ RE_COMMUNE = (
 # complément d'adresse: résidence (+ bât ou immeuble)
 RE_RESID = r"(?:r[ée]sidence|cit[ée])"
 RE_BAT = (
-    r"(?:B[âa]timent|B[âa]t|Immeuble)"
+    r"(?:B[âa]timent|B[âa]t|Immeuble)"  # 2023-03-12: (?:s)? mais n'apporte rien?
     + r"(?!\s+"  # negative lookahead qui commence par des espaces
     + r"(?:"  # alternative
     + r"sis"  # bâtiment|immeuble sis

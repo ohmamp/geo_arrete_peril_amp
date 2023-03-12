@@ -68,6 +68,16 @@ RE_HEADERS = [
         "Martigues",
         r"^Direction\s+des\s+Affaires\s+Civiles,\nJuridiques\s+et\s+Funéraires\nRéglementation\s+Administrative$",
     ),  # p. 1
+    ("Meyrargues", r"^REPUBLIQUE\n\nFRANÇAISE$"),  # p. 1 (en haut à gauche)
+    (
+        "Meyrargues",
+        r"^DEPARTEMENT DES BOUCHES-DU-RHONE\n"
+        + r"CANTON DE TRETS\n"
+        + r"ARRONDISSEMENT D’AIX EN PROVENCE\n"
+        + r"METROPOLE D’AIX-MARSEILLE-PROVENCE\n"
+        + r"\n"
+        + r"COMMUNE DE MEYRARGUES\n",
+    ),  # p. 1 (en haut à gauche)
     ("Peyrolles-en-Provence", r"^Mairie\s+de\s+Peyrolles-en-Provence$"),  # p. 1
     (
         "Peyrolles-en-Provence",

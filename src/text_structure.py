@@ -7,7 +7,7 @@ import re
 from adresse import RE_ADRESSE, RE_COMMUNE
 from domain_vocab import RE_NO
 from str_date import RE_DATE  # , RE_MM
-from typologie_securite import RE_CLASSE
+from typologie_securite import RE_ARRETE, RE_CLASSE
 
 
 # numéro de l'arrêté
@@ -19,6 +19,7 @@ RE_NUM_ARR = (
     + r"|^Nos\s+Réf\s+:"  # Gardanne
     + rf"|^A\.M\s+{RE_NO}"  # Martigues
     + rf"|^Décision\s+{RE_NO}"  # Marseille (1)
+    + rf"|^ARRÊTÉ\s+DU\s+MAIRE\s+{RE_NO}"
     + rf"|Arrêté\s+{RE_NO}"  # en-tête Peyrolles-en-Provence
     + rf"|ARRETE\s+{RE_NO}"
     # + rf"|^{RE_NO}"  # motif trop peu spécifique, capture par exemple un numéro de parcelle
@@ -49,9 +50,9 @@ RE_CONSIDERANT = r"^\s*CONSID[EÉ]RANT"
 # RE_CONSIDERANT = r"^\s*(?P<considerant>(Considérant|CONSIDERANT)[, ](.+))"
 P_CONSIDERANT = re.compile(RE_CONSIDERANT, re.MULTILINE | re.IGNORECASE)
 
-RE_ARRETE = r"^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS)(?:\s*:)?)"
-# RE_ARRETE = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
-P_ARRETE = re.compile(RE_ARRETE, re.MULTILINE | re.IGNORECASE)
+RE_ARRETONS = r"^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS)(?:\s*:)?)"
+# RE_ARRETONS = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
+P_ARRETONS = re.compile(RE_ARRETONS, re.MULTILINE | re.IGNORECASE)
 
 RE_ARTICLE = r"^\s*ARTICLE\s+\d+"
 P_ARTICLE = re.compile(RE_ARTICLE, re.MULTILINE | re.IGNORECASE)
@@ -96,9 +97,10 @@ RE_ADR_RCONT = (
     + r"|condamner"
     + r"|copropriété"
     + r"|de\s+mettre\s+fin"
+    + r"|depuis"
     + r"|(?:doivent|doit)\s+prendre"
     + r"|(?:doivent|doit)\s+sous\s+un\s+délai"
-    + r"|est\s+à\s+l['’]état|jusqu'à\s+nouvel"
+    + r"|est\s+à\s+l['’]état"
     + r"|est\s+dans"
     + r"|(?:est|sont)\s+de\s+nouveau"
     + r"|(?:est|sont|reste|restent)\s+interdit"  # (?:e|s|es)?
@@ -108,30 +110,35 @@ RE_ADR_RCONT = (
     + r"|et(?:\s+à\s+en)?\s+interdire"
     + r"|et\s+au\s+cabinet"
     + r"|et\s+concerné"
+    + r"|et\s+de\s+l['’]appartement"  # la fin du motif évite de capturer "rue Roug*et de *Lisle"
     + r"|et\s+des\s+risques"
     + r"|et\s+installation"
     + r"|et\s+l['’]immeuble"  # 2023-03-11
+    + rf"|et\s+l['’]{RE_ARRETE}"
+    + r"|(?:et\s+(?:l['’]\s*|son\s+))?occupation"
     + r"|et\s+notamment"
     + r"|et\s+ordonne"
     + r"|et\s+repr[ée]sentant"
-    + r"|(?:et\s+son\s+)?occupation"
     + r"|et\s+sur\s+l"
     + r"|étaiement"
     + r"|évacuation"
     + r"|faire\s+réaliser"
     + r"|fragilisé"  # 2023-03-11
     + r"|il\s+sera"
-    + r"|jusqu['’]au"  # 2023-03-11
+    + r"|jusqu['’](?:au|à)"  # 2023-03-11
     + r"|le\s+rapport"
     + r"|lors\s+de"
     + r"|menace\s+de"
     + r"|mentionné"
+    + r"|mettant\s+fin"
     + r"|n['’](?:a|ont)\s+pas"
+    + rf"|{RE_NO}"  # WIP 2023-03-12
     + r"|ont\s+été\s+évacués"
     + r"|(?:peut|peuvent|doit|doivent|devra|devront|il\s+devra)\s+être"
     + r"|peuvent\s+exploiter"
     + r"|(?:pour$)"
     + r"|préconise"  # 2023-03-11
+    + r"|présence\s+de"
     + r"|présente"
     + r"|(?:pris$)"
     + r"|qui\s+se\s+retrouve"
@@ -152,12 +159,12 @@ RE_ADR_RCONT = (
 # (ex compliqué: "59, rue Peysonnel 13003 - PGI 18.06.20.pdf")
 RE_ADR_DOC = (
     r"(?:"
-    + r"situ[ée](?:\s+au)?"
+    + r"situ[ée](?:\s+(?:au|du))?"
     + r"|désordres\s+(?:importants\s+)?(?:sur|affectant)\s+(?:le\s+bâtiment|l['’]immeuble)\s+sis"
     + r"|un\s+péril\s+grave\s+et\s+imminent\s+(?:à|au)"
     + r"|immeuble\s+(?:du|numéroté)"
     # + r"|sis[e]?(?:\s+à)?"
-    + r"|(?:(?<!Risques, )sis[e]?(?:\s+(?:[àa]|au))?)"  # éviter un match sur l'adresse d'un service municipal
+    + r"|(?:(?<!Risques, )sis[e]?(?:\s+(?:[àa]|au|du))?)"  # éviter un match sur l'adresse d'un service municipal
     # Objet: <classe>? - <adresse> (ex: "Objet: Péril grave et imminent - 8 rue X")
     + r"|(?:Objet\s*:"
     + rf"(?:\s+{RE_CLASSE}(?:\s*[,:–-]|\s+au)?)?"
@@ -166,8 +173,8 @@ RE_ADR_DOC = (
     + r")\s+"  # fin alternatives contexte gauche
     + rf"(?P<adresse>{RE_ADRESSE})"  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     # contexte droit
-    + r"(?:\s+"
-    + r"(?:[,;:–-]\s+|[(])?"  # NEW 2023-03-11: ";"
+    + r"(?:\s*"  # WIP \s+
+    + r"(?:[,;:–-]\s*|[(])?"  # NEW 2023-03-11: ";"  # WIP \s+
     + rf"(?={RE_ADR_RCONT})"
     + r")?"
 )

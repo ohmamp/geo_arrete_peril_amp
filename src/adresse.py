@@ -19,9 +19,17 @@ from text_utils import normalize_string
 # cette liste permet de changer de stratégie de reconnaissance des parcelles cadastrales
 # (à Marseille: références longues incluant l'arrondissement et le quartier)
 CP_MARSEILLE = [f"130{i:02}" for i in range(1, 17)]
+# nom de commune pour les arrondissements de Marseille, utilisés dans certaines adresses
+RE_COM_MARSEILLE_ARRTS = (
+    r"(?:"
+    + r"|".join(
+        [r"Marseille\s+1er"] + [rf"Marseille\s+{i}[èe]me" for i in range(2, 17)]
+    )
+    + r")"
+)
 
 # regex générique pour ce qu'on considérera comme un "token" (plus ou moins, un mot) dans un nom de voie ou de commune
-RE_TOK = r"[^,;:–(\s.]+"  # r"[A-Za-zÀ-ÿ]+"  # r"\w+"
+RE_TOK = r"[A-Za-zÀ-ÿ]+"  # r"[^,;:–(\s.]+"  # r"\w+"
 
 # TODO comment gérer plusieurs numéros? ex: "10-12-14 boulevard ...""
 # pour le moment on ne garde que le premier
@@ -128,10 +136,18 @@ RE_NOM_VOIE = (
 
 # TODO s'arrêter quand on rencontre une référence cadastrale (lookahead?)
 RE_COMMUNE = (
-    rf"[A-ZÀ-Ý]{RE_TOK}"  # au moins 1 token qui commence par une majuscule
+    r"(?:"
+    # Marseille (1er, 2ème, 3ème)
+    + RE_COM_MARSEILLE_ARRTS
+    # générique
+    + r"|(?:"
+    + rf"[A-ZÀ-Ý]{RE_TOK}"  # au moins 1 token qui commence par une majuscule
     + r"(?:[ '’-]"  # séparateur: tiret, apostrophe, espace
     + rf"{RE_TOK}"
     + r"){0,4}"  # + 0 à 3 tokens après séparateur
+    + r")"
+    # fin générique
+    + r")"
 )  # r"""[^,;]+"""  # 1 à 4 tokens au total
 
 # complément d'adresse: résidence (+ bât ou immeuble)

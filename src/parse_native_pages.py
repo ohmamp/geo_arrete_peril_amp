@@ -82,7 +82,7 @@ from text_structure import (
     P_NOM_ARR,  # nom/objet de l'arrêté
     P_VU,
     P_CONSIDERANT,
-    P_ARRETE,
+    P_ARRETONS,
     P_ARTICLE,
     # spécifiques arrêtés
     # - données
@@ -262,7 +262,7 @@ def contains_arrete(page_txt: str) -> bool:
     has_stamp: bool
         True si le texte contient ARRET(E|ONS)
     """
-    return P_ARRETE.search(page_txt) is not None
+    return P_ARRETONS.search(page_txt) is not None
 
 
 def contains_article(page_txt: str) -> bool:
@@ -524,7 +524,7 @@ def get_parcelle(page_txt: str) -> str:
 RE_ADR_CLEANUP = (
     # rf"""(?P<adresse>{RE_ADRESSE})"""
     r"(?:[(]"  # parenthèse ou
-    + r"|(?:\s*[-–,])?\s+)"  # séparateur puis espace(s)
+    + r"|(?:\s*[-–,])?\s*)"  # séparateur puis espace(s)
     + rf"{RE_ADR_RCONT}"
     + r"[\s\S]*"
 )

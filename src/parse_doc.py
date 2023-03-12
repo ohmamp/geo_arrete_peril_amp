@@ -52,7 +52,7 @@ from text_structure import (
     P_MAIRE_COMMUNE,
     P_VU,
     P_CONSIDERANT,
-    P_ARRETE,
+    P_ARRETONS,
     P_ARTICLE,
     P_DATE_SIGNAT,
 )
@@ -871,7 +871,7 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
         if cur_state == "avant_arrete":
             vucons_beg = main_beg
             # la page contient-elle un "Arrête" ?
-            m_arrete = P_ARRETE.search(pg_txt_body, main_beg)
+            m_arrete = P_ARRETONS.search(pg_txt_body, main_beg)
             if m_arrete:
                 # si oui, les "Vu" et "Considérant" de cette page sont à chercher avant "Arrête"
                 vucons_end = m_arrete.start()

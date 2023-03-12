@@ -6,12 +6,13 @@ import logging
 import re
 from typing import Dict
 
+# from cadastre import RE_CAD_MARSEILLE  # (inopérant?)
 from text_utils import normalize_string
 
 
 # TODO gérer "106-108 rue X *(102-104 selon cadastre)*"
 
-# TODO 41 arrêtés 13055 (dont 3 sans référence cadastrale):
+# TODO 40 arrêtés 13055 (dont 3 sans référence cadastrale):
 # csvcut -c arr_nom_arr,adr_ad_brute,adr_codeinsee,par_ref_cad data/interim/arretes_peril_compil_data_enr_struct.csv |grep ",13055," |less
 
 # codes postaux de Marseille
@@ -131,6 +132,7 @@ RE_NOM_VOIE = (
     + r"|(?:\s+à\s+(?!vent\s+))"  # borne droite "à", sauf "à vent" : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
     + r"|(?<!du )b[âa]timent"  # borne droite "bâtiment", sauf si "du bâtiment" ("rue du bâtiment" existe dans certaines communes)
     + rf"|\s*{RE_CP}"  # borne droite <code_postal>
+    # + rf"|\s*{RE_CAD_MARSEILLE}"  # (inopérant?) borne droite <ref parcelle> (seulement Marseille, expression longue sans grand risque de faux positif)
     + r")"
 )
 

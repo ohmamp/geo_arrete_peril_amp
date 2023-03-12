@@ -37,7 +37,7 @@ RE_HEADERS = [
     (
         "Châteauneuf-les-Martigues",
         r"""^[CG]ommune\s+de\s+Châteauneuf-les-Martigues\s+-\s+"""
-        + r"""Arrondissement\s+d'[Il]stres\s+-\s+"""
+        + r"""Arrondissement\s+d['’][Il]stres\s+-\s+"""
         + r"""Bouches\s+du\s+Rhône""",
     ),  # p.1, OCR à refaire?
     ("Gardanne", r"^Ville\s+de\s+Gardanne$"),  # p. 1
@@ -62,7 +62,7 @@ RE_HEADERS = [
     ("Gémenos", r"^ARRÊTÉ\s+DU\s+MAIRE$"),  # p. 1 (optionnel)
     (
         "Martigues",
-        r"^Département\s+des\nBouches-du-Rhône\nArrondissement\s+d’Istres$",
+        r"^Département\s+des\nBouches-du-Rhône\nArrondissement\s+d['’]Istres$",
     ),  # p. 1
     (
         "Martigues",
@@ -71,12 +71,12 @@ RE_HEADERS = [
     ("Meyrargues", r"^REPUBLIQUE\n\nFRANÇAISE$"),  # p. 1 (en haut à gauche)
     (
         "Meyrargues",
-        r"^DEPARTEMENT DES BOUCHES-DU-RHONE\n"
-        + r"CANTON DE TRETS\n"
-        + r"ARRONDISSEMENT D’AIX EN PROVENCE\n"
-        + r"METROPOLE D’AIX-MARSEILLE-PROVENCE\n"
+        r"^DEPARTEMENT\s+DES\s+BOUCHES-DU-RHONE\n"
+        + r"CANTON\s+DE\s+TRETS\n"
+        + r"ARRONDISSEMENT\s+D['’]AIX\s+EN\s+PROVENCE\n"
+        + r"METROPOLE\s+D['’]AIX-MARSEILLE-PROVENCE\n"
         + r"\n"
-        + r"COMMUNE DE MEYRARGUES\n",
+        + r"COMMUNE\s+DE\s+MEYRARGUES\n",
     ),  # p. 1 (en haut à gauche)
     ("Peyrolles-en-Provence", r"^Mairie\s+de\s+Peyrolles-en-Provence$"),  # p. 1
     (
@@ -146,8 +146,8 @@ RE_FOOTERS = [
     ("Auriol", r"""Page\s+\d{1,2}\s+sur\s+\d{1,2}$"""),
     (
         "Berre-l'Étang",
-        r"VILLE\s+DE\s+BERRE-L’ETANG\n"
-        + r"HOTEL\s+DE\s+VILLE\s+-\s+B\.P\s+30221\s+-\s+13138\s+BERRE\s+L'ÉTANG\s+CEDEX\n"
+        r"VILLE\s+DE\s+BERRE-L['’]ETANG\n"
+        + r"HOTEL\s+DE\s+VILLE\s+-\s+B\.P\s+30221\s+-\s+13138\s+BERRE\s+L['’]ÉTANG\s+CEDEX\n"
         + r"Téléphone\s+:\s+04\.42\.74\.93\.00\s+-\s+"
         + r"Télécopie\s+:\s+04\.42\.74\.93\.02\s+-\s+"
         + r"Site\s+internet\s+:\s+www\.berreletang\.fr",

@@ -120,6 +120,7 @@ RE_ADR_RCONT = (
     + r"|fragilisé"  # 2023-03-11
     + r"|il\s+sera"
     + r"|jusqu['’]au"  # 2023-03-11
+    + r"|le\s+rapport"
     + r"|lors\s+de"
     + r"|menace\s+de"
     + r"|mentionné"
@@ -155,8 +156,9 @@ RE_ADR_DOC = (
     + r"|immeuble\s+(?:du|numéroté)"
     # + r"|sis[e]?(?:\s+à)?"
     + r"|(?:(?<!Risques, )sis[e]?(?:\s+à)?)"  # éviter un match sur l'adresse d'un service municipal
+    # Objet: <classe>? - <adresse> (ex: "Objet: Péril grave et imminent - 8 rue X")
     + r"|(?:Objet\s*:"
-    + rf"(?:\s+{RE_CLASSE}\s*[,:–-]?)?"
+    + rf"(?:\s+{RE_CLASSE}(?:\s*[,:–-]|\s+au)?)?"
     + r")"  # fin "Objet:(classe)?"
     + rf"|(?:{RE_CLASSE}\s*[–-])"  # <classe> - <adresse>
     + r")\s+"  # fin alternatives contexte gauche

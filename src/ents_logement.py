@@ -22,6 +22,8 @@ RE_SIS_DOMICILIE_ADR = (
     + r")"  # fin global
 )
 
+# TODO "preneur du bail emphytéotique" => propriétaire? (mais il y a aussi un propriétaire !) ex: "2 chemin de la Mure.pdf"
+
 # propriétaire
 # - mono propriété
 # TODO cas complexe: plusieurs mono- et copropriétés: "12a, boulevard Dugommier 13001.pdf"
@@ -92,7 +94,11 @@ RE_SYNDIC_ADMIN = r"(?:" + RE_SYNDIC + rf"|{RE_ADMIN}" + r")"
 # - syndic
 # FIXME retrouver le syndic de "évacuation au 08.11.2019.pdf"
 # TODO M. ... en qualité de syndic?
-RE_PRIS_EN_LA_PERSONNE_DE = r"(?:pris\s+en\s+la\s+personne\s+(?:de\s+|du\s+|d['’]\s*)?)"
+
+# "en|ne" : typo
+RE_PRIS_EN_LA_PERSONNE_DE = (
+    r"(?:pris\s+(?:en|ne)\s+la\s+personne\s+(?:de\s+|du\s+|d['’]\s*)?)"
+)
 #
 RE_SYNDIC_LONG = (
     r"(?:"

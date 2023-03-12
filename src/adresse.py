@@ -10,9 +10,8 @@ from text_utils import normalize_string
 
 
 # TODO gérer "106-108 rue X *(102-104 selon cadastre)*"
-# TODO gérer "24 rue X / *angle* 2 rue Y"
 
-# TODO 47 arrêtés 13055 (dont 4 sans référence cadastrale):
+# TODO 41 arrêtés 13055 (dont 3 sans référence cadastrale):
 # csvcut -c arr_nom_arr,adr_ad_brute,adr_codeinsee,par_ref_cad data/interim/arretes_peril_compil_data_enr_struct.csv |grep ",13055," |less
 
 # codes postaux de Marseille
@@ -28,10 +27,13 @@ RE_TOK = r"[^,;:–(\s.]+"  # r"[A-Za-zÀ-ÿ]+"  # r"\w+"
 # pour le moment on ne garde que le premier
 RE_NUM_VOIE = r"(\d+)"
 P_NUM_VOIE = re.compile(RE_NUM_VOIE, re.IGNORECASE | re.MULTILINE)
-#
-RE_IND_VOIE = r"(?:A|bis|ter)"
+
+# indicateurs observés: A, mais aussi B, 1155*E*, 82*L*, ...
+# (sinon [A-Z]\b pour éviter de capturer à tort "12 *ET* 14"?)
+RE_IND_VOIE = r"(?:bis|ter|A(?!U)|[B-DF-Z]|(?:E(?!T)))"
 P_IND_VOIE = re.compile(RE_IND_VOIE, re.IGNORECASE | re.MULTILINE)
-#
+
+# un numéro et un ou plusieurs indicateurs
 RE_NUM_IND = (
     RE_NUM_VOIE  # numéro  # ?P<num_voie>
     + r"("  # ?P<ind_voie>  # optionnel: 1 indicateur, ou plusieurs
@@ -178,12 +180,15 @@ RE_ADR_COMPL = (
 # (type et) nom de voie
 RE_VOIE = (
     r"(?:"
-    + r"(?:"  # motif classique: <type_voie> <nom_voie>
-    + rf"(?:{RE_TYP_VOIE})\s+(?:{RE_NOM_VOIE})"
-    + r")"
-    + r"|(?:"  # cas particulier: la canebière
-    + r"la\s+Can[n]?ebi[èe]re"  # inclut l'ancienne graphie "nn"
-    + r")"
+    # motif classique: <type_voie> <nom_voie>
+    + rf"(?:(?:{RE_TYP_VOIE})\s+(?:{RE_NOM_VOIE}))"
+    # cas particulier: la canebière
+    + r"|(?:la\s+Can[n]?ebi[èe]re)"  # inclut l'ancienne graphie "nn"
+    # exceptions pour le "à": chemin de X à Y (2023-02-12: inopérant?)
+    + r"|(?:chemin\s+de\s+la\s+Valbarelle\s+[àa]\s+Saint\s+Marcel)"
+    + r"|(?:chemin\s+de\s+Saint\s+Antoine\s+[àa]\s+Saint\s+Joseph)"
+    + r"|(?:chemin\s+de\s+Saint\s+Louis\s+au\s+Rove)"
+    + r"|(?:chemin\s+de\s+Saint\s+Menet\s+aux\s+Accates)"
     + r")"
 )
 P_VOIE = re.compile(RE_VOIE, re.IGNORECASE | re.MULTILINE)

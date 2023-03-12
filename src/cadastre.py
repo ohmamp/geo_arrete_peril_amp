@@ -4,7 +4,7 @@
 
 # TODO améliorer la couverture:
 # data_enr_struct.csv: 827 arrêtés sans référence cadastrale sur 2452 (33.73%) (2023-03-06)
-# (dont 285 avec un code insee, dont 4 avec un 13055)
+# (dont 285 avec un code insee, dont 3 avec un 13055)
 #
 
 # FIXME variante "immeuble sis 44 rue Barsotti – 13003 MARSEILLE 3EME, parcelle cadastrée\nsection 813H, numéro 86"

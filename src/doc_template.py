@@ -19,9 +19,11 @@ RE_HEADERS = [
     (
         "Aix-en-Provence",
         (
-            r"DEPARTEMENT\s+OPERATIONS\s+JURIDIQUES\s+"
-            + r"COMPLEXES\s+ET\s+CONTROLE\s+ET\s+SUIVI\s+DES\s+"
-            + r"PROCEDURES\s+CONTENTIEUSES\n"
+            r"(?:"
+            + r"DEPARTEMENT\s+OPERATIONS\s+JURIDIQUES\s+COMPLEXES\s+"
+            + r"ET\s+CONTROLE\s+ET\s+SUIVI\s+DES\s+PROCEDURES\s+CONTENTIEUSES\n"
+            + r"|SECRETARIAT\s+GENERAL\n"
+            + r")"
             + r"Direction\s+Etudes\s+Juridiques\s+&\s+Contentieux\n"
         ),
     ),  # p.1
@@ -82,6 +84,10 @@ RE_HEADERS = [
         + r")?"
         + r"ARRETE\n+",
     ),  # p. 1
+    (
+        "Roquevaire",
+        r"^Secteur\s+concerné\s+:\s+Libertés\s+publiques\s+et\s+pouvoirs\s+de\s+police$",
+    ),  # p. 1 (NB: peut être considéré comme une donnée à extraire dans text_structure)
 ]
 # TODO en-tête Aix-en-Provence p. 2 et suivantes: numéro de page (en haut à droite)
 

@@ -12,6 +12,9 @@ import re
 
 from src.domain_knowledge.arrete import RE_ARRETE
 
+# formule parfois utilisée
+RE_A_DIRE_D_EXPERT = r"[àa]\s+dire\s+d['’ ]\s*expert"
+
 # procédures: orginaire et urgente
 RE_PROCEDURE_ORDINAIRE = r"(?:\s*[–-])?\s+proc[ée]dure\s+ordinaire"
 RE_PROCEDURE_URGENTE = (
@@ -44,7 +47,9 @@ M_CLASS_PS_PO_MOD = re.compile(RE_CLASS_PS_PO_MOD, re.MULTILINE | re.IGNORECASE)
 
 # mise en sécurité (terminologie actuelle)
 RE_MISE_EN_SECURITE = r"mise\s+en\s+s[ée]curit[ée]"
-RE_ARR_DE_MISE_EN_SECURITE = rf"{RE_ARRETE}" + r"\s+de\s+" + rf"{RE_MISE_EN_SECURITE}"
+RE_ARR_DE_MISE_EN_SECURITE = (
+    rf"{RE_ARRETE}" + r"\s+(?:de\s+)?" + rf"{RE_MISE_EN_SECURITE}"
+)
 RE_CLASS_MS = (
     r"(?:"
     + RE_ARR_DE_MISE_EN_SECURITE
@@ -73,31 +78,17 @@ RE_CLASS_MS_MOD = (
 M_CLASS_MS_MOD = re.compile(RE_CLASS_MS_MOD, re.MULTILINE | re.IGNORECASE)
 #
 RE_PGI = r"p[ée]ril" + r"(?:\s+grave(?:\s+et)?)?" + r"\s+imminent"
-RE_CLASS_PGI = (
-    r"(?:"
-    + rf"{RE_ARRETE}"
-    + r"""(?:\s+portant\s+proc[ée]dure)?"""
-    + r"\s+de\s+"
-    + rf"{RE_PGI}"
-    + r")"
-)
+RE_CLASS_PGI = rf"(?:{RE_ARRETE}(?:\s+{RE_A_DIRE_D_EXPERT})?(?:\s+portant\s+proc[ée]dure)?\s+de\s+{RE_PGI})"
 M_CLASS_PGI = re.compile(RE_CLASS_PGI, re.MULTILINE | re.IGNORECASE)
 #
 RE_CLASS_PGI_MOD = (
     r"(?:"
-    + RE_CLASS_PGI  # arrêté de péril grave et imminent modificatif
-    + r"\s+modificatif"
-    + r"|(?:"  # (arrêté modificatif | modification) de l'arrêté de péril grave et imminent
-    + rf"{RE_ARRETE}"
-    + r"\s+modificatif"
-    + r"|Modification"
-    + r")"
-    + r"\s+de\s+l['’]\s*"
-    + RE_CLASS_PGI
-    + rf"|{RE_ARRETE}"
-    + r"\s+modificatif"
-    + r"\s+de\s+"
-    + rf"{RE_PGI}"
+    # arrêté de péril grave et imminent modificatif
+    + rf"(?:{RE_CLASS_PGI}\s+modificatif)"
+    # (arrêté modificatif | modification) de l'arrêté de péril grave et imminent
+    + rf"|(?:(?:{RE_ARRETE}\s+modificatif|Modification)\s+de\s+l['’]\s*{RE_CLASS_PGI})"
+    # arrêté modificatif de péril grave et imminent
+    + rf"|(?:{RE_ARRETE}\s+modificatif\s+de\s+{RE_PGI})"
     + r")"
 )
 M_CLASS_PGI_MOD = re.compile(RE_CLASS_PGI_MOD, re.MULTILINE | re.IGNORECASE)
@@ -108,19 +99,11 @@ M_CLASS_MSU = re.compile(RE_CLASS_MSU, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_MSU_MOD = (
     r"(?:"
     # arrêté de mise en sécurité modificatif - procédure urgente
-    + RE_ARR_DE_MISE_EN_SECURITE
-    + r"""\s+modificatif"""
-    + RE_PROCEDURE_URGENTE
+    + rf"{RE_ARR_DE_MISE_EN_SECURITE}\s+modificatif{RE_PROCEDURE_URGENTE}"
     # ou: arrêté modificatif de l'arrêté de mise en sécurité - procédure urgente
-    + rf"|{RE_ARRETE}"
-    + r"\s+modificatif\s+de\s+l['’]\s*"
-    + RE_ARR_DE_MISE_EN_SECURITE
-    + RE_PROCEDURE_URGENTE
+    + rf"|{RE_ARRETE}\s+modificatif\s+de\s+l['’]\s*{RE_ARR_DE_MISE_EN_SECURITE}{RE_PROCEDURE_URGENTE}"
     # ou: arrêté modificatif de mise en sécurité - procédure urgente
-    + rf"|{RE_ARRETE}"
-    + r"\s+modificatif\s+de\s+"
-    + RE_MISE_EN_SECURITE
-    + RE_PROCEDURE_URGENTE
+    + rf"|{RE_ARRETE}\s+modificatif\s+de\s+{RE_MISE_EN_SECURITE}{RE_PROCEDURE_URGENTE}"
     + r")"
 )
 M_CLASS_MSU_MOD = re.compile(RE_CLASS_MSU_MOD, re.MULTILINE | re.IGNORECASE)
@@ -156,8 +139,11 @@ RE_CLASS_ML_PA = (
     + r"\s+partielle"
     + rf"(?:\s+de\s+(?:{RE_PGI}|{RE_MISE_EN_SECURITE}|{RE_PS_PO}))?"
     + r")"
-    # ou: mainlevée partielle de l'arrêté
-    # FIXME ajouter cette possibilité (urgent)
+    # ou: mainlevée partielle de l'arrêté  # (inopérant?) WIP 2023-03-13
+    + rf"|(?:{RE_ML}"
+    + r"\s+partielle"
+    + rf"\s+de\s+l['’]\s*(?:{RE_CLASS_PGI}|{RE_CLASS_MS}|{RE_CLASS_PS_PO})"
+    + r")"
     # ou: mainlevée partielle de péril
     + rf"|(?:{RE_ML}"
     + r"\s+partielle"
@@ -193,18 +179,34 @@ M_CLASS_ABRO_DE = re.compile(RE_CLASS_ABRO_DE, re.MULTILINE | re.IGNORECASE)
 
 # insécurité des équipements communs
 RE_CLASS_INS = (
-    RE_ARRETE + r"\s+d['’]\s*ins[ée]curit[ée]\s+des\s+[ée]quipements\s+communs"
+    RE_ARRETE
+    + r"\s+(?:d['’]\s*)?ins[ée]curit[ée](\s+imminente)?\s+des\s+[ée]quipements\s+communs"
 )
 M_CLASS_INS = re.compile(RE_CLASS_INS, re.MULTILINE | re.IGNORECASE)
 
 # interdiction d'occuper
 RE_INTERD_OCCUP = (
-    r"interdiction\s+"
-    + r"(?:d['’]\s*(?:acc[èe]s)\s+et\s+)?"
-    + r"d['’]\s*(?:occuper|occupation)"
+    r"(?:"
+    + r"interdiction\s+(?:partielle\s+)?"  # NEW 2023-03-13: partielle
+    + r"(?:"
+    # d'occuper | occupation
+    + r"(?:d['’ ]\s*(?:occuper|occupation))"
+    # ou: d'habiter et d'occuper
+    + r"|(?:d['’ ]\s*habiter\s+et\s+d['’ ]\s*occuper)"
+    # ou: d'accès et d'occupation
+    + r"|(?:d['’ ]\s*acc[èe]s\s+et\s+d['’ ]\s*occupation)"
+    # ou: d'occupation et d'utilisation
+    + r"|(?:d['’ ]\s*occupation\s+et\s+d['’ ]\s*utilisation)"
+    + r")"
+    + r")"
 )
 RE_CLASS_INT = (
-    RE_ARRETE + r"\s+" + r"(?:portant\s+(?:l['’]\s*)?|d['’]\s*)" + RE_INTERD_OCCUP
+    r"(?:"
+    # arrêté d'interdiction d'occuper
+    + rf"{RE_ARRETE}\s+d['’ ]\s*{RE_INTERD_OCCUP}"
+    # ou: arrêté portant (sur l' | l' | ) interdiction d'occuper
+    + rf"|{RE_ARRETE}\s+portant\s+(?:sur\s+l['’]\s*|l['’]\s*)?{RE_INTERD_OCCUP}"
+    + r")"
 )
 M_CLASS_INT = re.compile(RE_CLASS_INT, re.MULTILINE | re.IGNORECASE)
 
@@ -216,11 +218,7 @@ RE_CLASS_ABRO_INT = (
     + r"\s+d['’]\s*abrogation\s+de\s+l['’]\s*"
     + RE_INTERD_OCCUP
     # ou: arrêté d'abrogation d'arrêté portant interdiction d'occuper
-    + rf"|{RE_ARRETE}"
-    + r"\s+d['’]\s*abrogation\s+d['’]\s*"
-    + RE_ARRETE
-    + r"\s+portant\s+(?:(?:sur\s+)?l['’]\s*)?"
-    + RE_INTERD_OCCUP
+    + rf"|{RE_ARRETE}\s+d['’]\s*abrogation\s+d['’]\s*{RE_ARRETE}\s+portant\s+(?:(?:sur\s+)?l['’]\s*)?{RE_INTERD_OCCUP}"
     # ou: abrogation de l'arrêté ... portant sur l'interdiction d'occuper
     + r"|abrogation\s+de\s+l['’]\s*"
     + RE_ARRETE

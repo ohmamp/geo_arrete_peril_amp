@@ -8,7 +8,6 @@ import argparse
 from datetime import datetime
 import logging
 from pathlib import Path
-import re
 from typing import Optional
 
 import pandas as pd  # tableau récapitulatif des extractions
@@ -56,6 +55,8 @@ from src.domain_knowledge.typologie_securite import (
 from src.preprocess.data_sources import EXCLUDE_FIXME_FILES, EXCLUDE_FILES
 from src.preprocess.separate_pages import load_pages_text
 from src.preprocess.filter_docs import DTYPE_META_NTXT_FILT, DTYPE_NTXT_PAGES_FILT
+from src.quality.validate_parses import examine_doc_content  # WIP
+from src.utils.text_utils import P_STRIP, P_LINE
 
 
 # dtypes des champs extraits
@@ -201,22 +202,6 @@ def parse_page_template(txt: str) -> tuple[list, str]:
         txt_body = txt_body[:sp_beg] + " " * (sp_end - sp_beg) + txt_body[sp_end:]
 
     return content, txt_body
-
-
-# motif pour capturer tout le texte sauf les espaces initiaux et finaux
-RE_STRIP = (
-    r"(?:\s*)"  # espaces initiaux
-    + r"(?P<outstrip>\S[\s\S]*?)"  # texte à capturer
-    + r"(?:\s*)"  # espaces finaux
-)
-P_STRIP = re.compile(RE_STRIP, re.IGNORECASE | re.MULTILINE)
-# motif pour capturer les lignes (pour ne pas les confondre avec du vrai texte, en garde-fou avant STRIP)
-RE_LINE = (
-    r"(?:\s*)"  # espaces initiaux
-    + r"(?:_{3,})"  # capturer les traits/lignes "_______"
-    + r"(?:\s*)"  # espaces finaux
-)
-P_LINE = re.compile(RE_LINE, re.IGNORECASE | re.MULTILINE)
 
 
 def parse_doc_preamble(
@@ -684,83 +669,6 @@ def parse_page_content(
     content.extend(content_reg)
 
     return content
-
-
-def examine_doc_content(fn_pdf: str, doc_content: list[dict]):
-    """Vérifie des hypothèses de bonne formation sur le contenu extrait du document.
-
-    Parameters
-    ----------
-    doc_content: list[dict]
-        Empans de contenu extraits du document
-    """
-    # filtrer les pages absentes
-    pg_conts = [x for x in doc_content if (pd.notna(x) and x["content"] is not None)]
-    # paragraphes
-    par_typs = [
-        x["span_typ"]
-        for pg_content in pg_conts
-        for x in pg_content["content"]
-        if (pd.notna(x) and x["span_typ"].startswith("par_"))
-    ]
-    # "considérant" obligatoire sauf pour certains arrêtés?
-    # TODO déterminer si les assertions ne s'appliquent qu'à certaines classes d'arrêtés
-    if par_typs:
-        # chaque arrêté contient au moins un "vu"
-        if "par_vu" not in par_typs:
-            raise ValueError(f"{fn_pdf}: pas de vu")
-        # chaque arrêté contient au moins un "considérant"
-        # * sauf dans les mainlevées et abrogations où dans la pratique ce n'est pas le cas
-        if "par_considerant" not in par_typs:
-            if fn_pdf not in (
-                "99_AR-013-211300058-20220131-310122_01-AR-1-1_1 (1).pdf",  # mainlevée => optionnel ?
-                "99_AR-013-211300058-20220318-180322_01-AR-1-1_1.pdf",  # mainlevée => optionnel ?
-                "abrogation interdiction d'occuper 35, bld Barbieri.pdf",  # abrogation => optionnel ?
-                "abrogation 232 et 236 rue Roger Salengro 13003.pdf",  # abrogation => optionnel ?
-                "abrogation 79, rue de Rome.pdf",  # abrogation => optionnel ?
-                "abrogation 19 24 rue Moustier 13001.pdf",  # abrogation => optionnel ?
-                "102, rue d'Aubagne abrogation.pdf",  # abrogation => optionnel ?
-                "9, rue Brutus ABROGATION.pdf",  # abrogation
-                "ABROGATION 73, rue d'Aubagne.pdf",  # abrogation
-                "abrogation 24, rue des Phocéens 13002.pdf",  # abrogation
-                "abrogation.pdf",  # abrogation
-                "abrogation 19, rue d'Italie 13006.pdf",  # abrogation
-                "ABROGATION 54, bld Dahdah.pdf",  # abrogation
-                "abrogation 3, rue Loubon 13003.pdf",  # abrogation
-                "abrogation 35, rue de Lodi.pdf",  # abrogation
-                "abrogation 4 - 6 rue Saint Georges.pdf",  # abrogation
-                "abrogation 23, bld Salvator.pdf",  # abrogation
-                "abrogation 25, rue Nau.pdf",  # abrogation
-                "abrogation 51 rue Pierre Albrand.pdf",  # abrogation
-                "abrogation 80 a, rue Longue des Capucins.pdf",  # abrogation
-                "abrogation 36, cours Franklin Roosevelt.pdf",  # abrogation
-                "abrogation 356, bld National.pdf",  # abrogation
-                "abrogation 57, bld Dahdah.pdf",  # abrogation
-                "abrogation 86, rue Longue des Capucins.pdf",  # abrogation
-                "abrogation 26, bld Battala.pdf",  # abrogation
-                "abrogation 24, rue Montgrand.pdf",  # abrogation
-                "mainlevée 102 bld Plombières 13014.pdf",  # mainlevée (Marseille)
-                "mainlevée 29 bld Michel 13016.pdf",  # mainlevée (Marseille)
-                "mainlevée 7 rue de la Tour Peyrolles.pdf",  # mainlevée (Peyrolles)
-                "mainlevée de péril ordinaire 8 rue Longue Roquevaire.pdf",  # mainlevée (Roquevaire)
-                "mainlevée 82L chemin des Lavandières Roquevaire.pdf",  # mainlevée (Roquevaire)
-                "8, rue Maréchal Foch Roquevaire.PDF",  # PGI ! (Roquevaire)
-                "grave 31 rue du Calvaire Roquevaire.pdf",  # PGI ! (Roquevaire)
-                "PGI rue docteur Paul Gariel -15122020.PDF",  # PGI ! (Roquevaire)
-                "modif Maréchal Foch.PDF",  # modif PGI ! (Roquevaire)
-            ):
-                # FIXME détecter la classe au lieu d'une liste d'exclusion => ne pas appliquer pour abrogations et mainlevées
-                raise ValueError(f"{fn_pdf}: pas de considérant")
-        # chaque arrêté contient exactement 1 "Arrête"
-        try:
-            assert len([x for x in par_typs if x == "par_arrete"]) == 1
-        except AssertionError:
-            if fn_pdf not in (
-                "16, rue de la République Gemenos.pdf",  # OCR p.1 seulement => à ré-océriser
-                "mainlevée 6, rue des Jaynes Gemenos.pdf",  # OCR p.1 seulement => à ré-océriser
-            ):
-                raise ValueError(f"{fn_pdf}: pas de vu")
-        # l'ordre relatif (vu < considérant < arrête < article) est vérifié au niveau des transitions admissibles
 
 
 # FIXME enlever les EXCLUDE_FILES en amont (idéalement: les détecter et filtrer automatiquement, juste avant)

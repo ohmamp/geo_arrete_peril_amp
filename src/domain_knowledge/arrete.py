@@ -185,13 +185,22 @@ def get_date(page_txt: str) -> bool:
 # TODO Peyrolles:  + r"|(?:A \d{4}-" + RE_MM + r"-\d{3})"
 RE_NUM_ARR = (
     r"(?:"
+    #
     + rf"Extrait\s+du\s+registre\s+des\s+arrêtés\s+{RE_NO}"
+    # Gignac-la-Nerthe:
+    + rf"|EXTRAIT\s+DU\s+REGISTRE\s+des\s+ARRETES\s+du\s+MAIRE\n{RE_NO}\s+"
+    #
     + r"|Réf\s+:"
-    + r"|^Nos\s+Réf\s+:"  # Gardanne
-    + rf"|^A\.M\s+{RE_NO}"  # Martigues
-    + rf"|^Décision\s+{RE_NO}"  # Marseille (1)
+    # Gardanne:
+    + r"|^Nos\s+Réf\s+:"
+    # Martigues:
+    + rf"|^A\.M\s+{RE_NO}"
+    # Marseille (1)
+    + rf"|^Décision\s+{RE_NO}"
+    #
     + rf"|^ARRÊTÉ\s+DU\s+MAIRE\s+{RE_NO}"
-    + rf"|Arrêté\s+{RE_NO}"  # en-tête Peyrolles-en-Provence
+    # en-tête Peyrolles-en-Provence
+    + rf"|Arrêté\s+{RE_NO}"
     + rf"|ARRETE\s+{RE_NO}"
     # + rf"|^{RE_NO}"  # motif trop peu spécifique, capture par exemple un numéro de parcelle
     + r")"

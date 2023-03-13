@@ -2,11 +2,12 @@
 
 """
 
-# TODO interdiction partielle d'occupation? interdiction d'occuper partielle?
 # TODO abrogation d'interdiction partielle d'occupation?
 # TODO interdiction d'accès et d'occupation du fond de parcelle => interdiction partielle?
 # TODO modification de l'interdiction d'occuper
 # TODO mise en demeure de réaliser des travaux
+# TODO interdiction d'utilisation des balcons en façade?
+# TODO arrêté d'évacuation?
 
 import re
 
@@ -27,7 +28,14 @@ RE_PROCEDURE_URGENTE = (
 # - classification des arrêtés
 # péril simple/ordinaire (terminologie précédente)
 RE_PS_PO = r"p[ée]ril\s+(?:simple|ordinaire|non\s+imminent)"
-RE_CLASS_PS_PO = RE_ARRETE + r"\s+de\s+" + RE_PS_PO
+RE_CLASS_PS_PO = (
+    r"(?:"
+    # arrêté de péril simple | ordinaire
+    + rf"(?:{RE_ARRETE}\s+de\s+{RE_PS_PO})"
+    # ou: arrêté municipal ordonnant les mesures nécessaires au cas de péril ordinaire
+    + rf"|(?:{RE_ARRETE}\s+ordonnant\s+les\s+mesures\s+n[ée]cessaires\s+au\s+cas\s+de\s+{RE_PS_PO})"
+    + r")"
+)
 M_CLASS_PS_PO = re.compile(RE_CLASS_PS_PO, re.MULTILINE | re.IGNORECASE)
 
 # modificatif
@@ -78,7 +86,15 @@ RE_CLASS_MS_MOD = (
 M_CLASS_MS_MOD = re.compile(RE_CLASS_MS_MOD, re.MULTILINE | re.IGNORECASE)
 #
 RE_PGI = r"p[ée]ril" + r"(?:\s+grave(?:\s+et)?)?" + r"\s+imminent"
-RE_CLASS_PGI = rf"(?:{RE_ARRETE}(?:\s+{RE_A_DIRE_D_EXPERT})?(?:\s+portant\s+proc[ée]dure)?\s+de\s+{RE_PGI})"
+RE_CLASS_PGI = (
+    rf"(?:{RE_ARRETE}"
+    + rf"(?:\s+{RE_A_DIRE_D_EXPERT})?"
+    + r"(?:"
+    + r"(?:\s+portant\s+proc[ée]dure)"
+    + r"|(?:\s+ordonnant\s+les\s+mesures\s+provisoires\s+n[ée]cessaires\s+au\s+cas)"
+    + r")?"
+    + rf"\s+de\s+{RE_PGI})"
+)
 M_CLASS_PGI = re.compile(RE_CLASS_PGI, re.MULTILINE | re.IGNORECASE)
 #
 RE_CLASS_PGI_MOD = (
@@ -190,13 +206,17 @@ RE_INTERD_OCCUP = (
     + r"interdiction\s+(?:partielle\s+)?"  # NEW 2023-03-13: partielle
     + r"(?:"
     # d'occuper | occupation
-    + r"(?:d['’ ]\s*(?:occuper|occupation))"
+    + r"(?:d['’ 4]\s*(?:occuper|occupation))"
     # ou: d'habiter et d'occuper
     + r"|(?:d['’ ]\s*habiter\s+et\s+d['’ ]\s*occuper)"
     # ou: d'accès et d'occupation
     + r"|(?:d['’ ]\s*acc[èe]s\s+et\s+d['’ ]\s*occupation)"
     # ou: d'occupation et d'utilisation
     + r"|(?:d['’ ]\s*occupation\s+et\s+d['’ ]\s*utilisation)"
+    # ou: de pénétrer, d'habiter, d'utiliser et d'exploiter
+    + r"|(?:de\s+p[ée]n[ée]trer,\s+d['’ ]\s*habiter,\s+d['’ ]\s*utiliser,\s+et\s+d['’ ]\s*exploiter)"
+    # ou: de pénétrer, d'utiliser, et fermeture
+    + r"|(?:de\s+p[ée]n[ée]trer,\s+d['’ ]\s*utiliser,\s+et\s+fermeture)"
     + r")"
     + r")"
 )
@@ -208,7 +228,16 @@ RE_CLASS_INT = (
     + rf"|{RE_ARRETE}\s+portant\s+(?:sur\s+l['’]\s*|l['’]\s*)?{RE_INTERD_OCCUP}"
     + r")"
 )
-M_CLASS_INT = re.compile(RE_CLASS_INT, re.MULTILINE | re.IGNORECASE)
+P_CLASS_INT = re.compile(RE_CLASS_INT, re.MULTILINE | re.IGNORECASE)
+
+# modificatif
+RE_CLASS_INT_MOD = (
+    r"(?:"
+    # arrêté modificatif portant l'interdiction d'occupation
+    + rf"{RE_ARRETE}\s+modificatif\s+(?:portant\s+(?:sur\s+l['’]\s*|l['’]\s*)?|d['’ ]\s*){RE_INTERD_OCCUP}"
+    + r")"
+)
+P_CLASS_INT_MOD = re.compile(RE_CLASS_INT_MOD, re.MULTILINE | re.IGNORECASE)
 
 # abrogation de l'interdiction d'occuper
 RE_CLASS_ABRO_INT = (
@@ -258,6 +287,8 @@ RE_CLASSE = (
             RE_CLASS_DE,
             RE_CLASS_ABRO_INT,
             RE_CLASS_INT,
+            RE_CLASS_INT_MOD,
+            # insécurité des équipements
             RE_CLASS_INS,
         ]
     )
@@ -330,6 +361,7 @@ def get_classe(page_txt: str) -> bool:
         or M_CLASS_PGI_MOD.search(page_txt)
         or M_CLASS_MSU_MOD.search(page_txt)
         or M_CLASS_ML_PA.search(page_txt)
+        or P_CLASS_INT_MOD.search(page_txt)
     ):
         return "Arrêté de mise en sécurité modificatif"
     elif (
@@ -339,7 +371,7 @@ def get_classe(page_txt: str) -> bool:
         or M_CLASS_MSU.search(page_txt)
         or M_CLASS_DE.search(page_txt)
         or M_CLASS_INS.search(page_txt)
-        or M_CLASS_INT.search(page_txt)
+        or P_CLASS_INT.search(page_txt)
     ):
         return "Arrêté de mise en sécurité"
     else:
@@ -378,7 +410,7 @@ def get_urgence(page_txt: str) -> bool:
         or M_CLASS_DE.search(page_txt)
         or M_CLASS_ABRO_DE.search(page_txt)
         or M_CLASS_INS.search(page_txt)
-        or M_CLASS_INT.search(page_txt)
+        or P_CLASS_INT.search(page_txt)
     ):
         # FIXME ajouter la prise en compte des articles cités pour déterminer l'urgence
         return "oui ou non"

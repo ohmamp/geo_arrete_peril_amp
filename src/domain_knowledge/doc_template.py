@@ -61,6 +61,12 @@ RE_HEADERS = [
     ),  # p. 1
     ("Gémenos", r"^ARRÊTÉ\s+DU\s+MAIRE$"),  # p. 1 (optionnel)
     (
+        "Jouques",
+        r"^REPUBLIQUE\s+FRANCAISE\n"
+        + r"DEPARTEMENT\s+DES\s+BOUCHES\s+DU\s+RHONE\n"
+        + r"COMMUNE\s+DE\s+JOUQUES",
+    ),  # p. 1 (en haut)
+    (
         "Martigues",
         r"^Département\s+des\nBouches-du-Rhône\nArrondissement\s+d['’]Istres$",
     ),  # p. 1

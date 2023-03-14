@@ -34,16 +34,29 @@ RE_GEST = (
     r"(?:"
     # contexte gauche
     + r"(?:"
+    # negative lookbehind, à réactiver si on décide de ne pas capturer "appartient en toute propriété au gestionnaire pris en la personne du Consulat Général..."
+    # + r"(?!en\s+toute\s+propri[ée]t[ée]\s+au)"
     + r"gestionnaire"
-    + r"\s+de\s+(?:cet\s+|l['’]\s*)immeuble"
-    + r"(?:"  # alternative: est | ( est|,)? pris en la personne de|du
+    + r"(?:\s+de\s+(?:cet\s+|l['’]\s*)immeuble)?"
+    # TODO ajouter "sis <adresse>"
+    + r"(?:"
+    # est (tout court)
     + rf"(?:\s+est\s+(?!{RE_PRIS_EN_LA_PERSONNE_DE}))"
+    # (est|,)? pris en la personne de
     + rf"|(?:(?:\s+est|\s*,)?\s+{RE_PRIS_EN_LA_PERSONNE_DE})"
     + r")"  # fin alternative "est"
     + r")"
     # fin contexte gauche
     # identité du gestionnaire
-    + r"(?P<gestio>[^,.]+?)"  # [\s\S]+?
+    + r"(?P<gestio>"
+    # (cabinet | groupe | agence) Xyz: nom attrape-tout sauf virgules ; autorise les points (ex: cabinet S.I.P.)
+    + r"(?:"
+    + r"(?:(?:le\s+)?cabinet|(?:le\s+)?groupe|(?:l['’]\s*)?agence(?:\s+immobili[èe]re)?)"
+    + r"\s+[^,]+?"
+    + r")"
+    # attrape tout, sauf les points (acceptés pour les personnes physiques et cabinets)  # [\s\S]+?
+    + r"|(?:[^,.]+?)"  # [\s\S]+?
+    + r")"
     # contexte droit
     + r"(?:"
     + r"[,.]"
@@ -97,7 +110,7 @@ RE_PROPRIO_MONO = (
     + r"[\s\S]*?"  # complément d'adresse non-capturé dans RE_ADRESSE (ex: "Les toits de la Pounche")
     + rf"{RE_ADRESSE}"  # adresse du propriétaire
     + r")"
-    # + r"(?:\s+ou\s+à\s+ses\s+ayants\s+droit)"  # WIP: contexte obligatoire?
+    # + r"(?:[,]?\s+ou\s+(?:à\s+)?(?:ses|leurs)\s+ayant[s]?(?:\s+|[-])droit[s]?)"  # WIP: contexte obligatoire?
 )
 P_PROPRIO_MONO = re.compile(RE_PROPRIO_MONO, re.MULTILINE | re.IGNORECASE)
 
@@ -215,8 +228,8 @@ RE_SYNDIC_LONG = (
     + r"|(?:(le\s+)?Cabinet\s+LE\s+BON\s+SYNDIC)"
     # - "le cabinet | l'agence immobilière ..."
     + r"|(?:"
-    + r"(?:(?:(le\s+)?cabinet)|(?:(l['’]\s*)?agence(?:\s+immobili[èe]re)?))"
-    + r"\s+[^,]+?"  # nom attrape-tout sauf virgules
+    + r"(?:(?:le\s+)?cabinet|(?:le\s+)?groupe|(?:l['’]\s*)?agence(?:\s+immobili[èe]re)?)"
+    + r"\s+[^,]+?"  # nom attrape-tout sauf virgules ; autorise les points (ex: cabinet S.I.P.)
     + r")"
     + r"|(?:[^,.]+?)"  # attrape tout, sauf les points (acceptés pour les personnes physiques et cabinets)  # [\s\S]+?
     + r")"  # fin alternative syndic

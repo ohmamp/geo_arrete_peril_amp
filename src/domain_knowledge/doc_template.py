@@ -50,14 +50,14 @@ RE_HEADERS = [
     ("Berre-l'Étang", r"^République\s+Française$"),  # p. 1
     (
         "Gémenos",
-        r"^DÉPARTEMENT\nDES BOUCHES-DU-RHÔNE$",
+        r"^DÉPARTEMENT\nDES\s+BOUCHES-DU-RHÔNE\n",
     ),  # p. 1
     ("Gémenos", r"^Ville\s+de\s+Gémenos$"),  # p. 1
     (
         "Gémenos",
-        r"TÉL\s+:\s+04\s+42\s+32\s+89\s+00\n"
-        + r"FAX\s+:\s+04\s+42\s+32\s+71\s+41"
-        + r"www\.mairie-gemenos\.fr",
+        r"TÉL\s*[:;]\s*04\s+42\s+32\s+89\s+00\n"  # [:;] pour les erreurs d'OCR
+        + r"FAX\s*[:;]\s*04\s+42\s+32\s+71\s+41\n"
+        + r"www[.-]mairie-gemenos[.-]fr",  # [.-] pour les erreurs d'OCR
     ),  # p. 1
     ("Gémenos", r"^ARRÊTÉ\s+DU\s+MAIRE$"),  # p. 1 (optionnel)
     (

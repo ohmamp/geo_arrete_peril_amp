@@ -2,6 +2,9 @@
 
 """
 
+# 2023-03-14: 53 arrêtés avec un nom mais pas de classe
+# csvcut -c pdf,nom_arr,classe data/processed/arretes_peril_compil_struct/paquet_arrete.csv |grep "[^,],$" |wc -l
+
 # TODO abrogation d'interdiction partielle d'occupation?
 # TODO interdiction d'accès et d'occupation du fond de parcelle => interdiction partielle?
 # TODO modification de l'interdiction d'occuper
@@ -173,12 +176,12 @@ M_CLASS_ML_PA = re.compile(RE_CLASS_ML_PA, re.MULTILINE | re.IGNORECASE)
 # déconstruction / démolition
 RE_CLASS_DE = (
     rf"(?:{RE_ARRETE}"
-    + r"""\s+"""
-    + r"""(?:de\s+"""
-    + r"""|portant\s+sur\s+"""
-    + r"""(?:l['’]installation\s+d['’]un\s+périmètre\s+de\s+sécurité\s+et\s+)?"""
-    + r"""la)"""
-    + r"""(?:déconstruction|démolition)"""
+    + r"\s+"
+    + r"(?:de\s+"
+    + r"|portant\s+sur\s+"
+    + r"(?:(?:l['’ ]installation|la\s+mise\s+en\s+place)\s+d['’ ]un\s+p[ée]rim[èe]tre\s+de\s+s[ée]curit[ée]\s+et\s+)?"
+    + r"(?:la\s+)?)"
+    + r"(?:d[ée]construction|d[ée]molition)"
     + r")"
 )
 M_CLASS_DE = re.compile(RE_CLASS_DE, re.MULTILINE | re.IGNORECASE)
@@ -301,27 +304,21 @@ P_CLASSE = re.compile(RE_CLASSE, re.MULTILINE | re.IGNORECASE)
 
 # interdiction d'habiter
 RE_INT_HAB = (
-    r"""(?:"""
-    + r"""interdiction\s+d['’]habiter\s+et\s+d['’]occuper"""
-    + r"""|interdiction\s+d['’]habiter\s+l['’]appartement"""
-    + r""")"""
+    r"(?:"
+    + r"interdiction\s+d['’ ]habiter\s+et\s+d['’ ]occuper"
+    + r"|interdiction\s+d['’ ]habiter\s+l['’ ]appartement"
+    + r")"
 )
 P_INT_HAB = re.compile(RE_INT_HAB, re.MULTILINE | re.IGNORECASE)
 
 # démolition / déconstruction
 # TODO à affiner: démolition d'un mur? déconstruction et reconstruction? etc
 # TODO filtrer les pages copiées des textes réglementaires
-RE_DEMO = (
-    r"""(?:"""
-    + r"""d[ée]molir"""
-    + r"""|d[ée]molition"""
-    + r"""|d[ée]construction"""
-    + r""")"""
-)
+RE_DEMO = r"(?:" + r"d[ée]molir" + r"|d[ée]molition" + r"|d[ée]construction" + r")"
 P_DEMO = re.compile(RE_DEMO, re.MULTILINE | re.IGNORECASE)
 
 # (insécurité des) équipements communs
-RE_EQU_COM = r"""s[ée]curit[ée](?:\s+imminente)\s+des\s+[ée]quipements\s+communs"""
+RE_EQU_COM = r"s[ée]curit[ée](?:\s+imminente)\s+des\s+[ée]quipements\s+communs"
 P_EQU_COM = re.compile(RE_EQU_COM, re.MULTILINE | re.IGNORECASE)
 
 # TODO exclure les arrêtés de mise en place d'un périmètre de sécurité
@@ -330,8 +327,8 @@ P_EQU_COM = re.compile(RE_EQU_COM, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_PERIM = (
     rf"{RE_ARRETE}"
     + r"\s+(?:de|portant\s+(?:sur\s+))"
-    + r"(?:la\s+mise\s+en\s+place|l['’]installation)\s+"
-    + r"d['’]un\s+p[ée]rim[èe]tre\s+de\s+s[ée]curit[ée]"
+    + r"(?:la\s+mise\s+en\s+place|l['’ ]installation)\s+"
+    + r"d['’ ]un\s+p[ée]rim[èe]tre\s+de\s+s[ée]curit[ée]"
 )
 P_CLASS_PERIM = re.compile(RE_CLASS_PERIM, re.MULTILINE | re.IGNORECASE)
 

@@ -48,16 +48,16 @@ RE_DATE = (
     r"(?:"
     + r"\d{2}[.]\d{2}[.]\d{4}"  # Peyrolles-en-Provence (en-tête)
     + r"|\d{2}/\d{2}/\d{4}"  # ?
-    + r"|\d{1,2} "
+    + r"|(?:\d{1,2}|1er) "  # cas particulier: 1er
     + RE_MOIS
-    + r" \d{4}"  # Roquevaire (fin), Martigues (fin)
+    + r" \d{4}"  # Gardanne (fin), Roquevaire (fin), Martigues (fin)
     + r")"
 )
 
 # date: extraction précise des champs
 RE_DATE_PREC = (
-    r"(?P<dd>\d{1,2})"  # jour
-    + r"[\s./-]"
+    r"(?P<dd>\d{1,2}|1)"  # jour
+    + r"(?:[\s./-]|(?<=1)er\s+)"  # séparateur ou (cas spécial 1er)
     + r"(?P<mm>\d{2}"  # moi en nombre
     + rf"|{RE_MOIS})"  # ou en lettres (toutes ou abrégées)
     + r"[\s./-]"

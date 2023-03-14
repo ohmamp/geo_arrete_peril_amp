@@ -13,9 +13,15 @@
 # FIXME ? identifiant de parcelle mais pas concerné par le péril:
 # - "limite séparative entre les parcelles 213886 E0047 et 213886 E0089" (105 chemin des Jonquilles)
 # FIXME? référence de parcelle mal formée:
+# csvcut -c arr_pdf,arr_nom_arr,par_ref_cad data/interim/arretes_peril_compil_data_enr_struct.csv |grep "[^,],$" |less
 # - "21388O0142" => "213888O0142" ("7, bld lacordaire.pdf")
 # - "2015899 H0064" => "215899 H0064" ("91 bld Oddo 13015 - Péril simple 06.03.20.pdf")
 # - "23813 E0176" => "203813 E0176" ("Arrêté de péril imminent - 39, rue François Barbini - 13003.pdf")
+# - "33202 B0091" => (?) "202808 B0233" (?) ("Mainlevée 34, rue Bon Pasteur 13002.pdf")
+# - "33202 B0130 ET 33202 B0131" => (?) ("mainlevée 22 26 rue de la Joliette.pdf")
+# - "34508 L0063" => (?) ("mainlevée 27, rue du Commandeur 13015.pdf")
+# - "34503 D0031" => (?) ("mainlevée 270 avenue Roger Salengro.pdf")
+
 
 # FIXME trouver un moyen de forcer le strict parallélisme avec les expressions sans groupes nommés
 
@@ -23,7 +29,6 @@ import logging
 import re
 
 import pandas as pd
-from typing import NamedTuple
 
 from src.utils.text_utils import RE_NO
 

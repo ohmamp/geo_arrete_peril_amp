@@ -2,6 +2,8 @@
 
 """
 
+# TODO garder la date de signature ou d'affichage ? (ex: Peyrolles)
+
 import re
 
 from src.domain_knowledge.adresse import RE_COMMUNE
@@ -149,11 +151,20 @@ def contains_article(page_txt: str) -> bool:
 # date de signature de l'arrêté
 RE_DATE_SIGNAT = (
     r"(?:"
-    + r"^Fait\s+à\s+\S+[,]?\s+le"  # Roquevaire (fin)
-    + r"|^Fait\s+à\s+Aix-en-Provence,\s+en\s+l['’]Hôtel\s+de\s+Ville,\nle"  # Aix-en-Provence (fin)
-    + r"|^Gardanne,\s+le"  # Gardanne
+    + r"^Fait\s+à\s+\S+[,]?\s+le"  # Roquevaire (fin), Gémenos (fin ; à vérifier après OCR)
+    # Aix-en-Provence (fin)
+    + r"|^Fait\s+à\s+Aix-en-Provence,\s+en\s+l['’]Hôtel\s+de\s+Ville,\nle"
+    # Gardanne
+    + r"|^Gardanne,\s+le"
+    # Marseille
     + r"|^Signé\s+le\s*:\s+"
-    + rf"|^Arrêté\s+{RE_NO}[\s\S]+?\s+du"  # Peyrolles-en-Provence (en-tête), Martigues (fin)
+    # Meyrargues
+    + rf"|^ARRÊTÉ\s+DU\s+MAIRE\s+{RE_NO}[^\n]+\nen\s+date\s+du\s+"
+    # Peyrolles-en-Provence (en-tête), Martigues (fin)
+    + rf"|^Arrêté\s+{RE_NO}[\s\S]+?\s+du"
+    # Peyrolles-en-Provence (fin)
+    + r"|^Peyrolles-en-Provence,\s+le"
+    # + r"|^Affiché[e]\s+le\s+:"  # TODO garder la date de signature ou d'affichage?
     + r")"
     + r"\s+(?P<arr_date>"
     + RE_DATE  # TODO str_date.RE_DATE_PREC ?
@@ -197,7 +208,7 @@ RE_NUM_ARR = (
     + rf"|^A\.M\s+{RE_NO}"
     # Marseille (1)
     + rf"|^Décision\s+{RE_NO}"
-    #
+    # Meyrargues
     + rf"|^ARRÊTÉ\s+DU\s+MAIRE\s+{RE_NO}"
     # en-tête Peyrolles-en-Provence
     + rf"|Arrêté\s+{RE_NO}"

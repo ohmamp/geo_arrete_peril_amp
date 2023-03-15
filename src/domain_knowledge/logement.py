@@ -7,7 +7,7 @@ import logging
 import re
 
 from src.domain_knowledge.adresse import RE_ADRESSE
-from src.domain_knowledge.text_structure import M_ADR_DOC, RE_ADR_RCONT
+from src.domain_knowledge.text_structure import P_ADR_DOC, RE_ADR_RCONT
 
 
 # formule courante dans ces arrêtés pour l'identification des propriétaires ou du syndic
@@ -299,7 +299,8 @@ def get_adr_doc(page_txt: str) -> bool:
     adresse: str | None
         Adresse visée par le document si trouvée dans le texte, None sinon.
     """
-    if m_adr := M_ADR_DOC.search(page_txt):
+    if m_adr := P_ADR_DOC.search(page_txt):
+        logging.warning(f"adr_doc: {m_adr.group(0)}\n{m_adr.groupdict()}")
         adr = m_adr.group("adresse")
         # nettoyer la valeur récupérée
         # - couper sur certains contextes droits

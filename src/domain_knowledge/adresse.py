@@ -6,7 +6,8 @@ import logging
 import re
 from typing import Dict
 
-# from cadastre import RE_CAD_MARSEILLE  # (inopérant?)
+# from src.domain_knowledge.cadastre import RE_CAD_MARSEILLE  # (inopérant?)
+from src.domain_knowledge.codes_geo import RE_COMMUNES_AMP_ALLFORMS
 from src.utils.text_utils import normalize_string
 
 
@@ -15,19 +16,6 @@ from src.utils.text_utils import normalize_string
 # TODO 40 arrêtés 13055 (dont 3 sans référence cadastrale):
 # csvcut -c arr_nom_arr,adr_ad_brute,adr_codeinsee,par_ref_cad data/interim/arretes_peril_compil_data_enr_struct.csv |grep ",13055," |less
 
-# codes postaux de Marseille
-# à conserver même quand il y aura une table CSV de codes postaux ;
-# cette liste permet de changer de stratégie de reconnaissance des parcelles cadastrales
-# (à Marseille: références longues incluant l'arrondissement et le quartier)
-CP_MARSEILLE = [f"130{i:02}" for i in range(1, 17)]
-# nom de commune pour les arrondissements de Marseille, utilisés dans certaines adresses
-RE_COM_MARSEILLE_ARRTS = (
-    r"(?:"
-    + r"|".join(
-        [r"Marseille\s+1er"] + [rf"Marseille\s+{i}[èe]me" for i in range(2, 17)]
-    )
-    + r")"
-)
 
 # regex générique pour ce qu'on considérera comme un "token" (plus ou moins, un mot) dans un nom de voie ou de commune
 RE_TOK = r"[A-Za-zÀ-ÿ]+"  # r"[^,;:–(\s.]+"  # r"\w+"
@@ -139,9 +127,9 @@ RE_NOM_VOIE = (
 # TODO s'arrêter quand on rencontre une référence cadastrale (lookahead?)
 RE_COMMUNE = (
     r"(?:"
-    # Marseille (1er, 2ème, 3ème)
-    + RE_COM_MARSEILLE_ARRTS
-    # générique
+    # communes de la métropole AMP (y compris arrondissements de Marseille), dans leurs variantes de graphie
+    + RE_COMMUNES_AMP_ALLFORMS
+    # générique, pour communes hors métropole AMP
     + r"|(?:"
     + rf"[A-ZÀ-Ý]{RE_TOK}"  # au moins 1 token qui commence par une majuscule
     + r"(?:[ '’-]"  # séparateur: tiret, apostrophe, espace

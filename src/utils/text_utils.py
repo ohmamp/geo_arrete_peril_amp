@@ -3,6 +3,8 @@
 """
 
 import re
+import unicodedata
+
 
 # graphies de "n°"
 RE_NO = r"n[°º]"
@@ -24,7 +26,27 @@ RE_LINE = (
 P_LINE = re.compile(RE_LINE, re.IGNORECASE | re.MULTILINE)
 
 
-# normalisation des strings
+# suppression des accents, cédilles etc
+def remove_accents(str_in: str) -> str:
+    """Enlève les accents d'une chaîne de caractères.
+
+    cf. <https://stackoverflow.com/a/517974>
+
+    Parameters
+    ----------
+    str_in: string
+        Chaîne de caractères pouvant contenir des caractères combinants
+        (accents, cédille etc.).
+
+    Returns
+    -------
+    str_out: string
+        Chaîne de caractères sans caractère combinant.
+    """
+    nfkd_form = unicodedata.normalize("NFKD", str_in)
+    return "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+
+
 def normalize_string(raw_str: str) -> str:
     """Normaliser une chaîne de caractères.
 

@@ -12,7 +12,7 @@ import pandas as pd
 
 from src.process.extract_data import DTYPE_DATA
 from src.domain_knowledge.cadastre import generate_refcadastrale_norm
-from src.domain_knowledge.code_insee import get_codeinsee
+from src.domain_knowledge.codes_geo import get_codeinsee
 
 
 def create_docs_dataframe(

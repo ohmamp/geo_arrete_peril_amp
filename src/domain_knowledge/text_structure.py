@@ -88,6 +88,7 @@ RE_ADR_RCONT = (
 # TODO choisir la ou les bonnes adresses quand il y a risque de confusion
 # (ex compliqué: "59, rue Peysonnel 13003 - PGI 18.06.20.pdf")
 RE_ADR_DOC = (
+    # contexte gauche (pas de lookbehind car pas de longueur fixe et unique)
     r"(?:"
     + r"situ[ée](?:\s+(?:au|du))?"
     + r"|désordres\s+(?:importants\s+)?(?:sur|affectant)\s+(?:le\s+bâtiment|l['’]immeuble)\s+sis"
@@ -101,11 +102,12 @@ RE_ADR_DOC = (
     + r")"  # fin "Objet:(classe)?"
     + rf"|(?:{RE_CLASSE}\s*[–-])"  # <classe> - <adresse>
     + r")\s+"  # fin alternatives contexte gauche
+    # adresse du document
     + rf"(?P<adresse>{RE_ADRESSE})"  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     # contexte droit
-    + r"(?:\s*"  # WIP \s+
+    + r"(?=\s*"  # WIP \s+  # WIP (?:
     + r"(?:[,;:–-]\s*|[(])?"  # NEW 2023-03-11: ";"  # WIP \s+
-    + rf"(?={RE_ADR_RCONT})"
+    + rf"(?:{RE_ADR_RCONT})"  # WIP (?=
     + r")?"
 )
-M_ADR_DOC = re.compile(RE_ADR_DOC, re.MULTILINE | re.IGNORECASE)
+P_ADR_DOC = re.compile(RE_ADR_DOC, re.MULTILINE | re.IGNORECASE)

@@ -176,7 +176,7 @@ COM2INSEE = {
 
 
 # TODO fuzzyjoin ?
-def get_codeinsee(nom_commune: str, cpostal: str | None) -> str | None:
+def get_codeinsee(nom_commune: str, cpostal: str) -> str:
     """Récupérer le code INSEE d'une commune.
 
     Le code postal est utilisé pour les arrondissements de Marseille.

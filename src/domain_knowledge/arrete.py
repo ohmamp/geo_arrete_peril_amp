@@ -70,7 +70,7 @@ def get_commune_maire(page_txt: str) -> bool:
 
 # Vu, considérant, article
 RE_VU = r"^\s*VU[^e]"
-# RE_VU = r"^\s*(?P<vu>V[Uu][, ](.+))"
+# RE_VU = r"^\s*(?P<vu>V[Uu][,\s](.+))"
 P_VU = re.compile(RE_VU, re.MULTILINE | re.IGNORECASE)  # re.VERBOSE ?
 
 
@@ -89,7 +89,7 @@ def contains_vu(page_txt: str) -> bool:
 
 
 RE_CONSIDERANT = r"^\s*CONSID[EÉ]RANT"
-# RE_CONSIDERANT = r"^\s*(?P<considerant>(Considérant|CONSIDERANT)[, ](.+))"
+# RE_CONSIDERANT = r"^\s*(?P<considerant>(Considérant|CONSIDERANT)[,\s](.+))"
 P_CONSIDERANT = re.compile(RE_CONSIDERANT, re.MULTILINE | re.IGNORECASE)
 
 

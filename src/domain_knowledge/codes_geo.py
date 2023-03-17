@@ -86,9 +86,9 @@ S_RE_COMMUNES_VARS = (
     # - espaces
     .str.replace(r"\s+", r"\\s+", regex=True)
     # - espaces à la place des traits d'union
-    .str.replace(r"-", r"[ -]", regex=True)
+    .str.replace(r"-", r"[\s-]", regex=True)
     # - apostrophes
-    .str.replace(r"'", r"['’ ]", regex=True)
+    .str.replace(r"'", r"['’\s]", regex=True)
     # - accents
     # a
     .str.replace(r"À", r"[ÀA]", regex=True)
@@ -202,7 +202,7 @@ def get_codeinsee(nom_commune: str, cpostal: str) -> str:
     # vérifier que nom_commune est une graphie d'une commune de la métropole
     try:
         assert P_COMMUNES_AMP_ALLFORMS.match(nom_commune) or nom_commune in (
-            "la",
+            "la Gardanne",
         )  # FIXME: arrêtés mal lus
     except AssertionError:
         print(repr(nom_commune))

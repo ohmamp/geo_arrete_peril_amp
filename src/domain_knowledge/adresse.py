@@ -7,7 +7,9 @@ import re
 from typing import Dict
 
 # from src.domain_knowledge.cadastre import RE_CAD_MARSEILLE  # (inopérant?)
-from src.domain_knowledge.codes_geo import RE_COMMUNES_AMP_ALLFORMS
+from src.domain_knowledge.codes_geo import (
+    RE_COMMUNES_AMP_ALLFORMS,
+)
 from src.utils.text_utils import normalize_string
 
 
@@ -33,28 +35,23 @@ P_IND_VOIE = re.compile(RE_IND_VOIE, re.IGNORECASE | re.MULTILINE)
 # un numéro et un ou plusieurs indicateurs
 RE_NUM_IND = (
     RE_NUM_VOIE  # numéro  # ?P<num_voie>
-    + r"("  # ?P<ind_voie>  # optionnel: 1 indicateur, ou plusieurs
-    + r"\s*"
+    + r"(\s*"  # ?P<ind_voie>  # optionnel: 1 indicateur, ou plusieurs
     + r"(?:"  # alternative
     # une liste d'indicateurs entre parenthèses
-    + rf"(?:"
-    + r"[(]"
-    + RE_IND_VOIE  # 1er indicateur
+    + rf"(?:[(]{RE_IND_VOIE}"  # 1er indicateur
     + r"(?:"  # 2e (et éventuellement plus) indicateur
     + r"(?:(?:\s*[,/-]\s*)|(?:\s+et\s+)|(?:\s+))"  # séparateur
     + RE_IND_VOIE  # n-ième indicateur
     + r")+"  # au moins un 2e indicateur, possible plus
-    + r"[)]"
-    + r")"  # fin liste d'indicateurs
+    + r"[)])"  # fin liste d'indicateurs
     # ou une liste d'indicateurs sans parenthèses
-    + rf"|(?:"
-    + RE_IND_VOIE  # 1er indicateur
+    + rf"|(?:{RE_IND_VOIE}"  # 1er indicateur
     + r"(?:"  # 2e (et éventuellement plus) indicateur
     + r"(?:(?:\s*[,/-]\s*)|(?:\s+et\s+)|(?:\s+))"  # séparateur
     + RE_IND_VOIE  # n-ième indicateur
-    + r")+"  # au moins un 2e indicateur, possible plus
-    + r")"  # fin liste d'indicateurs sans parenthèses
-    # ou 1 indicateur
+    + r")+)"  # au moins un 2e indicateur, possible plus
+    # fin liste d'indicateurs sans parenthèses
+    # ou 1 seul indicateur
     + rf"|(?:{RE_IND_VOIE})"
     + r")"  # fin alternative 1 ou + indicateurs
     + r")?"  # fin indicateur optionnel
@@ -101,7 +98,7 @@ RE_TYP_VOIE = (
 )
 
 # code postal
-RE_CP = r"\d{5}"
+RE_CP = r"(?<!BP)\d{5}"  # on ne veut pas les boîtes postales ni CEDEX
 P_CP = re.compile(RE_CP)
 
 # RE_NOM_VOIE = rf"""(?:{RE_TOK}(?:[\s-]{RE_TOK})*)"""
@@ -135,7 +132,9 @@ RE_COMMUNE = (
     # générique, pour communes hors métropole AMP
     + r"|(?:"
     + rf"[A-ZÀ-Ý]{RE_TOK}"  # au moins 1 token qui commence par une majuscule
-    + r"(?:[ '’-]"  # séparateur: tiret, apostrophe, espace
+    + r"(?:"
+    + r"(?!\n(?:Nous|Vu|Consid[ée]rant|Article))"  # negative lookahead: éviter de capturer n'importe quoi
+    + r"['’\s-]"  # séparateur: tiret, apostrophe, espace
     + rf"{RE_TOK}"
     + r"){0,4}"  # + 0 à 3 tokens après séparateur
     + r")"
@@ -146,7 +145,7 @@ RE_COMMUNE = (
 # complément d'adresse: résidence (+ bât ou immeuble)
 RE_RESID = r"(?:r[ée]sidence|cit[ée])"
 RE_BAT = (
-    r"(?:B[âa]timent|B[âa]t|Immeuble)"  # 2023-03-12: (?:s)? mais n'apporte rien?
+    r"(?:B[âa]timent(s)?|B[âa]t|Immeuble(s)?|Villa)"  # 2023-03-12: (?:s)? mais n'apporte rien?
     + r"(?!\s+"  # negative lookahead qui commence par des espaces
     + r"(?:"  # alternative
     + r"sis"  # bâtiment|immeuble sis
@@ -159,8 +158,13 @@ RE_APT = r"(?:Appartement|Appart|Apt)"
 # éléments possibles de complément d'adresse
 RE_ADR_COMPL_ELT = (
     r"(?:"  # groupe global
-    + rf"(?:{RE_RESID}|{RE_BAT}|{RE_APT})"  # résidence | bâtiment | appartement
+    + r"(?:"
+    # cas particulier
+    + r"(?:Les\s+Docks\s+Atrium\s+[\d.]+)"  # grand immeuble de bureaux
+    # motif général
+    + rf"|(?:{RE_RESID}|{RE_BAT}|{RE_APT})"  # résidence | bâtiment | appartement
     + r"\s*[^,–]*?"  # \s*[^,–]+ # contenu: nom de résidence, du bâtiment, de l'appartement...
+    + r")"
     + r")"
     # FIXME le lookahead ne fonctionne pas parfaitement ; il faut peut-être faire autrement (ex: 2e routine qui cherche un code postal et retire tout ce qui est à droite)
     # FIXME ex: "26-28 RUE DE LA BUTINEUSE / 75-83 TRAVERSE DU MOULIN À VENT BATIMENT B - 13015"
@@ -198,7 +202,7 @@ RE_VOIE = (
     # exception: grand(e) rue
     + r"|(?:grand(e)?\s+rue)"
     # cas particulier: nom "double" avec un tiret (qui sinon est considéré comme séparateur avec un complément d'adresse ou une commune)
-    + r"|(?:place\s+de\s+l['’ ]église\s+-\s+François\s+Maleterre)"
+    + r"|(?:place\s+de\s+l['’\s]église\s+-\s+François\s+Maleterre)"
     # cas particulier: chemin de X à Y (nécessaire car "à" est une des bornes droites de RE_NOM_VOIE)
     + r"|(?:chemin\s+de\s+"
     + r"(?:"
@@ -278,47 +282,29 @@ RE_ADRESSE_NG = (
 P_ADRESSE_NG = re.compile(RE_ADRESSE_NG, re.MULTILINE | re.IGNORECASE)
 
 
-def create_adresse_normalisee(adr_fields: Dict, adr_commune_maire: str) -> str:
+def create_adresse_normalisee(adr_fields: Dict) -> str:
     """Créer une adresse normalisée.
 
-    L'adresse normalisée rassemble les champs extraits de l'adresse brute, et
-    la commune extraite par ailleurs, qui doivent être cohérents.
+    L'adresse normalisée rassemble les champs extraits de l'adresse brute, et ailleurs
+    dans le document si nécessaire (eg. autorité prenant l'arrêté, template).
 
     Parameters
     ----------
     adr_fields: dict
         Champs de l'adresse, extraits de l'adresse brute
-    adr_commune_maire: str
-        Commune de l'arrêté
 
     Returns
     -------
     adr_norm: str
         Adresse normalisée
     """
-    adr_commune_brute = adr_fields["adr_commune"]
-    # TODO retenir la graphie standard, prise par exemple dans la table des codes INSEE ?
-    # croisement entre la commune qui prend l'arrêté et l'éventuelle commune extraite de l'adresse brute
-    if (adr_commune_brute is None) and (adr_commune_maire is None):
-        # pas de commune  # TODO émettre un warning?
-        commune = None
-    elif adr_commune_brute is None:
-        commune = adr_commune_maire  # TODO normaliser?
-    elif adr_commune_maire is None:
-        commune = adr_commune_brute  # TODO normaliser?
-    elif (adr_commune_brute is not None) and (adr_commune_maire is not None):
-        # deux mentions potentiellement différentes de la commune ; normalement de simples variantes de graphie
-        # pour le moment on retient la commune qui prend l'arrêté (commune_maire)
-        # TODO comparer les graphies, définir et retenir une forme canonique
-        commune = adr_commune_maire  # TODO normaliser?
-
     adr_norm_parts = [
         adr_fields["adr_num"],
         adr_fields["adr_ind"],
         adr_fields["adr_voie"],
         adr_fields["adr_compl"],
         adr_fields["adr_cpostal"],
-        commune,
+        adr_fields["adr_commune"],
     ]
     adr_norm = " ".join(x for x in adr_norm_parts if x)  # TODO normaliser la graphie?
     adr_norm = normalize_string(adr_norm)

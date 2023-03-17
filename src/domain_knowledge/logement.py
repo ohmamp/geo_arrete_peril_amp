@@ -7,22 +7,33 @@ import logging
 import re
 
 from src.domain_knowledge.adresse import RE_ADRESSE
+from src.domain_knowledge.agences_immo import RE_CABINET, RE_NOMS_CABINETS
 from src.domain_knowledge.text_structure import P_ADR_DOC, RE_ADR_RCONT
 
 
 # formule courante dans ces arrêtés pour l'identification des propriétaires ou du syndic
 RE_INFOS_JOUR = r"\s*,\s+selon\s+nos\s+informations\s+à\s+ce\s+jour\s*(?:[:,])"
 
-# expression générique "sis <ADRESSE> | domicilié (au)? <ADRESSE>"
-RE_SIS_DOMICILIE_ADR = (
+# préfixes de noms de personnes morales ou physiques
+RE_MONSIEUR_MADAME = r"(?:M\s*[.]|Mr(\s*[.])?|Mme|Monsieur|Madame)"
+
+# expression générique "sis <ADRESSE>", "domicilié (au)? <ADRESSE>"
+RE_SIS_ADR = (
     r"(?:"  # début global
-    + r"(?:"
-    + r"(?:sis(?:e|es)?)"
-    + r"|(?:domicilié(?:e|s|es)?(?:\s+(?:au|à))?)"
-    + r")(?:\s*,)?\s+"
-    + rf"(?:{RE_ADRESSE})?"
+    + r"sis(?:e|es)?"
+    + r"(?:\s+(?:au|à)\s+|\s*,\s+|\s+)"
+    + rf"(?:{RE_ADRESSE})"
     + r")"  # fin global
 )
+
+RE_DOMICILIE_ADR = (
+    r"(?:"  # début global
+    + r"domicilié(?:e|s|es)?"
+    + r"(?:\s+(?:au|à)\s+|\s*,\s+|\s+)"
+    + rf"(?:{RE_ADRESSE})"
+    + r")"  # fin global
+)
+
 
 # "en|ne" : gestion des typos
 RE_PRIS_EN_LA_PERSONNE_DE = (
@@ -39,30 +50,25 @@ RE_GEST = (
     + r"gestionnaire"
     + r"(?:\s+de\s+(?:cet\s+|l['’]\s*)immeuble)?"
     # TODO ajouter "sis <adresse>"
-    + r"(?:"
-    # est (tout court)
-    + rf"(?:\s+est\s+(?!{RE_PRIS_EN_LA_PERSONNE_DE}))"
-    # (est|,)? pris en la personne de
-    + rf"|(?:(?:\s+est|\s*,)?\s+{RE_PRIS_EN_LA_PERSONNE_DE})"
-    + r")"  # fin alternative "est"
+    + r"(?:"  # est | est pris en la personne de | (,)? pris en la personne de
+    + rf"(?:\s+est\s+(?:{RE_PRIS_EN_LA_PERSONNE_DE})?)"
+    + rf"|(?:(?:\s*,)?\s+{RE_PRIS_EN_LA_PERSONNE_DE})"
+    + r")"  # fin alternative est | est pris en la personne de | ...
     + r")"
     # fin contexte gauche
     # identité du gestionnaire
     + r"(?P<gestio>"
     # (cabinet | groupe | agence) Xyz: nom attrape-tout sauf virgules ; autorise les points (ex: cabinet S.I.P.)
-    + r"(?:"
-    + r"(?:(?:le\s+)?cabinet|(?:le\s+)?groupe|(?:l['’]\s*)?agence(?:\s+immobili[èe]re)?)"
-    + r"\s+[^,]+?"
-    + r")"
+    + rf"(?:(?:(?:le\s+|l['’]\s*)?{RE_CABINET}\s+)?(?:{RE_NOMS_CABINETS}|[^,]+?))"
     # attrape tout, sauf les points (acceptés pour les personnes physiques et cabinets)  # [\s\S]+?
     + r"|(?:[^,.]+?)"  # [\s\S]+?
     + r")"
     # contexte droit
     + r"(?:"
-    + r"[,.]"
     # (contenant éventuellement son adresse)
-    + r"|[,]?\s+(?:sis(?:e)?|domicilié(?:e)?)\s+"
+    + r"[,]?\s+(?:sis(?:e)?|domicilié(?:e)?)\s+"
     + rf"{RE_ADRESSE}"
+    + r"|[,.]"  # motif générique attrape tout
     + r")"
     # fin contexte droit
     + r")"
@@ -161,24 +167,58 @@ def get_proprio(page_txt: str) -> bool:
         return None
 
 
-# - syndic / administrateur
 # FIXME retrouver le syndic de "évacuation au 08.11.2019.pdf"
 # TODO M. ... en qualité de syndic?
-#
-#   - administrateur judiciaire|provisoire
-RE_ADMIN = r"(?:administrateur\s+(?:judiciaire|provisoire))"
-#   - syndic, en formes courtes et longues
+# syndic, en formes courtes et longues
 RE_SYNDIC = (
     r"(?:syndic"
     + r"(?:\s+(?:bénévole|judiciaire|provisoire))?"
     + r"(?:\s+de\s+copropriété)?"
     + r")"
 )
-#   - syndic ou administrateur
-# + rf"|{RE_SYNDICAT_COPRO}"
-RE_SYNDIC_ADMIN = r"(?:" + RE_SYNDIC + rf"|{RE_ADMIN}" + r")"
-#   - syndicat des copropriétaires
+# administrateur judiciaire|provisoire
+RE_ADMIN = r"(?:administrateur\s+(?:judiciaire|provisoire))"
+# syndic ou administrateur
+RE_SYNDIC_ADMIN = rf"(?:{RE_SYNDIC}|{RE_ADMIN})"
+# syndicat des copropriétaires
 RE_SYNDICAT_COPRO = r"(?:syndicat\s+des\s+copropriétaires)"
+#
+RE_DE_LIMMEUBLE = r"(?:\s+de\s+(?:cet\s+|l['’]\s*)(?:immeuble|ensemble\s+immobilier))"
+
+# r"(?:Le\s+pr[ée]sent\s+arr[êe]t[ée]\s+prendra\s+effet\s+d[èe]s\s+sa\s+notification\s+sous\s+pli\s+contre\s+signature\s+:\n"
+# - à|au <syndic>, syndic de l'immeuble <adr_imm>, domicilié <adr_syndic>
+RE_NOTIFIE_AU_SYNDIC_LI = (
+    r"(?:"  # global
+    + r"(?:"
+    # - au cabinet|groupe, à l'agence immobilière, à M|Mme ...
+    + r"\-\s+(?:au\s+|[àa]\s+(?:la|l['’]\s*))"
+    # lookahead pour forcer le début du nom du syndic: cabinet, groupe, agence, personne
+    + rf"(?={RE_CABINET}|{RE_MONSIEUR_MADAME})"
+    + r"("  # nom du syndic ;  inclut "cabinet", "groupe" etc
+    # - personnes physiques ; il faut notamment capturer explicitement les formes "M./Mr."
+    # sinon le "." arrête la capture (et le syndic extrait est seulement "M" ou "Mr"...)
+    + rf"(?:{RE_MONSIEUR_MADAME}\s+[^,]+?)"
+    # - liste explicite de syndics dont le nom inclut "syndic", pour éviter la capture à droite
+    # (cabinet | groupe | agence) Xyz: nom attrape-tout sauf virgules ; autorise les points (ex: cabinet S.I.P.)
+    + rf"|(?:(?:{RE_CABINET}\s+)?(?:{RE_NOMS_CABINETS}|[^,]+?))"
+    # attrape tout, sauf les points (acceptés pour les personnes physiques et cabinets)  # [\s\S]+?
+    + r"|(?:[^,.]+?)"  # [\s\S]+?
+    + r")"
+    # qualité: syndic | admin
+    + rf",\s+{RE_SYNDIC_ADMIN}"
+    # de l'immeuble
+    + RE_DE_LIMMEUBLE
+    # (sis <adr_imm>)?
+    # + rf"(?:\s+{RE_SIS_ADR})?"  # WIP 2023-03-16
+    # , domicilié <adr_syndic>
+    + rf"\s*,\s+({RE_SIS_ADR}|{RE_DOMICILIE_ADR})"
+    + r")"  # fin tiret
+    + r")"  # fin global
+)
+P_NOTIFIE_AU_SYNDIC_LI = re.compile(
+    RE_NOTIFIE_AU_SYNDIC_LI, re.IGNORECASE | re.MULTILINE
+)
+
 #   - avec le contexte
 RE_SYNDIC_LONG = (
     r"(?:"
@@ -187,29 +227,26 @@ RE_SYNDIC_LONG = (
     r"(?:"
     # + r"|syndic\s+:"
     + RE_SYNDIC_ADMIN
-    + r"(?:"  # optionnel: immeuble
-    + r"\s+de\s+(?:cet\s+|l['’]\s*)(?:immeuble|ensemble\s+immobilier)"
+    + rf"(?:{RE_DE_LIMMEUBLE}"  # optionnel: immeuble
     # + rf"(?:\s+sis\s+{RE_ADRESSE})?"  # option dans l'option: adresse de l'immeuble  # WIP 2023-03-11
     + r")?"  # fin optionnel: immeuble
-    + r"(?:\s+est|(?:\s*,))?"  # + r"(?:\s+est|,)?"  # FIXME confusions possibles ancien/nouveau syndic (ex: "1 cours Jean Ballard 13001.pdf")
+    + r"(?:\s+est|\s*,)?"  # + r"(?:\s+est|,)?"  # FIXME confusions possibles ancien/nouveau syndic (ex: "1 cours Jean Ballard 13001.pdf")
     + rf"\s+{RE_PRIS_EN_LA_PERSONNE_DE}"
     + r")"  # fin contexte 1
     # contexte 1b: syndicat des copropriétaires pris en la personne de|du
     + rf"|(?:{RE_SYNDICAT_COPRO}"
-    + r"(?:"  # optionnel: immeuble
-    + r"\s+de\s+(?:cet\s+|l['’]\s*)(?:immeuble|ensemble\s+immobilier)"
+    + rf"(?:{RE_DE_LIMMEUBLE}"  # optionnel: immeuble
     # + rf"(?:\s+sis\s+{RE_ADRESSE})?"  # option dans l'option: adresse de l'immeuble  # WIP 2023-03-11
     + r")?"  # fin optionnel: immeuble
-    + r"(?:\s+est|(?:\s*,))?"  # + r"(?:\s+est|,)?"  # FIXME confusions possibles ancien/nouveau syndic (ex: "1 cours Jean Ballard 13001.pdf")
+    + r"(?:\s+est|\s*,)?"  # + r"(?:\s+est|,)?"  # FIXME confusions possibles ancien/nouveau syndic (ex: "1 cours Jean Ballard 13001.pdf")
     + rf"\s+{RE_PRIS_EN_LA_PERSONNE_DE}"
     + r")"  # fin contexte 1b
     # contexte 2: syndicat des copropriétaires représenté par <syndic>
     + rf"|(?:{RE_SYNDICAT_COPRO}"
-    + r"(?:"  # optionnel: immeuble
-    + r"\s+de\s+(?:cet\s+|l['’]\s*)(?:immeuble|ensemble\s+immobilier)"
+    + rf"(?:{RE_DE_LIMMEUBLE}"  # optionnel: immeuble
     # + rf"(?:\s+sis\s+{RE_ADRESSE})?"  # option dans l'option: adresse de l'immeuble  # WIP 2023-03-11
     + r")?"  # fin optionnel: immeuble
-    + r"(?:\s+est|(?:\s*,))?"
+    + r"(?:\s+est|\s*,)?"
     + r"\s+représenté\s+par\s+"
     + r"(?:"  # optionnel:
     # le syndic | l'admin (pris en la personne de)?
@@ -219,31 +256,32 @@ RE_SYNDIC_LONG = (
     + r")?"  # fin optionnel
     + r")"  # fin contexte 2
     + r")"  # fin syndic_pre
+    # syndic
     + r"(?P<syndic>"
     # - personnes physiques ; il faut notamment capturer explicitement les formes "M./Mr."
     # sinon le "." arrête la capture (et le syndic extrait est seulement "M" ou "Mr"...)
-    + r"(?:(?:M\s*[.]|Mr(\s*[.])?|Mme|Monsieur|Madame)\s+[^,]+?)"
-    # - liste explicite de syndics dont le nom inclut "syndic", pour éviter la capture à droite
-    + r"|(?:(le\s+)?Cabinet\s+ACTIV[’']?\s+SYNDIC)"
-    + r"|(?:(le\s+)?Cabinet\s+LE\s+BON\s+SYNDIC)"
-    # - "le cabinet | l'agence immobilière ..."
+    + rf"(?:{RE_MONSIEUR_MADAME}\s+[^,]+?)"
+    # - liste explicite de syndics, dont certains ont un nom incluant "syndic", pour éviter la capture à droite
     + r"|(?:"
-    + r"(?:(?:le\s+)?cabinet|(?:le\s+)?groupe|(?:l['’]\s*)?agence(?:\s+immobili[èe]re)?)"
-    + r"\s+[^,]+?"  # nom attrape-tout sauf virgules ; autorise les points (ex: cabinet S.I.P.)
+    + rf"(?:(?:le\s+|l['’\s]\s*)?{RE_CABINET}\s+)?"
+    + rf"(?:{RE_NOMS_CABINETS}|[^,]+?)"  # nom de syndic listé, ou motif attrape-tout sauf virgules ; autorise les points (ex: cabinet S.I.P.)
     + r")"
-    + r"|(?:[^,.]+?)"  # attrape tout, sauf les points (acceptés pour les personnes physiques et cabinets)  # [\s\S]+?
+    + r"|(?:[^,.]+?)"  # fallback: motif attrape-tout, sauf les points (acceptés pour les personnes physiques et cabinets)  # [\s\S]+?
     + r")"  # fin alternative syndic
-    + r"(?:"  # contexte droit: rien (,|.) ou adresse du syndic et éventuellement qualité
-    + r"(?:\s*[.]\s+)"  # s'arrêter au point ".", sauf pour "M." (monsieur)
-    + r"|(?:\s*,\s+(?!(?:sis|domicilié|syndic|administrateur)))"  # s'arrêter à la virgule "," sauf si... negative lookahead
-    + r"|(?P<syndic_post>"
+    # contexte droit: adresse du syndic et éventuellement qualité, ou rien (,|.)
+    + r"(?:"
+    + r"(?P<syndic_post>"
     + r"(?:\s*,)?\s+"  # adresse et/ou qualité du syndic, mais il faut au moins l'un des deux
     + r"(?:"
-    + rf"(?:(?:{RE_SIS_DOMICILIE_ADR})(?:(?:\s*,)?\s+{RE_SYNDIC_ADMIN})?)"  # adresse + éventuellement qualité du syndic|admin
-    + rf"|(?:(?:(?<!un ){RE_SYNDIC_ADMIN})(?:(?:\s*,)?\s+{RE_SIS_DOMICILIE_ADR})?)"  # qualité du syndic|admin + éventuellement adresse
+    + rf"(?:(?:{RE_SIS_ADR}|{RE_DOMICILIE_ADR})(?:(?:\s*,)?\s+{RE_SYNDIC_ADMIN})?)"  # adresse + éventuellement qualité du syndic|admin
+    + rf"|(?:(?:(?<!un ){RE_SYNDIC_ADMIN})(?:(?:\s*,)?\s+{RE_SIS_ADR}|{RE_DOMICILIE_ADR})?)"  # qualité du syndic|admin + éventuellement adresse
     # TODO? (?:en\s+qualité\s+(?:de\s+|d['’]\s*))? [syndic|administrateur...]
     + r")"  # fin optionnel: adresse et/ou qualité du syndic
     + r")"  # fin syndic_post
+    # sinon arrêter le nom du syndic dès qu'on rencontre "sis" ou "domicilié" suivi d'une adresse non reconnue, qu'on capture jusqu'à la première virgule ou point
+    + r"|(?:\s+(sis|domicilié)[^,.]+?)"  # s'arrêter à "," ou ".", ou "sis" ou "domicilié" sans que la suite ne soit une adresse reconnue
+    # sinon arrêter le nom du syndic à la première virgule ou point
+    + r"|(?:\s*[,.]\s+)"
     + r")"  # fin contexte droit
     + r")"  # fin global
 )
@@ -261,7 +299,12 @@ def get_syndic(page_txt: str) -> bool:
     syndic: str
         Nom de syndic si détecté, None sinon.
     """
-    if m_synd := P_SYNDIC.search(page_txt):
+    if m_synd := P_NOTIFIE_AU_SYNDIC_LI.search(page_txt):
+        logging.warning(
+            f"Syndic: {m_synd.group(0)}\n{m_synd.group('syndic_pre')} / {m_synd.group('syndic')} / {m_synd.group('syndic_post')}"
+        )
+        return m_synd.group("syndic")
+    elif m_synd := P_SYNDIC.search(page_txt):
         logging.warning(
             f"Syndic: {m_synd.group(0)}\n{m_synd.group('syndic_pre')} / {m_synd.group('syndic')} / {m_synd.group('syndic_post')}"
         )

@@ -17,7 +17,7 @@ import re
 from src.domain_knowledge.arrete import RE_ARRETE
 
 # formule parfois utilisée
-RE_A_DIRE_D_EXPERT = r"[àa]\s+dire\s+d['’ ]\s*expert"
+RE_A_DIRE_D_EXPERT = r"[àa]\s+dire\s+d['’\s]\s*expert"
 
 # procédures: orginaire et urgente
 RE_PROCEDURE_ORDINAIRE = r"(?:\s*[–-])?\s+proc[ée]dure\s+ordinaire"
@@ -179,7 +179,7 @@ RE_CLASS_DE = (
     + r"\s+"
     + r"(?:de\s+"
     + r"|portant\s+sur\s+"
-    + r"(?:(?:l['’ ]installation|la\s+mise\s+en\s+place)\s+d['’ ]un\s+p[ée]rim[èe]tre\s+de\s+s[ée]curit[ée]\s+et\s+)?"
+    + r"(?:(?:l['’\s]installation|la\s+mise\s+en\s+place)\s+d['’\s]un\s+p[ée]rim[èe]tre\s+de\s+s[ée]curit[ée]\s+et\s+)?"
     + r"(?:la\s+)?)"
     + r"(?:d[ée]construction|d[ée]molition)"
     + r")"
@@ -211,22 +211,22 @@ RE_INTERD_OCCUP = (
     # d'occuper | occupation
     + r"(?:d['’ 4]\s*(?:occuper|occupation))"
     # ou: d'habiter et d'occuper
-    + r"|(?:d['’ ]\s*habiter\s+et\s+d['’ ]\s*occuper)"
+    + r"|(?:d['’\s]\s*habiter\s+et\s+d['’\s]\s*occuper)"
     # ou: d'accès et d'occupation
-    + r"|(?:d['’ ]\s*acc[èe]s\s+et\s+d['’ ]\s*occupation)"
+    + r"|(?:d['’\s]\s*acc[èe]s\s+et\s+d['’\s]\s*occupation)"
     # ou: d'occupation et d'utilisation
-    + r"|(?:d['’ ]\s*occupation\s+et\s+d['’ ]\s*utilisation)"
+    + r"|(?:d['’\s]\s*occupation\s+et\s+d['’\s]\s*utilisation)"
     # ou: de pénétrer, d'habiter, d'utiliser et d'exploiter
-    + r"|(?:de\s+p[ée]n[ée]trer,\s+d['’ ]\s*habiter,\s+d['’ ]\s*utiliser,\s+et\s+d['’ ]\s*exploiter)"
+    + r"|(?:de\s+p[ée]n[ée]trer,\s+d['’\s]\s*habiter,\s+d['’\s]\s*utiliser,\s+et\s+d['’\s]\s*exploiter)"
     # ou: de pénétrer, d'utiliser, et fermeture
-    + r"|(?:de\s+p[ée]n[ée]trer,\s+d['’ ]\s*utiliser,\s+et\s+fermeture)"
+    + r"|(?:de\s+p[ée]n[ée]trer,\s+d['’\s]\s*utiliser,\s+et\s+fermeture)"
     + r")"
     + r")"
 )
 RE_CLASS_INT = (
     r"(?:"
     # arrêté d'interdiction d'occuper
-    + rf"{RE_ARRETE}\s+d['’ ]\s*{RE_INTERD_OCCUP}"
+    + rf"{RE_ARRETE}\s+d['’\s]\s*{RE_INTERD_OCCUP}"
     # ou: arrêté portant (sur l' | l' | ) interdiction d'occuper
     + rf"|{RE_ARRETE}\s+portant\s+(?:sur\s+l['’]\s*|l['’]\s*)?{RE_INTERD_OCCUP}"
     + r")"
@@ -237,7 +237,7 @@ P_CLASS_INT = re.compile(RE_CLASS_INT, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_INT_MOD = (
     r"(?:"
     # arrêté modificatif portant l'interdiction d'occupation
-    + rf"{RE_ARRETE}\s+modificatif\s+(?:portant\s+(?:sur\s+l['’]\s*|l['’]\s*)?|d['’ ]\s*){RE_INTERD_OCCUP}"
+    + rf"{RE_ARRETE}\s+modificatif\s+(?:portant\s+(?:sur\s+l['’]\s*|l['’]\s*)?|d['’\s]\s*){RE_INTERD_OCCUP}"
     + r")"
 )
 P_CLASS_INT_MOD = re.compile(RE_CLASS_INT_MOD, re.MULTILINE | re.IGNORECASE)
@@ -305,8 +305,8 @@ P_CLASSE = re.compile(RE_CLASSE, re.MULTILINE | re.IGNORECASE)
 # interdiction d'habiter
 RE_INT_HAB = (
     r"(?:"
-    + r"interdiction\s+d['’ ]habiter\s+et\s+d['’ ]occuper"
-    + r"|interdiction\s+d['’ ]habiter\s+l['’ ]appartement"
+    + r"interdiction\s+d['’\s]habiter\s+et\s+d['’\s]occuper"
+    + r"|interdiction\s+d['’\s]habiter\s+l['’\s]appartement"
     + r")"
 )
 P_INT_HAB = re.compile(RE_INT_HAB, re.MULTILINE | re.IGNORECASE)
@@ -327,8 +327,8 @@ P_EQU_COM = re.compile(RE_EQU_COM, re.MULTILINE | re.IGNORECASE)
 RE_CLASS_PERIM = (
     rf"{RE_ARRETE}"
     + r"\s+(?:de|portant\s+(?:sur\s+))"
-    + r"(?:la\s+mise\s+en\s+place|l['’ ]installation)\s+"
-    + r"d['’ ]un\s+p[ée]rim[èe]tre\s+de\s+s[ée]curit[ée]"
+    + r"(?:la\s+mise\s+en\s+place|l['’\s]installation)\s+"
+    + r"d['’\s]un\s+p[ée]rim[èe]tre\s+de\s+s[ée]curit[ée]"
 )
 P_CLASS_PERIM = re.compile(RE_CLASS_PERIM, re.MULTILINE | re.IGNORECASE)
 

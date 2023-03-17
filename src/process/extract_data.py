@@ -20,6 +20,7 @@ from src.domain_knowledge.adresse import (
     create_adresse_normalisee,
     process_adresse_brute,
 )
+from src.domain_knowledge.codes_geo import P_COMMUNES_AMP_ALLFORMS
 from src.utils.str_date import process_date_brute
 from src.utils.text_utils import normalize_string
 
@@ -150,8 +151,28 @@ def create_docs_dataframe(
             if pd.notna(getattr(df_row, "commune_maire"))
             else None
         )
+        # - déterminer la commune: celle de l'adresse, sinon adr_commune_maire
+        adr_commune_brute = adr_fields["adr_commune"]
+        # TODO comparer les graphies? normaliser vers la graphie de la table des codes INSEE?
+        if (adr_commune_brute is None) and (adr_commune_maire is None):
+            # pas de commune  # TODO émettre un warning?
+            adr_commune = None
+        elif (adr_commune_maire is None) or (
+            not P_COMMUNES_AMP_ALLFORMS.match(adr_commune_maire)
+        ):
+            adr_commune = adr_commune_brute  # TODO normaliser?
+        elif (adr_commune_brute is None) or (
+            not P_COMMUNES_AMP_ALLFORMS.match(adr_commune_brute)
+        ):
+            adr_commune = adr_commune_maire
+        else:
+            adr_commune = adr_commune_maire
+            # adr_commune = adr_commune_brute
+        # mettre à jour adr_fields["adr_commune"] pour garantir la cohérence
+        adr_fields["adr_commune"] = adr_commune
+
         # - créer une adresse normalisée ; la cohérence des champs est vérifiée
-        adr_adresse = create_adresse_normalisee(adr_fields, adr_commune_maire)
+        adr_adresse = create_adresse_normalisee(adr_fields)
         # - rassembler les champs
         doc_adr = {
             # adresse
@@ -161,7 +182,7 @@ def create_docs_dataframe(
             "adr_voie": adr_fields["adr_voie"],  # nom de la voie
             "adr_compl": adr_fields["adr_compl"],  # complément d'adresse
             "adr_cpostal": adr_fields["adr_cpostal"],  # code postal
-            "adr_ville": adr_commune_maire,  # ville
+            "adr_ville": adr_fields["adr_commune"],  # ville
             "adr_adresse": adr_adresse,  # adresse normalisée
             "adr_codeinsee": None,  # code insee (5 chars)  # complété en aval par "enrichi"
         }

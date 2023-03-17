@@ -166,8 +166,9 @@ def create_docs_dataframe(
         ):
             adr_commune = adr_commune_maire
         else:
-            adr_commune = adr_commune_maire
-            # adr_commune = adr_commune_brute
+            # adr_commune = adr_commune_maire
+            adr_commune = adr_commune_brute  # .title() si on veut minimiser les différences avec adr_commune_maire pour comparer
+
         # mettre à jour adr_fields["adr_commune"] pour garantir la cohérence
         adr_fields["adr_commune"] = adr_commune
 

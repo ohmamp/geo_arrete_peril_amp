@@ -53,13 +53,14 @@ def load_codes_postaux_amp() -> pd.DataFrame:
     """Charger les codes postaux des communes, associés aux codes INSEE.
 
     Actuellement restreint à la Métropole Aix-Marseille Provence.
+    Attention, le fichier actuel (2023-03-18) utilise un séparateur ";".
 
     Returns
     -------
     df_cpostal: pd.DataFrame
         Liste des codes postaux par (code INSEE de) commune.
     """
-    df_cpostal = pd.read_csv(FP_CPOSTAL, dtype=DTYPE_CPOSTAL)
+    df_cpostal = pd.read_csv(FP_CPOSTAL, dtype=DTYPE_CPOSTAL, sep=";")
     return df_cpostal
 
 
@@ -174,7 +175,10 @@ def simplify_commune(com: str) -> str:
 COM2INSEE = {
     simplify_commune(com): insee for com, insee in DF_INSEE.itertuples(index=False)
 }
-
+# mapping du code INSEE vers le code postal ; aucun code postal n'est associé à 13055 (Marseille sans précision de l'arrondissement)
+INSEE2POST = {
+    codeinsee: cpostal for codeinsee, cpostal in DF_CPOSTAL.itertuples(index=False)
+}
 
 # TODO fuzzyjoin ?
 def get_codeinsee(nom_commune: str, cpostal: str) -> str:
@@ -226,3 +230,70 @@ def get_codeinsee(nom_commune: str, cpostal: str) -> str:
             )
 
     return codeinsee
+
+
+# TODO fuzzyjoin ?
+def get_codepostal(nom_commune: str, codeinsee: str) -> str:
+    """Récupérer le code postal d'une commune à partir de son code INSEE.
+
+    Attention, risque d'erreurs car certaines communes étendues sont couvertes par plusieurs codes postaux:
+    Marseille (1 par arrondissement, chaque arrondissement a aussi son COG)
+    mais aussi Aix-en-Provence (1 COG mais 6 codes postaux: 13080, 13090, 13098, 13100, 13290, 13540),
+    Martigues (codes postaux: 13117, 13500).
+
+    TODO Le nom de la commune est-il utile?
+
+    Parameters
+    ----------
+    nom_commune: string
+        Nom de la commune (inutile?)
+    codeinsee: string or None
+        Code INSEE.
+
+    Returns
+    -------
+    cpostal: string
+        Code postal de la commune.
+    """
+    if pd.isna(nom_commune):
+        return None
+
+    nom_commune = (
+        nom_commune.strip()
+    )  # TODO s'assurer que strip() est fait en amont, à l'extraction de la donnée ?
+    # vérifier que nom_commune est une graphie d'une commune de la métropole
+    try:
+        assert P_COMMUNES_AMP_ALLFORMS.match(nom_commune) or nom_commune in (
+            "la Gardanne",
+        )  # FIXME: arrêtés mal lus
+    except AssertionError:
+        print(repr(nom_commune))
+        raise
+
+    if (
+        nom_commune.lower().startswith("marseille")
+        and pd.notna(codeinsee)
+        and (codeinsee.startswith("132"))  # FIXME généraliser/améliorer?
+    ):
+        # NB: c'est une approximation !
+        # TODO expectation: aucun codeinsee 13055 dans le dataset final (ou presque)
+        cpostal = "130" + codeinsee[-2:]
+        # 2023-03-18: a priori, cela ne devrait rien changer car le code INSEE est déterminé à partir du code postal pour les arrondissements de Marseille
+    elif pd.notna(codeinsee) and (simplify_commune(nom_commune), codeinsee) in (
+        ("aixenprovence", "13001"),
+        ("martigues", "13056"),
+    ):
+        cpostal = None  # pour que create_adresse_normalisee() n'ait à gérer des valeurs pd.<NA> dont la valeur booléenne est ambigue (alors que None est faux)
+        logging.warning(
+            f"get_codepostal: abstention, plusieurs codes postaux possibles pour {(nom_commune, codeinsee)}."
+        )
+    else:
+        # TODO éprouver et améliorer la robustesse
+        cpostal = INSEE2POST.get(codeinsee, None)
+        if pd.isna(cpostal):
+            cpostal = None  # pour que create_adresse_normalisee() n'ait à gérer des valeurs pd.<NA> dont la valeur booléenne est ambigue (alors que None est faux)
+            logging.warning(
+                f"get_codepostal: pas de code trouvé pour {(nom_commune, codeinsee)}."
+            )
+
+    return cpostal

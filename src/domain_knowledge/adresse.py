@@ -98,7 +98,9 @@ RE_TYP_VOIE = (
 )
 
 # code postal
-RE_CP = r"(?<!BP)\d{5}"  # on ne veut pas les boîtes postales ni CEDEX
+# negative lookbehind: ni chiffre ni lettre P, pour éviter de capturer les fins de codes postaux et les boîtes postales
+# negative lookahead: pas de chiffre, pour éviter de capturer les débuts de références de parcelles cadastrales (6 chiffres de préfixe à Marseille: 3 arrondissement + 3 quartier)
+RE_CP = r"(?<![\dP])\d{5}"  # WIP: ...(?!\d)"
 P_CP = re.compile(RE_CP)
 
 # RE_NOM_VOIE = rf"""(?:{RE_TOK}(?:[\s-]{RE_TOK})*)"""

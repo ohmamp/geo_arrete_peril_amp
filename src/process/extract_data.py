@@ -20,7 +20,11 @@ from src.domain_knowledge.adresse import (
     create_adresse_normalisee,
     process_adresse_brute,
 )
-from src.domain_knowledge.codes_geo import P_COMMUNES_AMP_ALLFORMS
+from src.domain_knowledge.codes_geo import (
+    P_COMMUNES_AMP_ALLFORMS,
+    get_codeinsee,
+    get_codepostal,
+)
 from src.utils.str_date import process_date_brute
 from src.utils.text_utils import normalize_string
 
@@ -194,8 +198,23 @@ def create_docs_dataframe(
         adr_commune = determine_commune(adr_fields["adr_commune"], adr_commune_maire)
         if not adr_commune:
             logging.warning(f"Pas de commune pour {doc_arr['arr_pdf']}")
-        # mettre à jour adr_fields["adr_commune"] pour garantir la cohérence
+        # mettre à jour adr_fields["adr_commune"] pour garantir la cohérence de l'adresse normalisée qui sera générée
         adr_fields["adr_commune"] = adr_commune
+
+        # - déterminer le code INSEE de la commune
+        adr_codeinsee = get_codeinsee(
+            adr_fields["adr_commune"], adr_fields["adr_cpostal"]
+        )
+        # - si l'adresse ne contenait pas de code postal, essayer de déterminer le code postal
+        # à partir du code INSEE de la commune (ne fonctionne pas pour Aix-en-Provence)
+        if not adr_fields["adr_cpostal"]:
+            adr_cpostal = get_codepostal(adr_fields["adr_commune"], adr_codeinsee)
+            if not adr_cpostal:
+                logging.warning(
+                    f"{doc_arr['arr_pdf']}: Pas de code postal: cpostal(adr_brute)={adr_fields['adr_cpostal']}, commune={adr_commune}, code_insee={adr_codeinsee}, get_codepostal={adr_cpostal}"
+                )
+            # mettre à jour adr_fields["adr_cpostal"] pour garantir la cohérence de l'adresse normalisée qui sera générée
+            adr_fields["adr_cpostal"] = adr_cpostal
 
         # - créer une adresse normalisée ; la cohérence des champs est vérifiée
         adr_adresse = create_adresse_normalisee(adr_fields)
@@ -210,7 +229,7 @@ def create_docs_dataframe(
             "adr_cpostal": adr_fields["adr_cpostal"],  # code postal
             "adr_ville": adr_fields["adr_commune"],  # ville
             "adr_adresse": adr_adresse,  # adresse normalisée
-            "adr_codeinsee": None,  # code insee (5 chars)  # complété en aval par "enrichi"
+            "adr_codeinsee": adr_codeinsee,  # code insee (5 chars)  # complété en aval par "enrichi"
         }
         # parcelle cadastrale
         ref_cad = (

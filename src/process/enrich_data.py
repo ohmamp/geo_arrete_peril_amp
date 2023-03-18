@@ -12,7 +12,8 @@ import pandas as pd
 
 from src.process.extract_data import DTYPE_DATA
 from src.domain_knowledge.cadastre import generate_refcadastrale_norm
-from src.domain_knowledge.codes_geo import get_codeinsee
+
+# from src.domain_knowledge.codes_geo import get_codeinsee
 
 
 def create_docs_dataframe(
@@ -33,9 +34,9 @@ def create_docs_dataframe(
         Tableau contenant les données normalisées extraites des documents.
     """
     # ajoute le code INSEE, à partir de la commune et du code postal (pour Marseille)
-    df_agg["adr_codeinsee"] = df_agg.apply(
-        lambda row: get_codeinsee(row["adr_ville"], row["adr_cpostal"]), axis=1
-    )
+    # df_agg["adr_codeinsee"] = df_agg.apply(
+    #     lambda row: get_codeinsee(row["adr_ville"], row["adr_cpostal"]), axis=1
+    # )
     # remplace la référence cadastrale par sa version normalisée
     df_agg["par_ref_cad"] = df_agg.apply(
         lambda row: generate_refcadastrale_norm(

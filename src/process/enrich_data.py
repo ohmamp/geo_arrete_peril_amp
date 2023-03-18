@@ -32,24 +32,21 @@ def create_docs_dataframe(
     df_docs: pd.DataFrame
         Tableau contenant les données normalisées extraites des documents.
     """
-    doc_rows = []
-    for i, df_row in enumerate(df_agg.itertuples()):
-        # ajoute le code INSEE, à partir de la commune et du code postal
-        df_row_enr = df_row._replace(
-            adr_codeinsee=get_codeinsee(df_row.adr_ville, df_row.adr_cpostal)
-        )
-        # remplace la référence cadastrale par sa version normalisée
-        df_row_enr = df_row._replace(
-            par_ref_cad=generate_refcadastrale_norm(
-                df_row.adr_codeinsee,
-                df_row.par_ref_cad,
-                df_row.arr_pdf,
-                df_row.adr_cpostal,
-            )
-        )
-        doc_rows.append(df_row_enr)
-    df_docs = pd.DataFrame(doc_rows)
-    df_docs = df_docs.astype(dtype=DTYPE_DATA)
+    # ajoute le code INSEE, à partir de la commune et du code postal (pour Marseille)
+    df_agg["adr_codeinsee"] = df_agg.apply(
+        lambda row: get_codeinsee(row["adr_ville"], row["adr_cpostal"]), axis=1
+    )
+    # remplace la référence cadastrale par sa version normalisée
+    df_agg["par_ref_cad"] = df_agg.apply(
+        lambda row: generate_refcadastrale_norm(
+            row["adr_codeinsee"],
+            row["par_ref_cad"],
+            row["arr_pdf"],
+            row["adr_cpostal"],
+        ),
+        axis=1,
+    )
+    df_docs = df_agg.astype(dtype=DTYPE_DATA)
     return df_docs
 
 

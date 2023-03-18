@@ -5,6 +5,7 @@ TODO créer des modules similaires pour les autres bases de connaissances:
 * une liste de syndics (TODO).
 """
 
+import logging
 from pathlib import Path
 import re
 
@@ -209,7 +210,7 @@ def get_codeinsee(nom_commune: str, cpostal: str) -> str:
         raise
 
     if (
-        nom_commune.lower() == "marseille"
+        nom_commune.lower().startswith("marseille")
         and pd.notna(cpostal)
         and (cpostal in CP_MARSEILLE)
     ):
@@ -219,5 +220,9 @@ def get_codeinsee(nom_commune: str, cpostal: str) -> str:
     else:
         # TODO éprouver et améliorer la robustesse
         codeinsee = COM2INSEE.get(simplify_commune(nom_commune), None)
+        if not codeinsee:
+            logging.warning(
+                f"get_codeinsee: pas de code trouvé pour {(nom_commune, cpostal)} (simplify_commune={simplify_commune(nom_commune)})."
+            )
 
     return codeinsee

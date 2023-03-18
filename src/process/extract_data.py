@@ -60,6 +60,44 @@ DTYPE_DATA = {
 }
 
 
+# TODO déplacer dans arrete ? ou ailleurs ?
+def determine_commune(adr_commune_brute: str, adr_commune_maire: str) -> str:
+    """Déterminer la commune de l'adresse visée par l'arrêté.
+
+    Réconcilie la commune éventuellement contenue dans l'adresse du ou des bâtiments visés
+    avec le nom de commune extrait du document (template, autorité ou lieu de signature).
+
+    Parameters
+    ----------
+    adr_commune_brute: str
+        Commune extraite de l'adresse du bâtiment visé par l'arrêté.
+    adr_commune_maire: str
+        Commune extraite de l'autorité prenant l'arrêté, ou du template du document.
+
+    Returns
+    -------
+    adr_commune: str
+        Commune de l'adresse visée.
+    """
+    # TODO normaliser vers la graphie de la table des codes INSEE? Quid des arrondissements de Marseille?
+    # TODO comparer les graphies?
+    if (adr_commune_brute is None) and (adr_commune_maire is None):
+        # pas de commune
+        adr_commune = None
+    elif (adr_commune_maire is None) or (
+        not P_COMMUNES_AMP_ALLFORMS.match(adr_commune_maire)
+    ):
+        adr_commune = adr_commune_brute  # TODO normaliser?
+    elif (adr_commune_brute is None) or (
+        not P_COMMUNES_AMP_ALLFORMS.match(adr_commune_brute)
+    ):
+        adr_commune = adr_commune_maire
+    else:
+        # was: adr_commune = adr_commune_maire
+        adr_commune = adr_commune_brute  # .title() si on veut minimiser les différences avec adr_commune_maire pour comparer
+    return adr_commune
+
+
 def create_docs_dataframe(
     df_agg: pd.DataFrame,
 ) -> pd.DataFrame:
@@ -151,24 +189,11 @@ def create_docs_dataframe(
             if pd.notna(getattr(df_row, "commune_maire"))
             else None
         )
-        # - déterminer la commune: celle de l'adresse, sinon adr_commune_maire
-        adr_commune_brute = adr_fields["adr_commune"]
-        # TODO comparer les graphies? normaliser vers la graphie de la table des codes INSEE?
-        if (adr_commune_brute is None) and (adr_commune_maire is None):
-            # pas de commune  # TODO émettre un warning?
-            adr_commune = None
-        elif (adr_commune_maire is None) or (
-            not P_COMMUNES_AMP_ALLFORMS.match(adr_commune_maire)
-        ):
-            adr_commune = adr_commune_brute  # TODO normaliser?
-        elif (adr_commune_brute is None) or (
-            not P_COMMUNES_AMP_ALLFORMS.match(adr_commune_brute)
-        ):
-            adr_commune = adr_commune_maire
-        else:
-            # adr_commune = adr_commune_maire
-            adr_commune = adr_commune_brute  # .title() si on veut minimiser les différences avec adr_commune_maire pour comparer
-
+        # - déterminer la commune de l'adresse visée par l'arrêté en reconciliant la commune de l'adresse et
+        # celle de l'autorité
+        adr_commune = determine_commune(adr_fields["adr_commune"], adr_commune_maire)
+        if not adr_commune:
+            logging.warning(f"Pas de commune pour {doc_arr['arr_pdf']}")
         # mettre à jour adr_fields["adr_commune"] pour garantir la cohérence
         adr_fields["adr_commune"] = adr_commune
 

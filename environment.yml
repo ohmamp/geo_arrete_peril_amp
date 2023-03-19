@@ -8,7 +8,7 @@ dependencies:
   - ipykernel  # jupyter nb
   - ipywidgets  # jupyter nb
   - numpy >= 1.23.3
-  - ocrmypdf >= 14.0.1
+  - ocrmypdf >= 14.0.3
   - pandas >= 1.5.1
   # - pdfplumber >= 0.7.5
   - pdftotext >= 2.2.2

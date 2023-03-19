@@ -43,11 +43,10 @@ from src.preprocess.extract_native_text_pdftotext import (
     extract_native_text_pdftotext,
 )
 
-#
+# schéma des données en entrée
 from src.preprocess.process_metadata import DTYPE_META_PROC
 
-# schéma des données en entrée
-
+# schéma des données en sortie
 DTYPE_META_NTXT = DTYPE_META_PROC | {
     "retcode_txt": "Int64",  # FIXME Int16 ? (dtype à fixer ici, avant le dump)
     "fullpath_txt": "string",
@@ -142,6 +141,11 @@ def process_files(
                 logging.info(
                     f"{fp_pdf_in} est ignoré car le fichier {fp_txt} existe déjà."
                 )
+                # stocker le code de retour ; si le fichier existe, alors retcode devrait être 0, par définition de extract_native_text_pdftotext
+                retcode = 0
+                retcodes.append(retcode)
+                # stocker le chemin vers le fichier TXT existant
+                fullpath_txt.append(fp_txt)
                 continue
         # traiter le fichier: extraire le texte natif
         retcode = extract_native_text(df_row, fp_pdf_in, fp_txt)
@@ -153,8 +157,9 @@ def process_files(
             print(df_row)
             print(retcode)
             raise ValueError(f"extract_native_text: code de retour inattendu {retcode}")
-        # stocker le chemin vers le fichier TXT produit
+        # stocker le code de retour (normalement toujours 0, par définition de extract_native_text_pdftotext)
         retcodes.append(retcode)
+        # stocker le chemin vers le fichier TXT produit
         fullpath_txt.append(fp_txt)
     # FIXME plante si le script tourne de nouveau sans "redo" ou "append": l'assignation est alors de longueur inférieure à celle du DataFrame(?)
     df_mmod = df_meta.assign(

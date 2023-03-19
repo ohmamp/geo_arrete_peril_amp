@@ -45,18 +45,19 @@ def extract_native_text_pdftotext(
     returncode: int
         0 si un fichier TXT a été produit, 1 sinon.
     """
-    # TODO vérifier que le texte contient bien "\f" en fin de page
-    with open(fp_pdf_in, "rb") as f:
-        pdf = pdftotext.PDF(f)
     # les numéros de page commencent à 1, mais pdftotext crée une liste de pages
     # qui commence à l'index 0
     page_beg_ix = page_beg - 1
     # le numéro de la dernière page ne doit pas être décalé car la borne sup d'un slice est exclue
     # page_end_ix = page_end
 
+    with open(fp_pdf_in, "rb") as f:
+        pdf = pdftotext.PDF(f)
+    # TODO vérifier que le texte contient bien "\f" en fin de page
+
     # pdftotext.PDF a getitem(), mais ne permet pas de récupérer un slice
     # donc il faut créer un range et itérer manuellement
-    txt = "".join(pdf[i] for i in range(page_beg_ix, page_end))
+    txt = "".join(pdf[i] for i in range(page_beg_ix, page_end))  # .strip() ?
     # normaliser le texte extrait en forme NFC
     norm_txt = unicodedata.normalize("NFC", txt)
     #

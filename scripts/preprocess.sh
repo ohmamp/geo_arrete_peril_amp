@@ -23,8 +23,11 @@ python src/preprocess/separate_pages.py ${DATA_INT}/${BATCH}_meta_ntxt.csv ${DAT
 # 5. filtrer les documents qui sont hors périmètre (plan de périmètre de sécurité), et les annexes
 python src/preprocess/filter_docs.py ${DATA_INT}/${BATCH}_meta_ntxt.csv ${DATA_INT}/${BATCH}_ntxt_pages.csv ${DATA_INT}/${BATCH}_meta_ntxt_filt.csv ${DATA_INT}/${BATCH}_ntxt_pages_filt.csv
 
+# 6. convertir les PDF natifs ("texte") en PDF/A
+python src/preprocess/convert_native_pdf_to_pdfa.py ${DATA_INT}/${BATCH}_meta_ntxt_filt.csv data/interim/arretes_peril_compil_meta_ntxt_pdfa.csv ${DATA_INT}
+
 # WIP
 # 8. extraire le texte des PDF par OCR si pertinent, et convertir les PDF originaux en PDF/A archivables contenant du texte natif
 # (1 entrée: CSV de métadonnées ; 2 sorties: CSV de métadonnées enrichies (PDF/A et OCR) + dossier pour les fichiers (PDF/A et TXT sidecar OCR))
-python src/preprocess/extract_text_ocr.py ${DATA_INT}/${BATCH}_meta_ntxt_proc.csv ${DATA_INT}/${BATCH}_meta_otxt.csv ${DATA_INT}
+python src/preprocess/extract_text_ocr.py ${DATA_INT}/${BATCH}_meta_ntxt_pdfa.csv ${DATA_INT}/${BATCH}_meta_otxt.csv ${DATA_INT}
 # TODO create_pages_dataframe.py ??? RESUME HERE

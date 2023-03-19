@@ -65,7 +65,6 @@ def guess_pdf_type(df_row: NamedTuple) -> str:
 def process_files(
     df_meta: pd.DataFrame,
     out_pdf_dir: Path,
-    out_txt_dir: Path,
     redo: bool = False,
     verbose: int = 0,
 ) -> pd.DataFrame:
@@ -100,7 +99,6 @@ def process_files(
         fp_pdf_in = Path(df_row.fullpath)
         # fichiers à produire
         fp_pdf_out = out_pdf_dir / fp_pdf_in.name
-        fp_txt = out_txt_dir / (fp_pdf_in.stem + ".txt")
 
         # déterminer le type de fichier: PDF natif ("text") ou non ("image")
         pdf_type = guess_pdf_type(df_row)
@@ -126,7 +124,7 @@ def process_files(
         # TODO: tester !
         # convertir le PDF (texte) en PDF/A-2b
         if pdf_type == "text":
-            logging.info(f"PDF texte: {fp_pdf_in}")
+            logging.info(f"Conversion en PDF/A d'un PDF texte: {fp_pdf_in}")
             convert_pdf_to_pdfa(fp_pdf_in, fp_pdf_out, verbose=verbose)
             # stocker le chemin vers le fichier PDF/A produit
             fullpath_pdfa.append(fp_pdf_out)

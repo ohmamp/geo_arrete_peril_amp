@@ -1,7 +1,6 @@
 """Extraire et analyser les métadonnées des fichiers PDF.
 
-Ce module utilise principalement pikepdf, ainsi que poppler
-comme point de comparaison (temporaire?).
+Ce module utilise pikepdf.
 """
 
 # TODO ajuster le logging
@@ -18,7 +17,6 @@ from typing import Dict, List
 
 import pandas as pd
 import pikepdf
-from poppler import load_from_file
 
 from src.preprocess.data_sources import RAW_BATCHES, EXCLUDE_FILES
 
@@ -38,45 +36,6 @@ DTYPE_META_BASE = {
     "createdate": "string",
     "modifydate": "string",
 }
-
-
-def get_pdf_info_poppler(fp_pdf_in: Path) -> dict:
-    """Renvoie les infos du PDF en utilisant poppler.
-
-    Les infos incluent un sous-ensemble des métadonnées du PDF.
-
-    Parameters
-    ----------
-    fp_pdf_in: Path
-        Chemin du fichier PDF à traiter.
-
-    Returns
-    -------
-    infos: dict
-        Dictionnaire contenant les infos du PDF.
-    """
-    doc = load_from_file(fp_pdf_in)  # poppler
-    # métadonnées: https://cbrunet.net/python-poppler/usage.html#document-properties ;
-    # infos() ne les renvoie pas toutes, et nous fixons ici l'ordre des champs
-    infos = {
-        "nb_pages": doc.pages,  # nombre de pages
-        # métadonnées PDF
-        "creatortool": doc.creator,
-        "producer": doc.producer,
-        # les datetime de poppler sont "timezone naive", donc il faut attacher
-        # le fuseau horaire de Paris (sans ajuster l'heure)
-        "createdate": (
-            doc.creation_date.replace(tzinfo=TZ_FRA)
-            if doc.creation_date is not None
-            else None
-        ),
-        "modifydate": (
-            doc.modification_date.replace(tzinfo=TZ_FRA)
-            if doc.modification_date is not None
-            else None
-        ),
-    }
-    return infos
 
 
 def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose=True) -> dict:
@@ -122,7 +81,7 @@ def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose=True) -> dict:
             doci_keys = set(meta_doci.keys())
             # vérifier que la lecture de docinfo n'a pas supprimé de champ aux métadonnées XMP
             assert (base_keys - doci_keys) == set()
-            # vérifier que les champs chargés depuis docinfo  n'ont modifié aucune valeur de champ XMP
+            # vérifier que les champs chargés depuis docinfo n'ont modifié aucune valeur de champ XMP
             # (pas de modification / écrasement, condition plus forte que supra)
             for key, value in meta_base.items():
                 if key.endswith("Date"):
@@ -195,25 +154,8 @@ def get_pdf_info(fp_pdf: Path) -> Dict[str, str | int]:
         "filesize": fp_pdf.stat().st_size,  # taille du fichier
         # TODO hashlib.sha1 ?
     }
-    # lire les métadonnées du PDF, avec poppler et pikepdf
-    meta_poppler = get_pdf_info_poppler(fp_pdf)
+    # lire les métadonnées du PDF avec pikepdf
     meta_pike = get_pdf_info_pikepdf(fp_pdf)
-    # comparer les infos extraites par poppler et pikepdf
-    try:
-        for k, v_popp in meta_poppler.items():
-            v_pike = meta_pike[k]
-            if k.endswith("date"):
-                # les dates ne sont pas lues et reconstruites de la même façon (timezone)
-                assert (v_popp is None) or (abs(v_popp - v_pike) <= timedelta(hours=2))
-            elif k == "producer":
-                # les caractères mal encodés ne sont pas nettoyés de la même façon
-                assert v_popp.replace("\x92", "™") == v_pike
-            else:
-                assert v_popp == v_pike
-    except AssertionError:
-        logging.error("Différence trop importante entre poppler et pikepdf")
-        logging.warning(f"meta_poppler: {meta_poppler}")
-        logging.warning(f"meta_pike: {meta_pike}")
     # ajouter les métadonnées PDF à celles du fichier
     pdf_info.update(meta_pike)
     return pdf_info

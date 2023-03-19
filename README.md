@@ -18,7 +18,7 @@ Analyse et géolocalisation des arrêtés de périls sur le territoire de la mé
 mamba env create --file environment-prod.yml
 ```
 
-3. Compléter l'installation
+3. Compléter l'installation (à défaire !)
 
 (RESUME HERE)
 Erreur CMake: "cmake error at cmakelists.txt generator nmake makefiles does not support platform specification but platform x64 was specified"
@@ -28,12 +28,14 @@ Erreur CMake: "cmake error at cmakelists.txt generator nmake makefiles does not 
 
 (end RESUME HERE)
 
-4. Installer python-poppler et ocrmypdf
+4. Installer ocrmypdf
+
+Il faut installer séparément ocrmypdf, après ses dépendances installées à la
+création de l'environnement par Mamba.
 
 ```sh
 conda activate agperils-amp
-# installer python-poppler et ocrmypdf qui ne pouvaient pas être installés en même temps que leurs dépendances...
-pip install python-poppler
+# installer ocrmypdf qui ne pouvait pas être installé en même temps que ses dépendances...
 mamba install ocrmypdf
 ```
 

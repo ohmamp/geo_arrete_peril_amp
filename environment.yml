@@ -28,7 +28,6 @@ dependencies:
     - doccano
     - pandera[io] >= 0.13.2
     - pikepdf >= 5.1
-    - python-poppler >= 0.3.0  # metadata
     - pdf2image >= 1.16.0  # pdf2image
     - spacy-lookups-data
     - tabula-py  # tabula-py

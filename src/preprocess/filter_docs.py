@@ -14,9 +14,9 @@ import pandas as pd
 
 # TODO détection automatique à partir du texte
 from src.preprocess.data_sources import EXCLUDE_FILES
-from src.preprocess.separate_pages import DTYPE_META_NTXT, DTYPE_NTXT_PAGES
+from src.preprocess.separate_pages import DTYPE_META_NTXT_PDFTYPE, DTYPE_NTXT_PAGES
 
-DTYPE_META_NTXT_FILT = DTYPE_META_NTXT | {"exclude": "boolean"}
+DTYPE_META_NTXT_FILT = DTYPE_META_NTXT_PDFTYPE | {"exclude": "boolean"}
 
 DTYPE_NTXT_PAGES_FILT = DTYPE_NTXT_PAGES | {"exclude": "boolean"}
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
     # ouvrir le fichier de métadonnées en entrée
     logging.info(f"Ouverture du fichier CSV de métadonnées {in_file_meta}")
-    df_meta = pd.read_csv(in_file_meta, dtype=DTYPE_META_NTXT)
+    df_meta = pd.read_csv(in_file_meta, dtype=DTYPE_META_NTXT_PDFTYPE)
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV de pages de texte {in_file_pages}")
     df_txts = pd.read_csv(in_file_pages, dtype=DTYPE_NTXT_PAGES)

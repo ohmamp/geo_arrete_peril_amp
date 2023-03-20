@@ -11,14 +11,14 @@ from typing import List
 
 import pandas as pd
 
-from src.preprocess.extract_native_text import DTYPE_META_NTXT
+from src.preprocess.determine_pdf_type import DTYPE_META_NTXT_PDFTYPE
 
 # champs des documents copiés pour les pages: métadonnées du fichier PDF et du TXT
 # nom du fichier, chemin PDF original, chemin TXT, nombre de pages
 COLS_DOC = ["pdf", "fullpath", "fullpath_txt", "nb_pages"]
 
 # format des données de sortie
-DTYPE_NTXT_PAGES = {x: DTYPE_META_NTXT[x] for x in COLS_DOC} | {
+DTYPE_NTXT_PAGES = {x: DTYPE_META_NTXT_PDFTYPE[x] for x in COLS_DOC} | {
     "pagenum": "Int64",  # Int16?
     "pagetxt": "string",
 }
@@ -177,7 +177,7 @@ if __name__ == "__main__":
 
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV {in_file}")
-    df_meta = pd.read_csv(in_file, dtype=DTYPE_META_NTXT)
+    df_meta = pd.read_csv(in_file, dtype=DTYPE_META_NTXT_PDFTYPE)
     # traiter les documents (découpés en pages de texte)
     df_txts = create_pages_dataframe(df_meta)
     # sauvegarder les infos extraites dans un fichier CSV

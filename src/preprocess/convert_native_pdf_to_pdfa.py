@@ -3,62 +3,25 @@
 Utilise ocrmypdf sans appeler le moteur d'OCR.
 """
 
+# 2023-03-19: 2029 fichiers pdf convertis en 1h01
+
 import argparse
 from datetime import datetime
 import logging
 from pathlib import Path
-from typing import NamedTuple
 
 #
 import pandas as pd
 
 # schéma des données en entrée: sortie de extract_native_text
-from src.preprocess.extract_native_text import DTYPE_META_NTXT
+from src.preprocess.determine_pdf_type import DTYPE_META_NTXT_PDFTYPE
 from src.preprocess.convert_to_pdfa import convert_pdf_to_pdfa
 
 
 # schéma des données en sortie
-DTYPE_META_NTXT_PDFA = DTYPE_META_NTXT | {
+DTYPE_META_NTXT_PDFA = DTYPE_META_NTXT_PDFTYPE | {
     "fullpath_pdfa": "string",  # chemin vers le fichier PDF/A produit
-    "processed_as": "string",  # "text" ou "image" (traité en tant que fichier PDF natif ou non)
 }
-
-
-def guess_pdf_type(df_row: NamedTuple) -> str:
-    """Devine le type de PDF: natif ("texte") ou non ("image")
-
-    Parameters
-    ----------
-    df_row: NamedTuple
-        Métadonnées et propriétés du fichier PDF.
-
-    Returns
-    -------
-    pdf_type: string, one of {"text", "image"}
-        Type de PDF: "text" pour les PDF natifs, "image" pour les autres
-        qui devront être OCRisés.
-    """
-    if pd.notna(df_row.guess_pdftext) and df_row.guess_pdftext:
-        # forte présomption que c'est un PDF texte, d'après les métadonnées
-        pdf_type = "text"
-    elif pd.notna(df_row.guess_dernpage) and df_row.guess_dernpage:
-        # (pour les PDF du stock) la dernière page est un accusé de réception de transmission à @ctes,
-        # donc les métadonnées ont été écrasées et:
-        # 1. il faut exclure la dernière page (accusé de réception de la transmission) puis
-        # 2. si pdftotext parvient à extraire du texte, alors c'est un PDF texte, sinon c'est un PDF image
-        if df_row.retcode_txt == 0:
-            pdf_type = "text"
-        else:
-            pdf_type = "image"
-    elif pd.notna(df_row.guess_badocr) and df_row.guess_badocr:
-        # le PDF contient une couche d'OCR produite par un logiciel moins performant: refaire l'OCR
-        #
-        # PDF image
-        pdf_type = "image"
-    else:
-        # PDF image
-        pdf_type = "image"
-    return pdf_type
 
 
 # TODO redo='all'|'ocr'|'none' ? 'ocr' pour ré-extraire le texte quand le fichier source est mal océrisé par la source, ex: 99_AI-013-211300264-20220223-22_100-AI-1-1_1.pdf
@@ -70,17 +33,12 @@ def process_files(
 ) -> pd.DataFrame:
     """Convertir les fichiers PDF natifs en PDF/A.
 
-    Cette fonction détermine au passage quels fichiers PDF sont
-    considérés comme natifs.
-
     Parameters
     ----------
     df_meta: pd.DataFrame
         Liste de fichiers PDF à traiter, avec leurs métadonnées.
     out_pdf_dir: Path
         Dossier de sortie pour les PDF/A.
-    out_txt_dir: Path
-        Dossier de sortie pour les fichiers texte.
     redo: bool, defaults to False
         Si True, réanalyse les fichiers déjà traités.
     verbose: int, defaults to 0
@@ -90,19 +48,14 @@ def process_files(
     Returns
     -------
     df_mmod: pd.DataFrame
-        Métadonnées des fichiers d'entrée et chemins vers les fichiers PDF/A et TXT.
+        Métadonnées des fichiers d'entrée et chemins vers les fichiers PDF/A.
     """
-    processed_as = []
     fullpath_pdfa = []
     for df_row in df_meta.itertuples():
         # fichier d'origine
         fp_pdf_in = Path(df_row.fullpath)
         # fichiers à produire
         fp_pdf_out = out_pdf_dir / fp_pdf_in.name
-
-        # déterminer le type de fichier: PDF natif ("text") ou non ("image")
-        pdf_type = guess_pdf_type(df_row)
-        processed_as.append(pdf_type)
 
         # si le fichier à produire existe déjà
         if fp_pdf_out.is_file():
@@ -121,19 +74,20 @@ def process_files(
                 fullpath_pdfa.append(fp_pdf_out)
                 continue
 
-        # TODO: tester !
-        # convertir le PDF (texte) en PDF/A-2b
-        if pdf_type == "text":
+        if df_row.processed_as == "text" and not df_row.exclude:
+            # convertir le PDF natif ("texte") en PDF/A-2b
             logging.info(f"Conversion en PDF/A d'un PDF texte: {fp_pdf_in}")
             convert_pdf_to_pdfa(fp_pdf_in, fp_pdf_out, verbose=verbose)
+            # TODO stocker la valeur de retour d'ocrmypdf dans une nouvelle colonne "retcode_pdfa" ?
             # stocker le chemin vers le fichier PDF/A produit
             fullpath_pdfa.append(fp_pdf_out)
-        else:  # "image"
-            # stocker un chemin vide, le fichier PDF/A sera produit lors de l'OCRisation
+        else:
+            # ignorer le PDF non-natif ("image") ;
+            # le fichier PDF/A sera produit lors de l'OCRisation
             fullpath_pdfa.append(None)
+
     # remplir le fichier CSV de sortie
     df_mmod = df_meta.assign(
-        processed_as=processed_as,
         fullpath_pdfa=fullpath_pdfa,
     )
     # forcer les types des nouvelles colonnes
@@ -216,7 +170,7 @@ if __name__ == "__main__":
 
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV {in_file}")
-    df_metas = pd.read_csv(in_file, dtype=DTYPE_META_NTXT)
+    df_metas = pd.read_csv(in_file, dtype=DTYPE_META_NTXT_PDFTYPE)
     # traiter les fichiers
     df_mmod = process_files(df_metas, out_pdf_dir, redo=args.redo, verbose=args.verbose)
     # sauvegarder les infos extraites dans un fichier CSV

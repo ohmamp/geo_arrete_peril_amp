@@ -13,5 +13,8 @@ rm ${DATA_INT}/${BATCH}_meta_base.csv
 rm ${DATA_INT}/${BATCH}_meta_proc.csv
 rm ${DATA_INT}/${BATCH}_meta_ntxt.csv
 rm -Rf data/interim/txt_native/*.txt
+rm ${DATA_INT}/${BATCH}_meta_ntxt_pdftype.csv
 rm ${DATA_INT}/${BATCH}_ntxt_pages.csv
 rm ${DATA_INT}/${BATCH}_meta_ntxt_filt.csv ${DATA_INT}/${BATCH}_ntxt_pages_filt.csv
+rm ${DATA_INT}/${BATCH}_meta_ntxt_pdfa.csv
+# rm -Rf data/interim/pdf/*.pdf  # chronophage, on garde par défaut

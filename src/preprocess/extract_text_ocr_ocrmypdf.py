@@ -55,7 +55,8 @@ def extract_text_from_pdf_image(
     Returns
     -------
     returncode: int
-        0 si deux fichiers PDF/A et TXT ont été produits, 1 sinon.
+        0 si deux fichiers PDF/A et TXT ont été produits, une autre valeur sinon
+        <https://ocrmypdf.readthedocs.io/en/latest/advanced.html#return-code-policy> .
     """
     # appeler ocrmypdf pour produire 2 fichiers: PDF/A-2b (inc. OCR) + sidecar (txt)
     cmd = (
@@ -94,6 +95,7 @@ def extract_text_from_pdf_image(
         logging.info(compl_proc.stderr)
     if compl_proc.returncode == ExitCode.pdfa_conversion_failed:
         # <https://ocrmypdf.readthedocs.io/en/latest/advanced.html#return-code-policy>
+        # <https://ocrmypdf.readthedocs.io/en/v14.0.4/apiref.html#ocrmypdf.exceptions.ExitCode>
         logging.warning(
             f"Un PDF a été généré mais la conversion en PDF/A a échoué: {fp_pdf_out}"
         )

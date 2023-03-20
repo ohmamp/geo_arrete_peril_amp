@@ -1,11 +1,13 @@
-"""Extraire le texte des fichiers PDF fournis en entrée.
+"""Extraire le texte des fichiers PDF par OCR.
 
-Le texte des PDF natifs ("PDF texte") est extrait avec pdftotext.
 Le texte des PDF non-natifs ("PDF image") est extrait avec ocrmypdf,
 qui ajoute au fichier PDF une couche avec le texte extrait par OCR.
 
-Tous les fichiers PDF sont convertis en PDF/A.
+ocrmypdf produit un fichier PDF/A et un fichier "sidecar" contenant
+le texte extrait par l'OCR uniquement.
 """
+
+# 2023-03-20: 260 fichiers en 38 minutes
 
 # TODO détecter les première et dernière page: de "nous" + vu, considérant etc jusqu'à la signature
 # pour exclure les annexes (rappel des articles du code de la construction, rapport de BE), page de garde etc.
@@ -36,17 +38,14 @@ from typing import NamedTuple
 import pandas as pd
 
 # imports locaux
-from src.preprocess.extract_native_text_pdftotext import extract_native_text_pdftotext
 from src.preprocess.extract_text_ocr_ocrmypdf import extract_text_from_pdf_image
 
 # schéma des données en entrée
-from src.preprocess.process_metadata import DTYPE_META_PROC
+from src.preprocess.convert_native_pdf_to_pdfa import DTYPE_META_NTXT_PDFA
 
-# schéma des données en sortie
-DTYPE_META_NTXT_OCR = DTYPE_META_PROC | {
-    "processed_as": "string",
-    "fullpath_pdfa": "string",
-    "fullpath_txt": "string",
+# schéma des données en sortie (idem entrée)
+DTYPE_META_NTXT_OCR = DTYPE_META_NTXT_PDFA | {
+    "retcode_ocr": "Int64",  # FIXME Int16 ? (dtype à fixer ici, avant le dump)
 }
 
 
@@ -56,14 +55,12 @@ def preprocess_pdf_file(
     fp_pdf_in: Path,
     fp_pdf_out: Path,
     fp_txt_out: Path,
-    redo: bool = False,
     verbose: int = 0,
-) -> str:
-    """Deviner le type de PDF (image ou texte) et extraire le texte.
+) -> int:
+    """Extraire le texte par OCR et générer des fichiers PDF/A et txt.
 
-    Si pdftotext renvoie du texte, le fichier est considéré PDF texte,
-    sinon il est considéré PDF image et OCRisé avec ocrmypdf.
-    Dans les deux cas, ocrmypdf est appelé pour créer un PDF/A.
+    Le fichier PDF est OCRisé avec ocrmypdf, qui crée un PDF/A et un
+    fichier texte "sidecar".
 
     La version actuelle est: ocrmypdf 14.0.3 / Tesseract OCR-PDF 5.2.0
     (+ pikepdf 5.6.1).
@@ -78,80 +75,46 @@ def preprocess_pdf_file(
         Chemin du fichier PDF converti en PDF/A (avec OCR le cas échéant).
     fp_txt_out: Path
         Chemin du fichier txt contenant le texte extrait.
-    redo: boolean, defaults to False
-        Si True, le traitement est ré-appliqué même si les fichiers de sortie existent.
     verbose: int, defaults to 0
         Niveau de verbosité d'ocrmypdf (-1, 0, 1, 2):
         <https://ocrmypdf.readthedocs.io/en/latest/api.html#ocrmypdf.Verbosity>
 
     Returns
     -------
-    pdf_type: str
-        Type de fichier PDF qui a été supposé pour extraire le texte: "text" ou "image"
+    retcode: int
+        Code de retour d'ocrmypdf
+        <https://ocrmypdf.readthedocs.io/en/latest/advanced.html#return-code-policy> .
     """
     logging.info(f"Ouverture du fichier {fp_pdf_in}")
+
     # définir les pages à traiter
     page_beg = 1
-    # exclure la dernière page si c'est un accusé de réception de transmission à @ctes
+    # exclure la dernière page de l'OCRisation, si c'est un accusé de réception de transmission à @ctes
+    # TODO gérer les cas où l'AR de transmission n'est pas en dernière page car suivi d'annexes
     page_end = (
         df_row.nb_pages - 1
         if (pd.notna(df_row.guess_dernpage) and df_row.guess_dernpage)
         else df_row.nb_pages
     )
 
-    # on utilise les heuristiques sur les métadonnées, calculées dans "convert_native_pdf_to_pdfa"
-    # auparavant, pour déterminer les PDFs (image) à OCRiser
-    if df_row.processed_as == "image":
-        if pd.notna(df_row.guess_dernpage) and df_row.guess_dernpage:
-            # extraire le texte par OCR et convertir le PDF (image) en PDF/A-2b
-            # sauf pour la dernière page (accusé de réception de transmission à @ctes)
-            logging.info(f"PDF image: {fp_pdf_in}")
-            extract_text_from_pdf_image(
-                fp_pdf_in,
-                fp_txt_out,
-                fp_pdf_out,
-                page_beg=1,
-                page_end=page_end,
-                verbose=verbose,
-            )
-            # RESUME HERE !
-    elif pd.notna(df_row.guess_badocr) and df_row.guess_badocr:
-        # le PDF contient une couche d'OCR produite par un logiciel moins performant: refaire l'OCR
-        #
-        # PDF image
-        pdf_type = "image"
-        # extraire le texte par OCR et convertir le PDF (image) en PDF/A-2b
-        logging.info(f"PDF image: {fp_pdf_in}")
-        # même extraction que pour les PDF image standard mais en indiquant explicitement à ocrmypdf qu'il doit
-        # refaire l'OCR même s'il détecte des couches OCR existantes: "--redo-ocr"
-        # (si cela ne fonctionne pas, modifier le code pour utiliser "--force-ocr" qui forcera la rasterization
-        # des pages puis leur appliquera l'OCR)
-        extract_text_from_pdf_image(
-            fp_pdf_in,
-            fp_txt_out,
-            fp_pdf_out,
-            page_beg=page_beg,
-            page_end=page_end,
-            redo_ocr=True,
-            verbose=verbose,
-        )
-    else:
-        # PDF image
-        pdf_type = "image"
-        # extraire le texte par OCR et convertir le PDF (image) en PDF/A-2b
-        logging.info(f"PDF image: {fp_pdf_in}")
-        page_beg = 1
-        page_end = df_row.nb_pages
-        # FIXME force ocr pour les PDF avec une mauvaise OCR, eg. "Image Capture Plus"
-        extract_text_from_pdf_image(
-            fp_pdf_in,
-            fp_txt_out,
-            fp_pdf_out,
-            page_beg=page_beg,
-            page_end=page_end,
-            verbose=verbose,
-        )
-    return pdf_type
+    # Si un PDF est susceptible de contenir des couches d'OCR de mauvaise qualité, indiquer à
+    # ocrmypdf de les ignorer et de refaire l'OCR
+    # (si cela ne fonctionne pas ou pas toujours, modifier le code pour remplacer "--redo-ocr"
+    # par "--force-ocr" qui forcera la rasterization des pages avant de leur appliquer l'OCR)
+    # FIXME ? force ocr pour les PDF avec une mauvaise OCR, eg. "Image Capture Plus" ?
+    redo_ocr = pd.notna(df_row.guess_badocr) and df_row.guess_badocr
+
+    logging.info(f"PDF image: {fp_pdf_in}")
+    retcode = extract_text_from_pdf_image(
+        fp_pdf_in,
+        fp_txt_out,
+        fp_pdf_out,
+        page_beg=page_beg,
+        page_end=page_end,
+        redo_ocr=redo_ocr,
+        verbose=verbose,
+    )
+    return retcode
 
 
 # TODO redo='all'|'ocr'|'none' ? 'ocr' pour ré-extraire le texte quand le fichier source est mal océrisé par la source, ex: 99_AI-013-211300264-20220223-22_100-AI-1-1_1.pdf
@@ -183,7 +146,7 @@ def process_files(
     df_mmod: pd.DataFrame
         Métadonnées des fichiers d'entrée et chemins vers les fichiers PDF/A et TXT.
     """
-    processed_as = []
+    retcode_ocr = []
     fullpath_pdfa = []
     fullpath_txt = []
     for df_row in df_meta.itertuples():
@@ -192,6 +155,20 @@ def process_files(
         # fichiers à produire
         fp_pdf_out = out_pdf_dir / fp_pdf_in.name
         fp_txt = out_txt_dir / (fp_pdf_in.stem + ".txt")
+
+        # sauter les fichiers identifiés comme PDF texte, et les fichiers exclus
+        # et simplement reporter les chemins vers les fichiers txt et éventuellement PDF/A
+        if df_row.processed_as == "text" or df_row.exclude:
+            retcode_ocr.append(None)  # valeur de retour ocrmypdf
+            fullpath_pdfa.append(df_row.fullpath_pdfa)
+            fullpath_txt.append(df_row.fullpath_txt)
+            continue
+
+        # sinon processed_as est "image" (et pas <NA>)
+        assert df_row.processed_as == "image"
+        # et le fichier n'est pas exclus (et pas <NA>)
+        assert not df_row.exclude
+
         # si les fichiers à produire existent déjà
         if fp_pdf_out.is_file() and fp_txt.is_file():
             if redo:
@@ -206,22 +183,21 @@ def process_files(
                 logging.info(
                     f"{fp_pdf_in} est ignoré car les fichiers {fp_pdf_out} et {fp_txt} existent déjà."
                 )
-                processed_as.append(
-                    "?"
-                )  # TODO déterminer "pdf_type" à partir des champs existants
+                retcode_ocr.append(None)  # valeur de retour ocrmypdf
                 fullpath_pdfa.append(fp_pdf_out)
                 fullpath_txt.append(fp_txt)
                 continue
+
         # traiter le fichier: extraire le texte par OCR si nécessaire, corriger et convertir le PDF d'origine en PDF/A-2b
-        pdf_type = preprocess_pdf_file(
-            df_row, fp_pdf_in, fp_pdf_out, fp_txt, redo=redo, verbose=verbose
+        retcode = preprocess_pdf_file(
+            df_row, fp_pdf_in, fp_pdf_out, fp_txt, verbose=verbose
         )
         # stocker les chemins vers les fichiers PDF/A et TXT produits
-        processed_as.append(pdf_type)
+        retcode_ocr.append(retcode)  # valeur de retour ocrmypdf
         fullpath_pdfa.append(fp_pdf_out)
         fullpath_txt.append(fp_txt)
     df_mmod = df_meta.assign(
-        processed_as=processed_as,
+        retcode_ocr=retcode_ocr,
         fullpath_pdfa=fullpath_pdfa,
         fullpath_txt=fullpath_txt,
     )
@@ -300,16 +276,14 @@ if __name__ == "__main__":
     # sortie: dossiers pour PDF-A et TXT
     out_dir = Path(args.out_dir).resolve()
     out_pdf_dir = out_dir / "pdf"
-    out_txt_dir = out_dir / "txt"
+    out_txt_dir = out_dir / "ocr_txt"
     # on les crée si besoin
     out_pdf_dir.mkdir(exist_ok=True)
     out_txt_dir.mkdir(exist_ok=True)
 
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV {in_file}")
-    df_metas = pd.read_csv(
-        in_file, dtype=DTYPE_META_PROC
-    )  # FIXME DTYPE_META_NTXT si après extract_native_text
+    df_metas = pd.read_csv(in_file, dtype=DTYPE_META_NTXT_PDFA)
     # traiter les fichiers
     df_mmod = process_files(
         df_metas, out_pdf_dir, out_txt_dir, redo=args.redo, verbose=args.verbose

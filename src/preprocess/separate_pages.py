@@ -7,11 +7,11 @@ import argparse
 from datetime import datetime
 import logging
 from pathlib import Path
-from typing import List
 
 import pandas as pd
 
 from src.preprocess.determine_pdf_type import DTYPE_META_NTXT_PDFTYPE
+from src.utils.txt_format import load_pages_text
 
 # champs des documents copiés pour les pages: métadonnées du fichier PDF et du TXT
 # nom du fichier, chemin PDF original, chemin TXT, nombre de pages
@@ -22,35 +22,6 @@ DTYPE_NTXT_PAGES = {x: DTYPE_META_NTXT_PDFTYPE[x] for x in COLS_DOC} | {
     "pagenum": "Int64",  # Int16?
     "pagetxt": "string",
 }
-
-
-def load_pages_text(fp_txt: Path, page_break: str = "\f") -> List[str]:
-    """Charge le texte d'un document, découpé en pages.
-
-    Parameters
-    ----------
-    fp_txt: Path
-        Chemin du fichier contenant le texte d'un document.
-    page_break: string, defaults to "\f"
-        Séparateur de pages. Les fichiers PDF texte produits par l'export
-        direct depuis les logiciels de traitement de texte contiennent
-        déjà un "form feed" ("\f"), comme les fichiers "sidecar" produits
-        par ocrmypdf (pour les fichiers PDF image).
-
-    Returns
-    -------
-    doc_txt: List[str]
-        Texte du document, par page.
-    """
-    with open(fp_txt) as f_txt:
-        doc_txt = f_txt.read().split(page_break)
-    # chaque page se termine par un séparateur de page, y compris la dernière ;
-    # split() a pour effet de créer une fausse dernière page vide
-    # on vérifie que cette fausse page vide existe et on la retire
-    assert doc_txt[-1] == ""
-    doc_txt.pop()
-    #
-    return doc_txt
 
 
 def create_pages_dataframe(

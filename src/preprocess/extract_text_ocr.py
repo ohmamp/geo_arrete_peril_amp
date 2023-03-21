@@ -7,7 +7,7 @@ ocrmypdf produit un fichier PDF/A et un fichier "sidecar" contenant
 le texte extrait par l'OCR uniquement.
 """
 
-# 2023-03-20: 260 fichiers en 38 minutes
+# 2023-03-20: 260 fichiers en 38 minutes ; 184 en 24 minutes
 
 # TODO détecter les première et dernière page: de "nous" + vu, considérant etc jusqu'à la signature
 # pour exclure les annexes (rappel des articles du code de la construction, rapport de BE), page de garde etc.
@@ -183,7 +183,9 @@ def process_files(
                 logging.info(
                     f"{fp_pdf_in} est ignoré car les fichiers {fp_pdf_out} et {fp_txt} existent déjà."
                 )
-                retcode_ocr.append(None)  # valeur de retour ocrmypdf
+                retcode_ocr.append(
+                    None
+                )  # valeur de retour ocrmypdf, impossible à récupérer sans refaire tourner la conversion
                 fullpath_pdfa.append(fp_pdf_out)
                 fullpath_txt.append(fp_txt)
                 continue

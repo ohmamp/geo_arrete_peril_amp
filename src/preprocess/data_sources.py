@@ -153,6 +153,9 @@ EXCLUDE_FILES = [
     "11 rue de la Joliette 13002 périmètre.pdf",  # id
     "154 156 avenue Roger Salengro.pdf",  # id
     "emprise périmètre de sécurité.pdf",  # id
+    # TODO test: ces deux documents simples devraient être exclus
+    "75 rue Longue des Capucins 16 rue de la Fare annexe 1.pdf",  # TODO test de détection?
+    "péril simple 75 rue Longue des Capucins 16 annexe 2.pdf",  # TODO test?
 ]
 
 EXCLUDE_FIXME_FILES = [

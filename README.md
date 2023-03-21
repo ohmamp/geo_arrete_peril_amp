@@ -6,29 +6,22 @@ Analyse et géolocalisation des arrêtés de périls sur le territoire de la mé
 
 ### Préliminaires Windows
 
-* [Installer ImageMagick pour Wand](https://docs.wand-py.org/en/0.6.2/guide/install.html#install-imagemagick-on-windows)
+* installer MSVC++ build tools : <https://visualstudio.microsoft.com/fr/visual-cpp-build-tools/>
+  * changer les chemins d'installation si nécessaire (ex: sous-dossiers de `D:\Logiciels\`)
+
+* [? Installer ImageMagick pour Wand](https://docs.wand-py.org/en/0.6.2/guide/install.html#install-imagemagick-on-windows)
 
 ### Installation commune
 
-1. [Installer Mambaforge](https://github.com/conda-forge/miniforge#mambaforge)
+* [Installer Mambaforge](https://github.com/conda-forge/miniforge#mambaforge)
 
-2. Créer un environnement virtuel conda à partir du fichier de spécifications `environment.yml`
+* Créer un environnement virtuel conda à partir du fichier de spécifications `environment-prod.yml`
 
 ```sh
 mamba env create --file environment-prod.yml
 ```
 
-3. Compléter l'installation (à défaire !)
-
-(RESUME HERE)
-Erreur CMake: "cmake error at cmakelists.txt generator nmake makefiles does not support platform specification but platform x64 was specified"
-
-* ajouter CMake à la variable d'environnement système PATH: "C:\Program Files\CMake\bin" (trouver le chemin de Cmake sur D: !)
-* `pip install dlib` <https://stackoverflow.com/a/52803626>
-
-(end RESUME HERE)
-
-4. Installer ocrmypdf
+* Installer ocrmypdf
 
 Il faut installer séparément ocrmypdf, après ses dépendances installées à la
 création de l'environnement par Mamba.
@@ -43,4 +36,10 @@ mamba install ocrmypdf
 
 ```sh
 conda activate agperils-amp
+scripts/preprocess.sh
+scripts/parsebest.sh
 ```
+
+### Résolution de problèmes
+
+* à la création de l'environnement conda, si l'installation d'un paquet échoue avec une erreur étrange, eg. le paquet `vs2015_runtime`, suivre la procédure dans <https://stackoverflow.com/a/65728405>

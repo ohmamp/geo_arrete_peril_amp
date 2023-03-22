@@ -941,6 +941,8 @@ def has_one(spans: list[dict], span_typ: str) -> str:
     return any(x for x in spans if x["span_typ"] == span_typ)
 
 
+
+
 def process_files(
     df_meta: pd.DataFrame,
     df_txts: pd.DataFrame,
@@ -1093,27 +1095,6 @@ def process_files(
 
 
 # FIXME refactor dans process_files et __main__
-def parse_arrete(fp_txt_in: Path) -> list:
-    """Analyse un arrêté pour le découper en zones.
-
-    Parameters
-    ----------
-    fp_txt_in: Path
-        Fichier texte à analyser.
-
-    Returns
-    -------
-    doc_content: list[dict]
-        Contenu du document, par page découpée en zones de texte.
-    """
-    pages = load_pages_text(fp_txt_in)
-    # exclure la dernière page si c'est une page d'accusé de réception d'actes
-    lst_page = pages[-1]
-    if P_ACCUSE.match(lst_page):
-        pages = pages[:-1]
-    fn_pdf = fp_txt_in.stem + ".pdf"
-    doc_content = parse_arrete_pages(fn_pdf, pages)
-    return doc_content
 
 
 if False:

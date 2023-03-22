@@ -53,11 +53,18 @@ def extract_native_text_pdftotext(
 
     with open(fp_pdf_in, "rb") as f:
         pdf = pdftotext.PDF(f)
-    # TODO vérifier que le texte contient bien "\f" en fin de page
 
     # pdftotext.PDF a getitem(), mais ne permet pas de récupérer un slice
     # donc il faut créer un range et itérer manuellement
-    txt = "".join(pdf[i] for i in range(page_beg_ix, page_end))  # .strip() ?
+    doc_txt = [pdf[i] for i in range(page_beg_ix, page_end)]
+    # chaque page produite par pdftotext se termine par "\f",
+    # il faut enlever le dernier "\f" pour avoir la même
+    # structure qu'en sortie d'ocrmypdf
+    assert doc_txt[-1][-1] == "\f"
+    doc_txt[-1] = doc_txt[-1][:-1]
+    # concaténer le texte des pages
+    txt = "".join(doc_txt)  # .strip() ?
+
     # normaliser le texte extrait en forme NFC
     norm_txt = unicodedata.normalize("NFC", txt)
     #

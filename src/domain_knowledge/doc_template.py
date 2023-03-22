@@ -12,10 +12,10 @@ RE_HEADERS = [
     # texte natif
     (
         "Marseille",
-        r"""^Le\s+Maire\nAncien\s+Ministre\nVice-président\s+honoraire\s+du\s+Sénat$""",
+        r"^Le\s+Maire\nAncien\s+Ministre\nVice-président\s+honoraire\s+du\s+Sénat$",
     ),  # p.1 (.. - 2020-07-04)
-    ("Marseille", r"""^La\s+Maire$"""),  # p.1 (2020-07-04 - 2020-12-21)
-    ("Marseille", r"""^Le\s+Maire$"""),  # p.1 (2020-12-21 - ..)
+    ("Marseille", r"^La\s+Maire$"),  # p.1 (2020-07-04 - 2020-12-21)
+    ("Marseille", r"^Le\s+Maire$"),  # p.1 (2020-12-21 - ..)
     (
         "Aix-en-Provence",
         (
@@ -31,14 +31,19 @@ RE_HEADERS = [
     # texte extrait (image)
     (
         "Allauch",
-        r"""^DEPARTEMENT\s+DES\nBOUCHES\s+DU\s+RHONE\n\nAllauch\n\nun\s+certain\s+art\s+de\s+ville""",
+        r"^DEPARTEMENT\s+DES\nBOUCHES\s+DU\s+RHONE\n\nAllauch\n\nun\s+certain\s+art\s+de\s+ville",
     ),  # p.1, logo en haut à gauche
     # ("Allauch", r""""""),  # p.2 et suiv.: num de page (-2-, -3-...)
+    ("Cabriès", r"^EXTRAIT\s+DU\s+REGISTRE\s+DES\s+ARRETES\s+DU\s+MAIRE"),
+    ("Cabriès", r"^MAIRIE\s+DE\s+CABRIES"),
+    ("Cabriès", r"^Tel\s+:\s+04\.42\.28\.14\.00"),
+    ("Cabriès", r"^Fax\s+:\s+04\.42\.28\.14\.20"),
+    ("Cabriès", r"^Mail\s+:\s+maire@cabries\.fr"),
     (
         "Châteauneuf-les-Martigues",
-        r"""^[CG]ommune\s+de\s+Châteauneuf-les-Martigues\s+-\s+"""
-        + r"""Arrondissement\s+d['’][Il]stres\s+-\s+"""
-        + r"""Bouches\s+du\s+Rhône""",
+        r"^[CG]ommune\s+de\s+Châteauneuf-les-Martigues\s+-\s+"
+        + r"Arrondissement\s+d['’][Il]stres\s+-\s+"
+        + r"Bouches\s+du\s+Rhône",
     ),  # p.1, OCR à refaire?
     ("Gardanne", r"^Ville\s+de\s+Gardanne$"),  # p. 1
     (
@@ -116,16 +121,16 @@ P_HEADER = re.compile(RE_HEADER, flags=re.MULTILINE | re.IGNORECASE | re.VERBOSE
 RE_FOOTERS = [
     (
         "Marseille",
-        r"""^Ville\s+de\s+Marseille,\s+2\s+quai\s+du\s+Port\s+[–-]\s+13233\s+MARSEILLE\s+CEDEX\s+20""",
+        r"^Ville\s+de\s+Marseille,\s+2\s+quai\s+du\s+Port\s+[–-]\s+13233\s+MARSEILLE\s+CEDEX\s+20",
     ),  #
-    ("Marseille", r"""^\d{1,2}/\d{1,2}$"""),  # numéro de page
+    ("Marseille", r"^\d{1,2}/\d{1,2}$"),  # numéro de page
     (
         "Aix-en-Provence",
-        r"""^Hotel\s+de\s+Ville\s+13616\s+AIX-EN-PROVENCE\s+CEDEX\s+1\s+-\s+France\s+-\s+"""
-        + r"""Tél[.]\s+[+]\s+33[(]0[)]4[.]42[.]91[.]90[.]00\s+-\s+"""
-        + r"""Télécopie\s+[+]\s+33[(]0[)]4[.]42[.]91[.]94[.]92\s+-\s+"""
-        + r"""www[.]mairie[-]aixenprovence[.]fr"""
-        + r"""[.]$""",
+        r"^Hotel\s+de\s+Ville\s+13616\s+AIX-EN-PROVENCE\s+CEDEX\s+1\s+-\s+France\s+-\s+"
+        + r"Tél[.]\s+[+]\s+33[(]0[)]4[.]42[.]91[.]90[.]00\s+-\s+"
+        + r"Télécopie\s+[+]\s+33[(]0[)]4[.]42[.]91[.]94[.]92\s+-\s+"
+        + r"www[.]mairie[-]aixenprovence[.]fr"
+        + r"[.]$",
     ),  #
     (
         "Allauch",

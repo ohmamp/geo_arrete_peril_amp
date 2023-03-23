@@ -108,7 +108,7 @@ def contains_considerant(page_txt: str) -> bool:
 
 
 #
-RE_ARRETONS = r"^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS)(?:\s*:)?)"
+RE_ARRETONS = r"^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS|É)(?:\s*:)?)"  # Rognes: "ARRÊTÉ" dans cette position (?! conflit avec le repérage d'ARRÊTÉ?)
 # RE_ARRETONS = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
 P_ARRETONS = re.compile(RE_ARRETONS, re.MULTILINE | re.IGNORECASE)
 
@@ -129,8 +129,8 @@ def contains_arrete(page_txt: str) -> bool:
     return P_ARRETONS.search(page_txt) is not None
 
 
-#
-RE_ARTICLE = r"^\s*ARTICLE\s+\d+"
+# "Article 1(er)?", "Article 2" etc ; confusion possible OCR: "l" pour "1"
+RE_ARTICLE = r"^\s*ARTICLE\s+(?:[1l]\s*(?:er)?|\d+)"
 P_ARTICLE = re.compile(RE_ARTICLE, re.MULTILINE | re.IGNORECASE)
 
 

@@ -8,6 +8,7 @@ Dépendances Windows (<https://github.com/jalan/pdftotext#os-dependencies>):
 """
 
 from importlib.metadata import version  # pour récupérer la version de pdftotext
+import logging
 from pathlib import Path
 import unicodedata
 
@@ -52,7 +53,11 @@ def extract_native_text_pdftotext(
     # page_end_ix = page_end
 
     with open(fp_pdf_in, "rb") as f:
-        pdf = pdftotext.PDF(f)
+        try:
+            pdf = pdftotext.PDF(f)
+        except pdftotext.Error as e:
+            logging.error(f"erreur pdftotext: {e}")
+            return 1  # code d'erreur
 
     # pdftotext.PDF a getitem(), mais ne permet pas de récupérer un slice
     # donc il faut créer un range et itérer manuellement
@@ -64,16 +69,9 @@ def extract_native_text_pdftotext(
     doc_txt[-1] = doc_txt[-1][:-1]
     # concaténer le texte des pages
     txt = "".join(doc_txt)  # .strip() ?
-
     # normaliser le texte extrait en forme NFC
     norm_txt = unicodedata.normalize("NFC", txt)
-    #
-    if norm_txt:
-        # stocker le texte dans un fichier .txt
-        with open(fp_txt_out, "w") as f_txt:
-            f_txt.write(norm_txt)
-        # code ok
-        return 0
-    else:
-        # code d'erreur
-        return 1
+    # stocker le texte dans un fichier .txt
+    with open(fp_txt_out, "w") as f_txt:
+        f_txt.write(norm_txt)
+    return 0  # code ok

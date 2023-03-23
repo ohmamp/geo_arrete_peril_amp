@@ -23,7 +23,7 @@ for fp_pdf in fps_pdf:
         fps_txt.append(fp_txt)
 
 for fp_pdf, fp_txt in zip(fps_pdf, fps_txt):
-    if fp_pdf not in EXCLUDE_FILES:
+    if fp_pdf.name not in EXCLUDE_FILES:
         print(fp_pdf)
         x = parse_arrete(fp_pdf, fp_txt)
         print(x)

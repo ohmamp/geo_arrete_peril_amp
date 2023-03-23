@@ -20,7 +20,9 @@ from src.domain_knowledge.arrete import RE_ARRETE
 RE_A_DIRE_D_EXPERT = r"[àa]\s+dire\s+d['’\s]\s*expert"
 
 # procédures: orginaire et urgente
-RE_PROCEDURE_ORDINAIRE = r"(?:\s*[–-])?\s+proc[ée]dure\s+ordinaire"
+RE_PROCEDURE_ORDINAIRE = (
+    r"(?:\s*[–-])?\s+proc[ée]dure\s+ordin(?:n)?aire"  # robustesse: 2e n optionnel
+)
 RE_PROCEDURE_URGENTE = (
     r"(?:"
     + r"(?:(?:\s*[–-])?\s+proc[ée]dure\s+(?:urgente|d['’]\s*urgence))"
@@ -30,7 +32,7 @@ RE_PROCEDURE_URGENTE = (
 
 # - classification des arrêtés
 # péril simple/ordinaire (terminologie précédente)
-RE_PS_PO = r"p[ée]ril\s+(?:simple|ordinaire|non\s+imminent)"
+RE_PS_PO = r"p[ée]ril\s+(?:simple|ordin(?:n)?aire|non\s+imminent)"  # robustesse: 2e n optionnel
 RE_CLASS_PS_PO = (
     r"(?:"
     # arrêté de péril simple | ordinaire

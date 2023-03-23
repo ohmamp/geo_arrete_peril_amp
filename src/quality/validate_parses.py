@@ -115,6 +115,7 @@ def examine_doc_content(fn_pdf: str, doc_content: list[dict]):
                 "mainlevée 7 rue de la Tour Peyrolles.pdf",  # mainlevée (Peyrolles)
                 "mainlevée de péril ordinaire 8 rue Longue Roquevaire.pdf",  # mainlevée (Roquevaire)
                 "mainlevée 82L chemin des Lavandières Roquevaire.pdf",  # mainlevée (Roquevaire)
+                "mainlevée de péril ordinaire 8-8 bis avenue de Lambesc-26012021.pdf",  # mainlevée (Rognes)
                 "8, rue Maréchal Foch Roquevaire.PDF",  # PGI ! (Roquevaire)
                 "grave 31 rue du Calvaire Roquevaire.pdf",  # PGI ! (Roquevaire)
                 "PGI rue docteur Paul Gariel -15122020.PDF",  # PGI ! (Roquevaire)

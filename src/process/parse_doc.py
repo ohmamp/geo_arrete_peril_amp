@@ -493,7 +493,7 @@ def parse_page_content(
     main_end: int
         Fin de l'empan à analyser.
     cur_state: str
-        État actuel: "avant_arrete", "avant_signature", "apres_signature"
+        État actuel: "avant_articles", "avant_signature", "apres_signature"
     latest_span: dict, optional
         Dernier empan de contenu repéré sur la page précédente.
         Vaut `None` pour la première page.
@@ -503,7 +503,7 @@ def parse_page_content(
     content: list
         Liste d'empans de contenu
     """
-    if cur_state not in ("avant_arrete", "avant_signature"):
+    if cur_state not in ("avant_articles", "avant_signature"):
         raise ValueError(
             f"État inattendu {cur_state}\n{main_beg}:{main_end}\n{txt_body[main_beg:main_end]}"
         )
@@ -515,13 +515,32 @@ def parse_page_content(
     content = []
 
     # repérer les débuts de paragraphes: "Vu", "Considérant", "Arrête", "Article"
-    if cur_state == "avant_arrete":
-        par_begs = [
-            (m.start(), "par_vu") for m in P_VU.finditer(txt_body, main_beg, main_end)
-        ] + [
-            (m.start(), "par_considerant")
-            for m in P_CONSIDERANT.finditer(txt_body, main_beg, main_end)
-        ]
+    if cur_state == "avant_articles":
+        # "Vu" et "Considérant"
+        par_begs = sorted(
+            [(m.start(), "par_vu") for m in P_VU.finditer(txt_body, main_beg, main_end)]
+            + [
+                (m.start(), "par_considerant")
+                for m in P_CONSIDERANT.finditer(txt_body, main_beg, main_end)
+            ]
+        )
+
+        # éventuellement, "Arrêtons|Arrête|Arrêté" entre les "Vu" "Considérant" d'une part,
+        # les "Article" d'autre part
+        # si la page en cours contient le dernier "Vu" ou "Considérant" du document, ou
+        # la fin de ce dernier "Vu" ou "Considérant", "Arrêtons" doit être là
+        if par_begs:
+            # il y a au moins un "Vu" ou "Considérant" sur la page:
+            # le dernier de la page est-il aussi le dernier du document?
+            searchzone_beg = par_begs[-1][0]
+        else:
+            # le dernier "Vu" ou "Considérant" peut avoir commencé sur la page précédente,
+            # auquel cas on cherche "Arrêtons|Arrête|Arrêté" sur toute la zone en cours
+            # d'analyse
+            searchzone_beg = main_beg
+        if m_arretons := P_ARRETONS.search(txt_body, searchzone_beg, main_end):
+            par_begs.append(m_arretons)
+
     elif cur_state == "avant_signature":
         par_begs = [
             (m.start(), "par_article")
@@ -543,7 +562,7 @@ def parse_page_content(
                 "par_vu",
                 "par_considerant",
                 "par_article",
-                # une continuation peut être continuée
+                # une continuation peut être elle-même continuée
                 "par_vu_suite",
                 "par_considerant_suite",
                 "par_article_suite",
@@ -590,11 +609,15 @@ def parse_page_content(
                 # TODO déplacer cette vérification en amont ou en aval?
                 try:
                     assert (cur_typ, nxt_typ) in (
+                        # les "Vu" sont généralement avant les "Considérant" mais certains arrêtés mêlent les deux types de paragraphes
                         ("par_vu_suite", "par_vu"),
                         ("par_vu_suite", "par_considerant"),
+                        ("par_vu_suite", "par_arrete"),  # NEW 2023-03-23
+                        ("par_considerant_suite", "par_vu"),  # NEW 2023-03-23
                         ("par_considerant_suite", "par_considerant"),
                         ("par_considerant_suite", "par_arrete"),
                         # ("par_arrete_suite", "par_article"),  # "Arrête" ne peut pas être coupé par un saut de page car il est toujours sur une seule ligne
+                        # les articles forment un bloc homogène, sans retour vers des "Vu" ou "Considérant" (s'il y en a, ce sont des citations de passage dans un article...)
                         ("par_article_suite", "par_article"),
                     )
                 except AssertionError:
@@ -704,7 +727,7 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
     # print(fn_pdf)  # DEBUG
     # traiter les pages
     # TODO états alternatifs? ["preambule", "vu", "considerant", "arrete", "article", "postambule" ou "signature", "apres_signature" ou "annexes"] ?
-    cur_state = "avant_vu"  # init ; "avant_vu" < "avant_arrete" < "avant_signature"  # TODO ajouter "avant_considerant" ?
+    cur_state = "avant_vucons"  # init ; "avant_vucons" < "avant_articles" < "avant_signature"  # TODO ajouter "avant_considerant" ?
     latest_span = None  # init
     for i, page in enumerate(pages, start=1):
         # métadonnées de la page
@@ -753,21 +776,29 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
         # la page n'est pas vide de texte
         main_end = len(pg_txt_body)
         # 1. préambule du document: avant le 1er "Vu", contient la commune, l'autorité prenant l'arrêté, parfois le numéro de l'arrêté
-        if cur_state == "avant_vu":
+        if cur_state == "avant_vucons":
+            fst_vucons = []
             if fst_vu := P_VU.search(pg_txt_body):
+                fst_vucons.append(fst_vu)
+            if fst_cons := P_CONSIDERANT.search(pg_txt_body):
+                fst_vucons.append(fst_cons)
+            if fst_vucons:
+                fst_vu_or_cons = sorted(fst_vucons, key=lambda x: x.start())[0]
                 pream_beg = 0
-                pream_end = fst_vu.start()
+                pream_end = fst_vu_or_cons.start()
                 pream_content = parse_doc_preamble(
                     fn_pdf, pg_txt_body, pream_beg, pream_end
                 )
                 pg_content.extend(pream_content)
                 if pream_content:
                     latest_span = None  # le dernier empan de la page précédente n'est plus disponible
-                cur_state = "avant_arrete"
+                cur_state = "avant_articles"
             else:
-                # le 1er "vu" est toujours (implicitement) en p. 1
+                # le 1er "vu" ou "considérant" est toujours (implicitement) en p. 1
                 # TODO à vérifier
-                raise ValueError(f"Pas de 'Vu' en page 1\n{mdata_page}\n{pg_txt_body}")
+                raise ValueError(
+                    f"Ni 'Vu' ni 'Considérant' en page 1\n{mdata_page}\n{pg_txt_body}"
+                )
             main_beg = pream_end
         else:
             # p. 2 et suivantes: la zone à analyser commence en haut de la page (les éléments de
@@ -776,8 +807,13 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
         # TODO si tout le texte a déjà été reconnu, ajouter le contenu de la page au doc et passer à la page suivante
 
         # 2. les "vu" et "considérant"
-        if cur_state == "avant_arrete":
+        if cur_state == "avant_articles":
             vucons_beg = main_beg
+            # la page contient-elle un "Article" ? (le 1er)
+            if m_article := P_ARTICLE.search(pg_txt_body, main_beg):
+                # si oui, les "Vu" et "Considérant" de cette page sont à chercher avant "Arrête"
+                vucons_end = m_article.start()
+
             # la page contient-elle un "Arrête" ?
             m_arrete = P_ARRETONS.search(pg_txt_body, main_beg)
             if m_arrete:
@@ -939,8 +975,6 @@ def has_one(spans: list[dict], span_typ: str) -> str:
     if not spans:
         return None
     return any(x for x in spans if x["span_typ"] == span_typ)
-
-
 
 
 def process_files(

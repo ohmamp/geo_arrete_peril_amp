@@ -68,12 +68,13 @@ def examine_doc_content(fn_pdf: str, doc_content: list[dict]):
     # filtrer les pages absentes
     pg_conts = [x for x in doc_content if (pd.notna(x) and x["content"] is not None)]
     # paragraphes
-    par_typs = [
-        x["span_typ"]
+    pars = [
+        x
         for pg_content in pg_conts
         for x in pg_content["content"]
         if (pd.notna(x) and x["span_typ"].startswith("par_"))
     ]
+    par_typs = [x["span_typ"] for x in pars]
     # "considérant" obligatoire sauf pour certains arrêtés?
     # TODO déterminer si les assertions ne s'appliquent qu'à certaines classes d'arrêtés
     if par_typs:
@@ -131,5 +132,6 @@ def examine_doc_content(fn_pdf: str, doc_content: list[dict]):
                 "16, rue de la République Gemenos.pdf",  # OCR p.1 seulement => à ré-océriser
                 "mainlevée 6, rue des Jaynes Gemenos.pdf",  # OCR p.1 seulement => à ré-océriser
             ):
-                raise ValueError(f"{fn_pdf}: pas de vu")
+                print(f"paragraphes={pars}")
+                raise ValueError(f"{fn_pdf}: pas de 'Arrête'")
         # l'ordre relatif (vu < considérant < arrête < article) est vérifié au niveau des transitions admissibles

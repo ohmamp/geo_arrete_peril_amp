@@ -164,7 +164,7 @@ def parse_page_template(txt: str) -> tuple[list, str]:
                     "span_typ": "header",
                 }
             )
-
+    print(f"<<<<< template:headers={content}")
     # pied-de-page
     # TODO expectation: n=0..2 par page
     if m_footers := P_FOOTER.finditer(txt):
@@ -503,6 +503,9 @@ def parse_page_content(
     content: list
         Liste d'empans de contenu
     """
+    print(
+        f"parse_page_content: {(main_beg, main_end, cur_state, latest_span)}"
+    )  # DEBUG
     if cur_state not in ("avant_articles", "avant_signature"):
         raise ValueError(
             f"État inattendu {cur_state}\n{main_beg}:{main_end}\n{txt_body[main_beg:main_end]}"
@@ -538,8 +541,9 @@ def parse_page_content(
             # auquel cas on cherche "Arrêtons|Arrête|Arrêté" sur toute la zone en cours
             # d'analyse
             searchzone_beg = main_beg
+        print(f"Cherche ARRETE dans:\n{txt_body[searchzone_beg:main_end]}")
         if m_arretons := P_ARRETONS.search(txt_body, searchzone_beg, main_end):
-            par_begs.append(m_arretons)
+            par_begs.append((m_arretons.start(), "par_arrete"))
 
     elif cur_state == "avant_signature":
         par_begs = [
@@ -569,7 +573,7 @@ def parse_page_content(
             )
         ):
             raise ValueError(
-                f"Aucun paragraphe continuable sur cette page sans nouveau paragraphe?\n{cur_state} {main_beg}:{main_end}\n{txt_body[main_beg:main_end]}"
+                f"Aucun paragraphe continuable sur cette page sans nouveau paragraphe?\ncur_state={cur_state}, latest_span={latest_span}, (main_beg, main_end)=({main_beg}, {main_end})\n{txt_body[main_beg:main_end]}"
             )
         # analyser jusqu'en bas de la page, sans visibilité sur le type du prochain empan (absent de la page)
         nxt_beg = main_end
@@ -590,8 +594,9 @@ def parse_page_content(
             try:
                 lst_typ = latest_span["span_typ"]
             except TypeError:
-                print(f"{par_begs}")
-                print(f"{main_beg} {nxt_beg} {txt_body[main_beg:nxt_beg]}")
+                print(
+                    f"cur_state={cur_state}\npar_begs={par_begs}\n(main_beg, nxt_beg)=({main_beg}, {nxt_beg})\n{txt_body[main_beg:nxt_beg]}"
+                )
                 raise
             # un empan peut courir sur plus d'une page complète (ex: "Considérant" très long, incluant la liste des copropriétaires)
             cur_typ = lst_typ if lst_typ.endswith("_suite") else lst_typ + "_suite"
@@ -811,43 +816,35 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
             vucons_beg = main_beg
             # la page contient-elle un "Article" ? (le 1er)
             if m_article := P_ARTICLE.search(pg_txt_body, main_beg):
-                # si oui, les "Vu" et "Considérant" de cette page sont à chercher avant "Arrête"
+                # si oui, les "Vu" et "Considérant" de cette page, puis "Arrête",
+                # sont à chercher avant le 1er "Article"
+                print(f"m_article={m_article}")  # DEBUG
                 vucons_end = m_article.start()
-
-            # la page contient-elle un "Arrête" ?
-            m_arrete = P_ARRETONS.search(pg_txt_body, main_beg)
-            if m_arrete:
-                # si oui, les "Vu" et "Considérant" de cette page sont à chercher avant "Arrête"
-                vucons_end = m_arrete.start()
             else:
                 # si non, les "Vu" et "Considérant" sont sur toute la page
                 vucons_end = main_end
-            # repérer les "Vu" et "Considérant"
+            # repérer les "Vu" et "Considérant", et "Arrête" si présent
+            print(f"avant parse_page_content/Vucons: pg_content={pg_content}")  # DEBUG
             vucons_content = parse_page_content(
                 pg_txt_body, vucons_beg, vucons_end, cur_state, latest_span
             )  # FIXME spécialiser la fonction pour restreindre aux "Vu" et "Considérant" et/ou passer cur_state? ; NB: ces deux types de paragraphes admettent des continuations
             pg_content.extend(vucons_content)
+            print(f"après parse_page_content/Vucons: pg_content={pg_content}")  # DEBUG
             if vucons_content:
                 latest_span = (
                     None  # le dernier empan de la page précédente n'est plus disponible
                 )
 
             # si "Arrête" était bien sur la page, il faut ajouter l'empan reconnu, déplacer le curseur et changer d'état
-            if m_arrete:
-                arrete_beg, arrete_end = m_arrete.span("par_arrete")
-                pg_content.append(
-                    {
-                        "span_beg": arrete_beg,
-                        "span_end": arrete_end,
-                        "span_txt": m_arrete.group("par_arrete"),
-                        "span_typ": "par_arrete",
-                    }
-                )
-                main_beg = arrete_end
-                latest_span = (
-                    None  # le dernier empan de la page précédente n'est plus disponible
-                )
-                cur_state = "avant_signature"
+            if pg_content:
+                spans_arrete = [x for x in pg_content if x["span_typ"] == "par_arrete"]
+                if spans_arrete:
+                    assert len(spans_arrete) == 1
+                    span_arrete = spans_arrete[0]
+                    #
+                    main_beg = span_arrete["span_end"]
+                    latest_span = None  # le dernier empan de la page précédente n'est plus disponible
+                    cur_state = "avant_signature"
         # TODO si tout le texte a déjà été reconnu, ajouter le contenu de la page au doc et passer à la page suivante
 
         # 3. les "article" et le postambule
@@ -863,6 +860,9 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
                 artic_end = main_end
 
             # repérer les articles
+            print(
+                f"avant parse_page_content/Articles: pg_content={pg_content}"
+            )  # DEBUG
             try:
                 artic_content = parse_page_content(
                     pg_txt_body, artic_beg, artic_end, cur_state, latest_span

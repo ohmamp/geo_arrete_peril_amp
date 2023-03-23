@@ -27,7 +27,7 @@ RE_HEADERS = [
             + r"Direction\s+Etudes\s+Juridiques\s+&\s+Contentieux\n"
         ),
     ),  # p.1
-    ("Aix-en-Provence", r"^ARRÊTÉ\n"),
+    # ("Aix-en-Provence", r"^ARRÊTÉ\n"),  # NON! trop générique, capture des spans nécessaires ailleurs
     # texte extrait (image)
     (
         "Allauch",

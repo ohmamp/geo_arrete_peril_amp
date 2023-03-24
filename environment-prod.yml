@@ -9,7 +9,7 @@ dependencies:
   - pandas >= 1.5.1
   - pdftotext >= 2.2.2
   - pip
-  - poppler >= 22.10.0  # dep(pdf2image), dep(pdftotext)?
+  - poppler >= 22.10.0  # dep(pdf2image), dep(pdftotext)
   - pytesseract >= 0.3.10
   - pip:
     - dateparser >= 1.1.1  # 1.1.2

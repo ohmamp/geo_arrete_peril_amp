@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 
 from src.domain_knowledge.actes import P_ACCUSE
+from src.domain_knowledge.logement import get_adr_doc
 from src.process.parse_doc import parse_arrete_pages
 from src.utils.txt_format import load_pages_text
 
@@ -60,7 +61,6 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> list:
     pages_cont = []
     for pg_num, pg_cont in enumerate(doc_content, start=1):
         # pg_template = page_cont["template"]
-        pg_txt_body = pg_cont["body"]
         # pg_content = page_cont["content"]  # future
         # FIXME ajouter "page_num" en amont, dans parse_arrete_pages()
         pages_cont.extend([({"page_num": pg_num} | x) for x in pg_cont["content"]])
@@ -69,5 +69,8 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> list:
     # - commune via les mentions de l'autorité prenant l'arrêté
     adr_commune_maire = [x for x in pages_cont if x["span_typ"] == "adr_ville"]
     print(adr_commune_maire)
+    # - adresse du ou des bâtiments visés par l'arrêté
+    adr_brute = [get_adr_doc(x) for x in pages_body]
+    print(adr_brute)
     # RESUME HERE
     return doc_data

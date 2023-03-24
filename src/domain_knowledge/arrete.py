@@ -107,8 +107,13 @@ def contains_considerant(page_txt: str) -> bool:
     return P_CONSIDERANT.search(page_txt) is not None
 
 
-#
-RE_ARRETONS = rf"^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS|É(?!\s+{RE_NO}))(?:\s*:)?)"  # Rognes: "ARRÊTÉ" dans cette position (?! conflit avec le repérage d'ARRÊTÉ?)
+# normalement "Arrête" ou "Arrêtons"
+# cas particulier: Rognes: "ARRÊTÉ" dans cette position (negative lookahead pour éviter les conflits avec le repérage d'ARRÊTÉ <num_arr>)
+RE_ARRETONS = (
+    r"^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS|É"
+    + rf"(?!\s+(?:{RE_NO}|\d|de|d['’]))"  # negative lookahead pour la seule alternative "arrêté": pas "n°", ni chiffre, ni "de", ni "d'"
+    + r")(?:\s*:)?)"
+)
 # RE_ARRETONS = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
 P_ARRETONS = re.compile(RE_ARRETONS, re.MULTILINE | re.IGNORECASE)
 
@@ -130,17 +135,23 @@ def contains_arrete(page_txt: str) -> bool:
 
 
 # "Article 1(er)?", "Article 2" etc ; confusion possible OCR: "l" pour "1"
-#
-RE_ARTICLE = r"^\s*ARTICLE\s+(?:[1l]\s*(?:er)?|\d+" + rf"|{RE_ORDINAUX}|{RE_CARDINAUX})"
+# "Atlicle": robustesse OCR...
+RE_ARTICLE = (
+    r"^\s*(?:ARTICLE|Atlicle)(?:[-]|\s+)"  # "-": robustesse OCR
+    + r"(?:[1lI]\s*(?:er)?|\d+"  # 1, 1er et variantes robustes aux erreurs d'OCR
+    + rf"|{RE_ORDINAUX}|{RE_CARDINAUX})"
+)
 P_ARTICLE = re.compile(RE_ARTICLE, re.MULTILINE | re.IGNORECASE)
 
 
 def contains_article(page_txt: str) -> bool:
     """Détecte si une page contient un Article.
+
     Parameters
     ----------
     page_txt: str
         Texte d'une page de document
+
     Returns
     -------
     has_stamp: bool

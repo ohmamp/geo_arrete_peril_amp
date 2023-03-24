@@ -27,6 +27,10 @@ RE_HEADERS = [
             + r"Direction\s+Etudes\s+Juridiques\s+&\s+Contentieux\n"
         ),
     ),  # p.1
+    (
+        "Aix-en-Provence",
+        r"(?:^D\.G\.A\.S\s+[-]\s+Etudes\s+Juridiques,\s+Marchés\s+Publics\s+et\s+Patrimoine\s+Communal\s+Direction\s+Etudes\s+Juridiques\s+&\s+Contentieux)",
+    ),  # p. 1, arrêtés
     # ("Aix-en-Provence", r"^ARRÊTÉ\n"),  # NON! trop générique, capture des spans nécessaires ailleurs
     # texte extrait (image)
     (
@@ -135,11 +139,18 @@ RE_FOOTERS = [
     (
         "Aix-en-Provence",
         r"^Hotel\s+de\s+Ville\s+13616\s+AIX-EN-PROVENCE\s+CEDEX\s+1\s+-\s+France\s+-\s+"
-        + r"Tél[.]\s+[+]\s+33[(]0[)]4[.]42[.]91[.]90[.]00\s+-\s+"
-        + r"Télécopie\s+[+]\s+33[(]0[)]4[.]42[.]91[.]94[.]92\s+-\s+"
-        + r"www[.]mairie[-]aixenprovence[.]fr"
+        + r"Tél[.]\s+[+]\s+33[(]0[)]4[.,]42[.,]91[.,]90[.,]00\s+-\s+"  # [.,]: robustesse OCR
+        + r"Télécopie\s+[+]\s+33[(]0[)]4[.,]42[.,]91[.,]94[.,]92\s+-\s+"  # [.,]: robustesse OCR
+        + r"www[.]mairie[-]aixenpr[oa]vence[.]fr"  # [oa]: robustesse OCR
         + r"[.]$",
     ),  #
+    (
+        "Aix-en-Provence",
+        r"^Hot(?:el|sf|si)\s+de\s+Ville\s+1361[68]\s+A(?:IX|DC)[-]?EN-PROVENCE\s+CEDEX\s+[1?]\s+[–-]\s+Fran[cv]e\s+[–-]\s+"
+        + r"Tél[.,]\s+[+]\s+[38]3[{(]0[)}]4[.,]42[.,]91[.,]90[.,]00\s+[+]\s+"
+        + r"Té(?:k|lé)[co]op[il][aes]\s+[+]\s+[38]3[{(]0[)}]4[.,]42[.,]91[.,]04[.,]92\s+[–-]\s+"
+        + r"www[.,]ma[il]r[i]?[es][-](?:ai|sl)xenpr[oa]vence[.,]f(?:r)?[.,]",
+    ),  # robustesse: très mauvais OCR
     (
         "Allauch",
         r"""Hôtel\s+de\s+Ville\s+[+e]\s+"""
@@ -166,20 +177,29 @@ RE_FOOTERS = [
     (
         "Berre-l'Étang",
         r"VILLE\s+DE\s+BERRE-L['’]ETANG\n"
-        + r"HOTEL\s+DE\s+VILLE\s+-\s+B\.P\s+30221\s+-\s+13138\s+BERRE\s+L['’]ÉTANG\s+CEDEX\n"
-        + r"Téléphone\s+:\s+04\.42\.74\.93\.00\s+-\s+"
-        + r"Télécopie\s+:\s+04\.42\.74\.93\.02\s+-\s+"
+        + r"HOTEL\s+DE\s+VILLE\s+[-–]\s+B\.P\s+30221\s+[-–]\s+13138\s+BERRE\s+L['’]ÉTANG\s+CEDEX\n"
+        + r"Téléphone\s+:\s+04\.42\.74\.93\.00\s+[-–]\s+"
+        + r"Télécopie\s+:\s+04\.42\.74\.93\.02\s+[-–]\s+"
         + r"Site\s+internet\s+:\s+www\.berreletang\.fr",
     ),  # p.1
     (
         "Châteauneuf-les-Martigues",
-        r"""Hôtel\s+de\s+ville\s+-\s+"""
-        + r"""BP\s+70024\s+-\s+"""
-        + r"""13168\s+Châteauneuf-les-Martigues\s+cedex\s+-\s+"""
-        + r"""04\.42\.76\.89\.00\s+-\s+"""
+        r"""Hôtel\s+de\s+ville\s+[-–]\s+"""
+        + r"""BP\s+70024\s+[-–]\s+"""
+        + r"""13168\s+Châteauneuf-les-Martigues\s+cedex\s+[-–]\s+"""
+        + r"""04\.42\.76\.89\.00\s+[-–]\s+"""
         + r"""04\.42\.79\.80\.25$""",
     ),  # p. 1
+    ("Gardanne", r"^Arrêté\s+[-–]\s+Secteur\s+Pouvoirs\s+de\s+Police\s+[-–]"),
+    (
+        "Gardanne",
+        r"^Arrêté\s+[-–]\s+Libertés\s+Publiques\s+et\s+Pouvoir(?:s)?\s+de\s+Police\s+[-–]",
+    ),
     # TODO footer Istres
+    (
+        "Mimet",
+        r"Mairie\s+de\s+Mimet\s+[-–]\s+Hôtel\s+de\s+Ville\s+[-–]\s+13105\s+MIMET\s+[-–]\s+©\s+04\s+42\s+12\s+62\s+42\s+[-–]\s+Fax\s+:\s+04\s+42\s+58\s+91\s+05",
+    ),
 ]
 
 # reconnaissance de tous les pieds-de-page

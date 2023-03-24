@@ -7,7 +7,7 @@
 import re
 
 from src.domain_knowledge.adresse import RE_COMMUNE
-from src.utils.text_utils import RE_NO
+from src.utils.text_utils import RE_CARDINAUX, RE_NO, RE_ORDINAUX
 from src.utils.str_date import RE_DATE
 
 
@@ -108,7 +108,7 @@ def contains_considerant(page_txt: str) -> bool:
 
 
 #
-RE_ARRETONS = r"^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS|É)(?:\s*:)?)"  # Rognes: "ARRÊTÉ" dans cette position (?! conflit avec le repérage d'ARRÊTÉ?)
+RE_ARRETONS = rf"^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS|É(?!\s+{RE_NO}))(?:\s*:)?)"  # Rognes: "ARRÊTÉ" dans cette position (?! conflit avec le repérage d'ARRÊTÉ?)
 # RE_ARRETONS = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
 P_ARRETONS = re.compile(RE_ARRETONS, re.MULTILINE | re.IGNORECASE)
 
@@ -130,7 +130,8 @@ def contains_arrete(page_txt: str) -> bool:
 
 
 # "Article 1(er)?", "Article 2" etc ; confusion possible OCR: "l" pour "1"
-RE_ARTICLE = r"^\s*ARTICLE\s+(?:[1l]\s*(?:er)?|\d+)"
+#
+RE_ARTICLE = r"^\s*ARTICLE\s+(?:[1l]\s*(?:er)?|\d+" + rf"|{RE_ORDINAUX}|{RE_CARDINAUX})"
 P_ARTICLE = re.compile(RE_ARTICLE, re.MULTILINE | re.IGNORECASE)
 
 

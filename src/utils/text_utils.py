@@ -9,6 +9,14 @@ import unicodedata
 # graphies de "n°"
 RE_NO = r"n[°º]"
 
+# numéraux: ordinaux et cardinaux
+RE_ORDINAUX = (  # jusqu'à 15 devrait suffire?
+    r"(?:premier|deuxi[èe]me|second|troisi[èe]me|quatri[èe]me|cinqui[èe]me|sixi[èe]me|septi[èe]me|huiti[èe]me|neuvi[èe]me|dixi[èe]me"
+    + r"|onzi[èe]me|douzi[èe]me|treizi[èe]me|quatorzi[èe]me|quinzi[èe]me)"
+)
+RE_CARDINAUX = r"un|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze"
+
+
 # motif pour capturer tout le texte sauf les espaces initiaux et finaux
 RE_STRIP = (
     r"(?:\s*)"  # espaces initiaux

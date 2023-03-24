@@ -238,7 +238,8 @@ def parse_doc_preamble(
     )
     assert len(txt_copy) == len(txt_body)
 
-    # a. ce préambule contient (vers la fin) l'intitulé de l'autorité prenant l'arrêté (obligatoire)
+    # a. ce préambule contient (vers la fin) l'intitulé de l'autorité prenant l'arrêté
+    # TODO est-ce obligatoire? exceptions: La Ciotat
     if matches := list(P_MAIRE_COMMUNE.finditer(txt_copy, pream_beg, pream_end)):
         # on garde la première occurrence, normalement la seule
         match = matches[0]
@@ -318,7 +319,7 @@ def parse_doc_preamble(
                 )
     else:
         # pas d'autorité détectée: anormal
-        raise ValueError(f"Pas d'autorité détectée !?\n{txt_copy}")
+        logging.warning(f"{fn_pdf}: pas d'autorité détectée dans le préambule")
 
     # b. ce préambule peut contenir le numéro de l'arrêté (si présent, absent dans certaines communes)
     # NB: ce numéro d'arrêté peut se trouver avant ou après l'autorité (ex: Gardanne)
@@ -799,11 +800,12 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
                     latest_span = None  # le dernier empan de la page précédente n'est plus disponible
                 cur_state = "avant_articles"
             else:
-                # le 1er "vu" ou "considérant" est toujours (implicitement) en p. 1
-                # TODO à vérifier
-                raise ValueError(
-                    f"Ni 'Vu' ni 'Considérant' en page 1\n{mdata_page}\n{pg_txt_body}"
+                # la 1re page ne contient ni "vu" ni "considérant", ce doit être une page de courrier
+                # ex: "21, rue Martinot Aubagne.pdf"
+                logging.warning(
+                    f"{fn_pdf}: page {i}: ni 'vu' ni 'considérant' donc page ignorée"
                 )
+                continue
             main_beg = pream_end
         else:
             # p. 2 et suivantes: la zone à analyser commence en haut de la page (les éléments de

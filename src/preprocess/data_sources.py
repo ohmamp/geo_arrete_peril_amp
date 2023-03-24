@@ -52,6 +52,7 @@ EXCLUDE_FILES = [
     "131 133 rue du Rouet annexe 2.pdf",  # annexe
     "275 rue Saint Pierre annexe 2.pdf",  # annexe
     "72, rue Saint Pierre annexe 2 pdf.pdf",  # annexe: courrier ABF
+    "Courrier COGEFIM 62, rue Saint Pierre.pdf",  # annexe: courrier syndic
     "73, rue Clovis Hugues annexe 1 .pdf",  # annexe: plan périmètre de sécurité
     "37 rue Fernand Pauriol annexes.pdf",  # annexe: plan périmètre de sécurité
     "mainlevée rue Fortin annexe 2.pdf",  # annexe: courrier ABF

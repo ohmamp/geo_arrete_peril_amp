@@ -72,6 +72,14 @@ RE_HEADERS = [
         + r"COMMUNE\s+DE\s+JOUQUES",
     ),  # p. 1 (en haut)
     (
+        "La Ciotat",
+        r"^HÔTEL\s+DE\s+VILLE\s+[-]\s+Rond[-]point\s+des\s+Messageries\s+maritimes\s+B\.P\s+161\s+[-]\s+13708\s+[-]\s+La\s+Ciotat\s+Cedex",
+    ),
+    (
+        "La Ciotat",
+        r"^Téléphone\s+:\s+04\s+42\s+08\s+88\s+00\s+[-]\s+Télécopie\s+:\s+04\s+42\s+08\s+23\s+71",
+    ),
+    (
         "Martigues",
         r"^Département\s+des\nBouches-du-Rhône\nArrondissement\s+d['’]Istres$",
     ),  # p. 1

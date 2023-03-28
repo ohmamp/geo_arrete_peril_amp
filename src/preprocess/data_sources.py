@@ -157,6 +157,23 @@ EXCLUDE_FILES = [
     # TODO test: ces deux documents simples devraient être exclus
     "75 rue Longue des Capucins 16 rue de la Fare annexe 1.pdf",  # TODO test de détection?
     "péril simple 75 rue Longue des Capucins 16 annexe 2.pdf",  # TODO test?
+    # communes hors Métropole: ce filtrage sera-t-il fait en amont, lors de l'export des données?
+    "1, rue Raspail Tarascon.pdf",  # hors AMP: Tarascon
+    "arrêté de péril - 22 rue Mirabeau à Tarascon - 141220.pdf",  # hors AMP: Tarascon
+    "2,rue du 4 septembre - PO.pdf",  # hors AMP: Tarascon
+    "9 RUE DES JUIFS - PGI.pdf",  # hors AMP: Tarascon
+    "67 rue du Jeu de Paume Tarascon - PGI 21.02.20.pdf",  # hors AMP: Tarascon
+    "22 rue Mirabeau Tarascon.pdf",  # hors AMP: Tarascon
+    "11bis rue du Prolétariat.pdf",  # hors AMP: Tarascon
+    "2, rue du 4 septembre - PGI 12.07.19.pdf",  # hors AMP: Tarascon
+    "rue des Pères de l'Observance.pdf",  # hors AMP: Barbentane
+    "5 rue du Château.pdf",  # hors AMP: Barbentane
+    "3 rue des Ecoles - PI 22.01.20.pdf",  # hors AMP: Barbentane
+    "1, rue du Château 13570  -PI.pdf",  # hors AMP: Barbentane
+    "27, place Voltaire Arles.pdf",  # hors AMP: Arles
+    "9001 rue Robert Schuman.pdf",  # hors AMP: Arles
+    "4 rue Desaix 13003.pdf",  # hors AMP: Arles
+    "6 rue Pierre Leroux Arles - mise en sécurité .pdf",  # hors AMP: Arles
 ]
 
 EXCLUDE_FIXME_FILES = [
@@ -169,4 +186,6 @@ EXCLUDE_FIXME_FILES = [
     "Arrêté d'interdiction d'occuper - 13 rue de la fare 13001.pdf",  # FIXME p. 1 vide après "nous, maire...", "vu" seulement en p. 2
     "mainlevée 14 rue Mère de Dieu Peyrolles.pdf",  # FIXME layout 2 colonnes (tous Peyrolles concernés mais celui-ci coince vraiment car peu de "Vu")
     "mainlevée rue de la Tour Peyrolles en Provence.pdf",  # FIXME layout 2 colonnes id
+    "739 av Cytharista Mas de la mer.PDF",  # FIXME 2e nom de voie après un 1er nom de voie + un complément d'adresse
+    "A.2019-147 Ch. du Four-Garage.pdf",  # FIXME "adresse courte en voie seule", group(0) ne capture pas le complément d'adresse "Garage" ?
 ]

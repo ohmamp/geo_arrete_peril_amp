@@ -133,6 +133,13 @@ def spot_text_structure(
         not df_row.exclude
     ):  # WIP " and (not df_row.exclude)"
         logging.warning(f"{df_row.pdf} / {df_row.pagenum}")  # WIP
+        # adresse(s) visée(s) par l'arrêté
+        if pg_adrs_doc := get_adr_doc(df_row.pagetxt):
+            # on sélectionne arbitrairement la 1re (FIXME?)
+            pg_adr_doc = pg_adrs_doc[0]
+        else:
+            pg_adr_doc = None
+
         rec_struct = {
             # @ctes
             "has_stamp": is_stamped_page(df_row.pagetxt),
@@ -156,7 +163,7 @@ def spot_text_structure(
             "has_cc": contains_cc(df_row.pagetxt),
             "has_cc_art": contains_cc_art(df_row.pagetxt),
             # - données
-            "adresse": get_adr_doc(df_row.pagetxt),
+            "adresse": pg_adr_doc,
             "parcelle": get_parcelle(df_row.pagetxt),
             "proprio": get_proprio(df_row.pagetxt),  # WIP
             "syndic": get_syndic(df_row.pagetxt),

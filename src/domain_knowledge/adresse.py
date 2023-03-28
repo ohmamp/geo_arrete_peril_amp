@@ -77,7 +77,7 @@ P_NUM_IND_LIST = re.compile(RE_NUM_IND_LIST, re.IGNORECASE | re.MULTILINE)
 RE_TYP_VOIE = (
     r"(?:\b"  # "word boundary" pour éviter les matches sur "cou*che*", "par*cours*" etc
     + r"(?:"
-    + r"rue"
+    + r"(?<!immeuble\ssur\s)rue"  # negative lookbehind: "immeuble sur rue"
     + r"|avenue"
     + r"|boulevard|bld|bd"
     + r"|place"
@@ -147,7 +147,7 @@ RE_COMMUNE = (
 # complément d'adresse: résidence (+ bât ou immeuble)
 RE_RESID = r"(?:r[ée]sidence|cit[ée])"
 RE_BAT = (
-    r"(?:B[âa]timent(s)?|B[âa]t|Immeuble(s)?|Villa)"  # 2023-03-12: (?:s)? mais n'apporte rien?
+    r"(?:B[âa]timent(s)?|B[âa]t|Immeuble(s)?|Villa|Mas)"  # 2023-03-12: (?:s)? mais n'apporte rien?
     + r"(?!\s+"  # negative lookahead qui commence par des espaces
     + r"(?:"  # alternative
     + r"sis"  # bâtiment|immeuble sis
@@ -163,6 +163,8 @@ RE_ADR_COMPL_ELT = (
     + r"(?:"
     # cas particulier
     + r"(?:Les\s+Docks\s+Atrium\s+[\d.]+)"  # grand immeuble de bureaux
+    + r"|(?:Immeuble\s+sur\s+rue)"  # désignation de bâtiment sur la parcelle
+    + r"|(?:garage)"  # désignation de bâtiment sur la parcelle
     # motif général
     + rf"|(?:{RE_RESID}|{RE_BAT}|{RE_APT})"  # résidence | bâtiment | appartement
     + r"\s*[^,–]*?"  # \s*[^,–]+ # contenu: nom de résidence, du bâtiment, de l'appartement...

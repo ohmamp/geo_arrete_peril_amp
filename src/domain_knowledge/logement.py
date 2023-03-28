@@ -339,7 +339,7 @@ RE_ADR_CLEANUP = (
 
 # TODO plusieurs adresses, ex: "32, rue Félix Zoccola, 1-3-5, rue Edgar Quinet.pdf"
 def get_adr_doc(page_txt: str) -> bool:
-    """Extrait l'adresse visée par le document.
+    """Extrait la ou les adresses visées par l'arrêté.
 
     Parameters
     ----------
@@ -348,23 +348,25 @@ def get_adr_doc(page_txt: str) -> bool:
 
     Returns
     -------
-    adresse: str | None
-        Adresse visée par le document si trouvée dans le texte, None sinon.
+    adresses: List[str]
+        La ou les adresses visées par l'arrêté, si trouvées dans
+        la page de texte.
     """
-    if m_adr := P_ADR_DOC.search(page_txt):
-        logging.warning(f"adr_doc: {m_adr.group(0)}\n{m_adr.groupdict()}")
-        adr = m_adr.group("adresse")
-        # nettoyer la valeur récupérée
-        # - couper sur certains contextes droits
-        adr = re.sub(RE_ADR_CLEANUP, "", adr, flags=(re.MULTILINE | re.IGNORECASE))
-        # - enlever l'éventuelle ponctuation finale
-        if adr.endswith((".", ",")):
-            adr = adr[:-1]
-        # - remplacer les retours à la ligne par des espaces
-        adr = adr.replace("\n", " ")  # 2023-03-04
-        return adr
-    else:
-        return None
+    adresses = []
+    if matches_adr := list(P_ADR_DOC.finditer(page_txt)):
+        for m_adr in matches_adr:
+            logging.warning(f"adr_doc: {m_adr.group(0)}\t{m_adr.groupdict()}")
+            adr = m_adr.group("adresse")
+            # nettoyer la valeur récupérée
+            # - couper sur certains contextes droits
+            adr = re.sub(RE_ADR_CLEANUP, "", adr, flags=(re.MULTILINE | re.IGNORECASE))
+            # - enlever l'éventuelle ponctuation finale
+            if adr.endswith((".", ",")):
+                adr = adr[:-1]
+            # - remplacer les retours à la ligne par des espaces
+            adr = adr.replace("\n", " ")  # 2023-03-04
+            adresses.append(adr)
+    return adresses
 
 
 # M_ADR_CLEANUP = re.compile(RE_ADR_CLEANUP, re.MULTILINE | re.IGNORECASE)

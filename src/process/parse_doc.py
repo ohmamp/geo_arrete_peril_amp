@@ -1034,6 +1034,24 @@ def process_files(
         ):
             pg_content = page_cont["content"]
             pg_txt_body = page_cont["body"]
+            # données
+            if pg_txt_body:
+                # adresse(s) visée(s) par l'arrêté
+                if pg_adrs_doc := get_adr_doc(pg_txt_body):
+                    # on sélectionne arbitrairement la 1re (FIXME?)
+                    pg_adr_doc = pg_adrs_doc[0]
+                else:
+                    pg_adr_doc = None
+                # parcelle(s) visée(s) par l'arrêté
+                if pg_parcelle := get_parcelle(pg_txt_body):
+                    pg_parcelle = pg_parcelle  # TODO [0] quand get_parcelle:list[str]
+                else:
+                    pg_parcelle = None
+            else:
+                pg_adr_doc = None
+                pg_parcelle = None
+
+            # rassembler les données dans un dict
             rec_struct = {
                 # @ctes
                 "has_stamp": has_st,
@@ -1077,12 +1095,8 @@ def process_files(
                 if pg_txt_body is not None
                 else None,  # TODO
                 # - données
-                "adresse": get_adr_doc(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO urgent
-                "parcelle": get_parcelle(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO urgent
+                "adresse": pg_adr_doc,  # TODO urgent
+                "parcelle": pg_parcelle,  # TODO urgent
                 "proprio": get_proprio(pg_txt_body)
                 if pg_txt_body is not None
                 else None,  # WIP

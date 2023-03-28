@@ -30,11 +30,12 @@ RE_ADR_RCONT = (
     + r"|depuis"
     + r"|(?:doit|doivent|devra|devront|il\s+devra|peut|peuvent)\s+(être|exploiter|prendre|sous\s+un\s+délai)"
     + r"|(?:est|sont)\s+(?:à\s+l['’]état|de\s+nouveau|dans|à)"
+    + r"|(?:est|sont)\s+(?:mis\s+en\s+demeure)"
     + r"|(?:est|sont|reste|restent)\s+((strictement\s+)?interdit|accessible|pris)"  # (?:e|s|es)?
     + r"|(?:(?:est|sont|ont\s+été|est\s+de|doit|doivent)$)"
     + r"|et(?:\s+à\s+en)?\s+interdire"
     + r"|et\s+au\s+cabinet"
-    + r"|et\s+concerné"
+    + r"|et\s+(?:concerné|donnant\s+sur)"
     + r"|et\s+de\s+l['’]appartement"  # la fin du motif évite de capturer "rue Roug*et de *Lisle"
     + r"|et\s+des\s+risques"
     + r"|et\s+installation"
@@ -48,10 +49,12 @@ RE_ADR_RCONT = (
     + r"|étaiement"
     + r"|évacuation"
     + r"|faire\s+réaliser"
+    + r"|figurant"
     + r"|fragilisé"  # 2023-03-11
     + r"|il\s+sera"
     + r"|jusqu['’](?:au|à)"  # 2023-03-11
     + r"|le\s+rapport"
+    + r"|leur\s+demandant"
     + r"|lors\s+de"
     + r"|menace\s+de"
     + r"|mentionné"
@@ -66,16 +69,17 @@ RE_ADR_RCONT = (
     + r"|présente"
     + r"|pris\s+en\s+l"
     + r"|(?:pris$)"
+    + r"|propri[ée]taire"
     + r"|qui\s+se\s+retrouve"
     + r"|réalisé|effectué|établi"
     + r"|selon\s+les\s+hachures"
     + r"|signé"
     + r"|sur\s+une\s+largeur"
-    + r"|sur\s+la\s+base"
+    + r"|sur\s+la\s+(?:base|parcelle)"
     + r"|susceptible"
     + r"|suivant\s+annexe"
     # + r"|(?:[.]$)"  # RESUME HERE
-    + r"|(?:^Nous,\s+Maire)|(?:^vu)|(?:^consid[ée]rant)|(?:^article)"
+    + r"|(?:^Nous,\s+)|(?:^vu)|(?:^consid[ée]rant)|(?:^article)"
     + r")"
 )
 # adresse du bâtiment visé par l'arrêté
@@ -89,7 +93,7 @@ RE_ADR_DOC = (
     + r"|un\s+péril\s+grave\s+et\s+imminent\s+(?:à|au)"
     + r"|immeuble\s+(?:du|numéroté)"
     # + r"|sis[e]?(?:\s+à)?"
-    + r"|(?:(?<!Risques, )sis[e]?(?:\s+(?:[àa]|au|du))?)"  # éviter un match sur l'adresse d'un service municipal
+    + r"|(?:(?<!Risques, )sis[e]?[,]?(?:\s+(?:[àa]|au|du))?)"  # éviter un match sur l'adresse d'un service municipal
     # Objet: <classe>? - <adresse> (ex: "Objet: Péril grave et imminent - 8 rue X")
     + r"|(?:Objet\s*:"
     + rf"(?:\s+{RE_CLASSE}(?:\s*[,:–-]|\s+au)?)?"

@@ -28,7 +28,7 @@ RE_ADR_RCONT = (
     + r"|copropriété"
     + r"|de\s+mettre\s+fin"
     + r"|depuis"
-    + r"|(?:doit|doivent|devra|devront|il\s+devra|peut|peuvent)\s+(être|exploiter|prendre|sous\s+un\s+délai)"
+    + r"|(?:doit|doivent|devra|devront|il\s+devra|peut|peuvent)\s+(être|exploiter|prendre|(?:dans|sous)\s+un\s+délai)"
     + r"|(?:est|sont)\s+(?:à\s+l['’]état|de\s+nouveau|dans|à)"
     + r"|(?:est|sont)\s+(?:mis\s+en\s+demeure)"
     + r"|(?:est|sont|reste|restent)\s+((strictement\s+)?interdit|accessible|pris)"  # (?:e|s|es)?
@@ -72,6 +72,7 @@ RE_ADR_RCONT = (
     + r"|propri[ée]taire"
     + r"|qui\s+se\s+retrouve"
     + r"|réalisé|effectué|établi"
+    + r"|représenté"
     + r"|selon\s+les\s+hachures"
     + r"|signé"
     + r"|sur\s+une\s+largeur"
@@ -79,7 +80,7 @@ RE_ADR_RCONT = (
     + r"|susceptible"
     + r"|suivant\s+annexe"
     # + r"|(?:[.]$)"  # RESUME HERE
-    + r"|(?:^Nous,\s+)|(?:^vu)|(?:^consid[ée]rant)|(?:^article)"
+    + r"|(?:^Nous,\s+)|(?:^le\s+maire)|(?:^vu)|(?:^consid[ée]rant)|(?:^article)"  # NEW 2023-03-29 "le maire"
     + r")"
 )
 # adresse du bâtiment visé par l'arrêté

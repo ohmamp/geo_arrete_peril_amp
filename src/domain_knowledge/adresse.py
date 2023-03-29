@@ -122,6 +122,7 @@ RE_NOM_VOIE = (
     + r"|(?<!du )b[âa]timent"  # borne droite "bâtiment", sauf si "du bâtiment" ("rue du bâtiment" existe dans certaines communes)
     + r"|\s+b[âa]t\s+"  # bât(iment)
     # + rf"|\s*{RE_CAD_MARSEILLE}"  # (inopérant?) borne droite <ref parcelle> (seulement Marseille, expression longue sans grand risque de faux positif)
+    + r"|$"  # cas balai: fin de la zone de texte (nécessaire pour ré-extraire une adresse à partir de l'adresse brute)
     + r")"
     + r")"
 )

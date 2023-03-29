@@ -11,7 +11,7 @@ from src.domain_knowledge.adresse import (
     create_adresse_normalisee,
     process_adresse_brute,
 )
-from src.domain_knowledge.cadastre import get_parcelle
+from src.domain_knowledge.cadastre import generate_refcadastrale_norm, get_parcelle
 from src.domain_knowledge.codes_geo import get_codeinsee, get_codepostal
 from src.domain_knowledge.logement import get_adr_doc
 from src.process.extract_data import determine_commune
@@ -42,7 +42,7 @@ def extract_adresses_commune(
     """
     adresses_brutes = get_adr_doc(pg_txt_body)
     if not adresses_brutes:
-        return [], commune_maire
+        return []
     # prendre la 1re zone d'adresses reconnue dans le texte (heuristique)
     adresse_brute = adresses_brutes[0]
     # lui appliquer un 1er niveau de normalisation: remplacer les "\n" par " " etc.
@@ -75,7 +75,7 @@ def extract_adresses_commune(
             )
         except AssertionError:
             print(
-                f"{fn_pdf}: get_codeinsee(): {adresse['adr_commune']}, {adresse['adr_cpostal']}"
+                f"{fn_pdf}: get_codeinsee(): adr_commune={adresse['adr_commune']}, adr_cpostal={adresse['adr_cpostal']}"
             )
             raise
         if not adresse["adr_codeinsee"]:
@@ -159,10 +159,12 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
         adr_commune_maire = None
     else:
         adr_commune_maire = normalize_string(adrs_commune_maire[0]["span_txt"])
-    print(f"commune: {adr_commune_maire}")
+    # print(f"commune: {adr_commune_maire}")  # DEBUG
     #
     adrs_doc = []  # adresses brutes
-    pars_doc = []
+    pars_doc = set()  # références de parcelles cadastrales
+    codeinsee = None  # valeur par défaut
+    cpostal = None  # valeur par défaut
     for pg_txt_body in pages_body:
         if pg_txt_body:
             # extraire la ou les adresse(s) visée(s) par l'arrêté détectées sur cette page
@@ -174,10 +176,24 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                 adresses = extract_adresses_commune(
                     fn_pdf, pg_txt_body, adr_commune_maire
                 )
-                adrs_doc.extend(adresses)
+                if adresses:
+                    adrs_doc.extend(adresses)
+                    # WIP on prend le code INSEE et code postal de la 1re adresse
+                    print(adrs_doc)
+                    codeinsee = adrs_doc[0]["adr_codeinsee"]
+                    cpostal = adrs_doc[0]["adr_cpostal"]
             # parcelle(s) visée(s) par l'arrêté
-            pars_doc.extend([get_parcelle(pg_txt_body)])  # FIXME get_parcelle:list()
+            parcelles_str = get_parcelle(pg_txt_body)
+            if parcelles_str:
+                refcads_norm = [
+                    generate_refcadastrale_norm(
+                        codeinsee, parcelles_str, fn_pdf, cpostal
+                    )
+                ]
+                pars_doc = pars_doc | set(refcads_norm)  # FIXME get_parcelle:list()
     print(f"adrs_doc: {adrs_doc}")
     print(f"pars_doc: {pars_doc}")
+    if len(pars_doc) > 1:
+        print("woohoo")
     # RESUME HERE
     return doc_data

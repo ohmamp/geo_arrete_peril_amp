@@ -70,5 +70,8 @@ def normalize_string(raw_str: str) -> str:
     nor_str: str
         Chaîne de caractères normalisée
     """
-    nor_str = re.sub(r"\s+", " ", raw_str, flags=re.MULTILINE).strip()
+    nor_str = re.sub(
+        RE_NO, "n°", raw_str, flags=re.MULTILINE | re.IGNORECASE
+    )  # graphies de "numéro"
+    nor_str = re.sub(r"\s+", " ", nor_str, flags=re.MULTILINE).strip()
     return nor_str

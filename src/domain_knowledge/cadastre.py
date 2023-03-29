@@ -200,6 +200,7 @@ def get_parcelle(page_txt: str) -> str:
         else:
             raise ValueError(f"Pas de référence retrouvée dans la zone? {m_cad_str}")
         # end WIP
+        # RESUME HERE ! 2023-03-29
         return m_cad_str
     elif m_parc_mrs := P_PARCELLE_MARSEILLE_NOCONTEXT.search(page_txt):
         # liste des identifiants de parcelles

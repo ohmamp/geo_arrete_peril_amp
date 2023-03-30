@@ -44,10 +44,16 @@ def extract_adresses_commune(
     if not adresses_brutes:
         return []
     # prendre la 1re zone d'adresses reconnue dans le texte (heuristique)
-    adresse_brute = adresses_brutes[0]
-    # lui appliquer un 1er niveau de normalisation: remplacer les "\n" par " " etc.
+    adresse_brute = adresses_brutes[0]["adresse_brute"]
+
+    # RESUME HERE 2023-03-31
+    # - extraire les éléments d'adresse en traitant l'adresse brute
+    adr_fields = process_adresse_brute(adr_ad_brute)
+    # WIP 2023-03-05 temporairement, prendre la 1re adresse ; il faudra toutes les écrire
+    adr_fields = adr_fields[0]
+    # end WIP
+
     # TODO améliorer les résultats par une collecte plus exhaustive (qui nécessiterait le dédoublonnage) ou une meilleure heuristique ?
-    adresse_brute = normalize_string(adresse_brute)
     # extraire la ou les adresses de cette zone
     adresses = [
         ({"adr_ad_brute": adresse_brute} | x)

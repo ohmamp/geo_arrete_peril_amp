@@ -6,9 +6,10 @@ Propriétaire, gestionnaire, syndic ou administrateur, adresse de l'immeuble con
 import logging
 import re
 
-from src.domain_knowledge.adresse import RE_ADRESSE
+from src.domain_knowledge.adresse import RE_ADRESSE, process_adresse_brute
 from src.domain_knowledge.agences_immo import RE_CABINET, RE_NOMS_CABINETS
 from src.domain_knowledge.text_structure import P_ADR_DOC, RE_ADR_RCONT
+from src.utils.text_utils import normalize_string
 
 
 # formule courante dans ces arrêtés pour l'identification des propriétaires ou du syndic
@@ -348,24 +349,35 @@ def get_adr_doc(page_txt: str) -> bool:
 
     Returns
     -------
-    adresses: List[str]
+    adresses: List[dict]
         La ou les adresses visées par l'arrêté, si trouvées dans
-        la page de texte.
+        la page de texte. Pour chaque zone d'adresse brute, la ou
+        les adresses extraites.
     """
     adresses = []
     if matches_adr := list(P_ADR_DOC.finditer(page_txt)):
         for m_adr in matches_adr:
             logging.warning(f"adr_doc: {m_adr.group(0)}\t{m_adr.groupdict()}")
-            adr = m_adr.group("adresse")
+            adr_brute = m_adr.group("adresse")
             # nettoyer la valeur récupérée
             # - couper sur certains contextes droits
-            adr = re.sub(RE_ADR_CLEANUP, "", adr, flags=(re.MULTILINE | re.IGNORECASE))
+            adr_brute = re.sub(
+                RE_ADR_CLEANUP, "", adr_brute, flags=(re.MULTILINE | re.IGNORECASE)
+            )
             # - enlever l'éventuelle ponctuation finale
-            if adr.endswith((".", ",")):
-                adr = adr[:-1]
-            # - remplacer les retours à la ligne par des espaces
-            adr = adr.replace("\n", " ")  # 2023-03-04
-            adresses.append(adr)
+            if adr_brute.endswith((".", ",")):
+                adr_brute = adr_brute[:-1]
+            # - normaliser les graphies, les espaces etc
+            adr_brute = normalize_string(adr_brute)
+            # - extraire la ou les adresses précises, décomposée en champs
+            # (numéro, indicateur, voie...)
+            adresses_proc = process_adresse_brute(adr_brute)
+            adresses.append(
+                {
+                    "adresse_brute": adr_brute,
+                    "adresses": adresses_proc,
+                }
+            )
     return adresses
 
 

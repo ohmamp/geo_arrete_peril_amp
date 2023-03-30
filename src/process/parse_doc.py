@@ -1039,7 +1039,14 @@ def process_files(
                 # adresse(s) visée(s) par l'arrêté
                 if pg_adrs_doc := get_adr_doc(pg_txt_body):
                     # on sélectionne arbitrairement la 1re (FIXME?)
-                    pg_adr_doc = pg_adrs_doc[0]
+                    pg_adr_doc = pg_adrs_doc[0]["adresse_brute"]
+                    # RESUME HERE 2023-03-31
+                    # - extraire les éléments d'adresse en traitant l'adresse brute
+                    adr_fields = process_adresse_brute(adr_ad_brute)
+                    # WIP 2023-03-05 temporairement, prendre la 1re adresse ; il faudra toutes les écrire
+                    adr_fields = adr_fields[0]
+                    # end WIP
+
                 else:
                     pg_adr_doc = None
                 # parcelle(s) visée(s) par l'arrêté

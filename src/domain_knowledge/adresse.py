@@ -4,7 +4,7 @@
 
 import logging
 import re
-from typing import Dict
+from typing import Dict, List
 
 # from src.domain_knowledge.cadastre import RE_CAD_MARSEILLE  # (inopérant?)
 from src.domain_knowledge.codes_geo import (
@@ -122,7 +122,7 @@ RE_NOM_VOIE = (
     + r"|(?<!du )b[âa]timent"  # borne droite "bâtiment", sauf si "du bâtiment" ("rue du bâtiment" existe dans certaines communes)
     + r"|\s+b[âa]t\s+"  # bât(iment)
     # + rf"|\s*{RE_CAD_MARSEILLE}"  # (inopérant?) borne droite <ref parcelle> (seulement Marseille, expression longue sans grand risque de faux positif)
-    + r"|$"  # cas balai: fin de la zone de texte (nécessaire pour ré-extraire une adresse à partir de l'adresse brute)
+    # + r"|$"  # (effets indésirables) cas balai: fin de la zone de texte (nécessaire pour ré-extraire une adresse à partir de l'adresse brute)
     + r")"
     + r")"
 )
@@ -271,7 +271,11 @@ RE_ADRESSE = (
 )
 P_ADRESSE = re.compile(RE_ADRESSE, re.MULTILINE | re.IGNORECASE)
 
-# idem, avec named groups
+# idem, avec named groups + une garde / "voiture balai" dans le lookahead du nom de voie ;
+# la garde est nécessaire pour capturer les adresses courtes, qui se terminent par le nom
+# de la voie, car si on applique l'expression NG à une zone déjà extraite, alors le
+# contexte droit attendu dans le positive lookahead (séparateur, code postal, nom de commune)
+# n'est plus accessible
 RE_ADRESSE_NG = (
     r"(?:"
     + rf"(?:(?P<compl_ini>{RE_ADR_COMPL})(?:\s*[,–-])?\s*)?"  # WIP (optionnel complément d'adresse (pré)
@@ -316,7 +320,7 @@ def create_adresse_normalisee(adr_fields: Dict) -> str:
     return adr_norm
 
 
-def process_adresse_brute(adr_ad_brute: str) -> Dict:
+def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
     """Extraire une ou plusieurs adresses d'une adresse brute.
 
     Chaque adresse comporte différents champs: numéro, indicateur,

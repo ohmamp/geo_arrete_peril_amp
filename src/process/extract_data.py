@@ -182,11 +182,15 @@ def create_docs_dataframe(
             if pd.notna(getattr(df_row, "adresse_brute"))
             else None
         )
+        # WIP 2023-03-30: supprimer car sera fait dans parse_native_pages, parse_doc, parse_doc_direct
         # - extraire les éléments d'adresse en traitant l'adresse brute
         adr_fields = process_adresse_brute(adr_ad_brute)
         # WIP 2023-03-05 temporairement, prendre la 1re adresse ; il faudra toutes les écrire
         adr_fields = adr_fields[0]
         # end WIP
+        # (lire adr_fields du fichier CSV en entrée)
+        # end WIP 2023-03-30
+
         # - nettoyer a minima la commune extraite des en-tête ou pied-de-page ou de la mention du maire signataire
         adr_commune_maire = (
             normalize_string(getattr(df_row, "commune_maire"))

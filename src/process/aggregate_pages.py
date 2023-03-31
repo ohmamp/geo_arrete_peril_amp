@@ -53,6 +53,12 @@ DTYPE_PARSE_AGG = {
     "equ_com": "string",
     # - adresse
     "adresse_brute": "string",
+    "adr_num": "string",  # numéro de la voie
+    "adr_ind": "string",  # indice de répétition
+    "adr_voie": "string",  # nom de la voie
+    "adr_compl": "string",  # complément d'adresse
+    "adr_cpostal": "string",  # code postal
+    "adr_ville": "string",  # ville
     # - parcelle
     "parcelle": "string",
     # - notifiés
@@ -190,6 +196,12 @@ def aggregate_pages(df_grp: pd.DataFrame, include_actes_page_ar: bool = False) -
         "adresse_brute": first(
             grp, "adresse"
         ),  # TODO expectation: valeur unique (modulo normalisation: casse, accents etc?) ou vide/NaN
+        "adr_num": first(grp, "adr_num"),
+        "adr_ind": first(grp, "adr_ind"),
+        "adr_voie": first(grp, "adr_voie"),
+        "adr_compl": first(grp, "adr_compl"),
+        "adr_cpostal": first(grp, "adr_cpostal"),
+        "adr_ville": first(grp, "adr_ville"),
     }
     # t5 = time.time()
     rec_parce = {

@@ -104,7 +104,7 @@ RE_ADR_DOC = (
     # adresse du document
     + rf"(?P<adresse>{RE_ADRESSE})"  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     # contexte droit
-    + r"(?=\s*"  # WIP \s+  # WIP (?:
+    + r"(?P<rcont>\s*"  # WIP \s+  # WIP (?=
     + r"(?:[,;:–-]\s*|[(])?"  # NEW 2023-03-11: ";"  # WIP \s+
     + rf"(?:{RE_ADR_RCONT})"  # WIP (?=
     + r")?"

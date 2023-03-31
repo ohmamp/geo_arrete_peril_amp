@@ -87,6 +87,12 @@ DTYPE_PARSE = {
     "parcelle": "string",
     #   * adresse
     "adresse": "string",
+    "adr_num": "string",  # numéro de la voie
+    "adr_ind": "string",  # indice de répétition
+    "adr_voie": "string",  # nom de la voie
+    "adr_compl": "string",  # complément d'adresse
+    "adr_cpostal": "string",  # code postal
+    "adr_ville": "string",  # ville
     #   * notifiés
     "proprio": "string",
     "syndic": "string",
@@ -1038,17 +1044,21 @@ def process_files(
             if pg_txt_body:
                 # adresse(s) visée(s) par l'arrêté
                 if pg_adrs_doc := get_adr_doc(pg_txt_body):
-                    # on sélectionne arbitrairement la 1re (FIXME?)
+                    # on sélectionne arbitrairement la 1re zone d'adresse(s) (FIXME?)
                     pg_adr_doc = pg_adrs_doc[0]["adresse_brute"]
-                    # RESUME HERE 2023-03-31
-                    # - extraire les éléments d'adresse en traitant l'adresse brute
-                    adr_fields = process_adresse_brute(adr_ad_brute)
-                    # WIP 2023-03-05 temporairement, prendre la 1re adresse ; il faudra toutes les écrire
-                    adr_fields = adr_fields[0]
+                    # temporairement: on prend la 1re adresse précise extraite de cette zone
+                    adr_fields = pg_adrs_doc[0]["adresses"][0]
                     # end WIP
-
                 else:
                     pg_adr_doc = None
+                    adr_fields = {
+                        "adr_num": None,  # numéro de la voie
+                        "adr_ind": None,  # indice de répétition
+                        "adr_voie": None,  # nom de la voie
+                        "adr_compl": None,  # complément d'adresse
+                        "adr_cpostal": None,  # code postal
+                        "adr_ville": None,  # ville
+                    }
                 # parcelle(s) visée(s) par l'arrêté
                 if pg_parcelle := get_parcelle(pg_txt_body):
                     pg_parcelle = pg_parcelle  # TODO [0] quand get_parcelle:list[str]
@@ -1056,6 +1066,14 @@ def process_files(
                     pg_parcelle = None
             else:
                 pg_adr_doc = None
+                adr_fields = {
+                    "adr_num": None,  # numéro de la voie
+                    "adr_ind": None,  # indice de répétition
+                    "adr_voie": None,  # nom de la voie
+                    "adr_compl": None,  # complément d'adresse
+                    "adr_cpostal": None,  # code postal
+                    "adr_ville": None,  # ville
+                }
                 pg_parcelle = None
 
             # rassembler les données dans un dict
@@ -1103,6 +1121,14 @@ def process_files(
                 else None,  # TODO
                 # - données
                 "adresse": pg_adr_doc,  # TODO urgent
+                # refactor 2023-03-31: remonter l'extraction de l'adresse précise
+                "adr_num": adr_fields["adr_num"],  # numéro de la voie
+                "adr_ind": adr_fields["adr_ind"],  # indice de répétition
+                "adr_voie": adr_fields["adr_voie"],  # nom de la voie
+                "adr_compl": adr_fields["adr_compl"],  # complément d'adresse
+                "adr_cpostal": adr_fields["adr_cpostal"],  # code postal
+                "adr_ville": adr_fields["adr_ville"],  # ville
+                # end refactor 2023-03-31
                 "parcelle": pg_parcelle,  # TODO urgent
                 "proprio": get_proprio(pg_txt_body)
                 if pg_txt_body is not None

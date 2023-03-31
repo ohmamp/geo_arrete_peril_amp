@@ -18,7 +18,6 @@ import pandas as pd
 from src.process.aggregate_pages import DTYPE_META_NTXT_DOC
 from src.domain_knowledge.adresse import (
     create_adresse_normalisee,
-    process_adresse_brute,
 )
 from src.domain_knowledge.codes_geo import (
     P_COMMUNES_AMP_ALLFORMS,
@@ -85,14 +84,14 @@ def determine_commune(adr_commune_brute: str, adr_commune_maire: str) -> str:
     """
     # TODO normaliser vers la graphie de la table des codes INSEE? Quid des arrondissements de Marseille?
     # TODO comparer les graphies?
-    if (adr_commune_brute is None) and (adr_commune_maire is None):
+    if (pd.isna(adr_commune_brute)) and (pd.isna(adr_commune_maire)):
         # pas de commune
         adr_commune = None
-    elif (adr_commune_maire is None) or (
+    elif (pd.isna(adr_commune_maire)) or (
         not P_COMMUNES_AMP_ALLFORMS.match(adr_commune_maire)
     ):
         adr_commune = adr_commune_brute  # TODO normaliser?
-    elif (adr_commune_brute is None) or (
+    elif (pd.isna(adr_commune_brute)) or (
         not P_COMMUNES_AMP_ALLFORMS.match(adr_commune_brute)
     ):
         adr_commune = adr_commune_maire
@@ -184,11 +183,12 @@ def create_docs_dataframe(
         )
         # WIP 2023-03-30: supprimer car sera fait dans parse_native_pages, parse_doc, parse_doc_direct
         # - extraire les éléments d'adresse en traitant l'adresse brute
-        adr_fields = process_adresse_brute(adr_ad_brute)
-        # WIP 2023-03-05 temporairement, prendre la 1re adresse ; il faudra toutes les écrire
-        adr_fields = adr_fields[0]
-        # end WIP
-        # (lire adr_fields du fichier CSV en entrée)
+        adr_num = getattr(df_row, "adr_num")  # numéro de la voie
+        adr_ind = getattr(df_row, "adr_ind")  # indice de répétition
+        adr_voie = getattr(df_row, "adr_voie")  # nom de la voie
+        adr_compl = getattr(df_row, "adr_compl")  # complément d'adresse
+        adr_cpostal = getattr(df_row, "adr_cpostal")  # code postal
+        adr_ville = getattr(df_row, "adr_ville")  # ville
         # end WIP 2023-03-30
 
         # - nettoyer a minima la commune extraite des en-tête ou pied-de-page ou de la mention du maire signataire
@@ -199,39 +199,35 @@ def create_docs_dataframe(
         )
         # - déterminer la commune de l'adresse visée par l'arrêté en reconciliant la commune de l'adresse et
         # celle de l'autorité
-        adr_commune = determine_commune(adr_fields["adr_commune"], adr_commune_maire)
-        if not adr_commune:
+        adr_commune = determine_commune(adr_ville, adr_commune_maire)
+        if pd.isna(adr_commune) or not adr_commune:
             logging.warning(f"Pas de commune pour {doc_arr['arr_pdf']}")
-        # mettre à jour adr_fields["adr_commune"] pour garantir la cohérence de l'adresse normalisée qui sera générée
-        adr_fields["adr_commune"] = adr_commune
 
         # - déterminer le code INSEE de la commune
-        adr_codeinsee = get_codeinsee(
-            adr_fields["adr_commune"], adr_fields["adr_cpostal"]
-        )
+        adr_codeinsee = get_codeinsee(adr_commune, adr_cpostal)
         # - si l'adresse ne contenait pas de code postal, essayer de déterminer le code postal
         # à partir du code INSEE de la commune (ne fonctionne pas pour Aix-en-Provence)
-        if not adr_fields["adr_cpostal"]:
-            adr_cpostal = get_codepostal(adr_fields["adr_commune"], adr_codeinsee)
+        if pd.isna(adr_cpostal) or not adr_cpostal:
+            adr_cpostal = get_codepostal(adr_commune, adr_codeinsee)
             if not adr_cpostal:
                 logging.warning(
-                    f"{doc_arr['arr_pdf']}: Pas de code postal: cpostal(adr_brute)={adr_fields['adr_cpostal']}, commune={adr_commune}, code_insee={adr_codeinsee}, get_codepostal={adr_cpostal}"
+                    f"{doc_arr['arr_pdf']}: Pas de code postal: cpostal(adr_brute)={adr_cpostal}, commune={adr_commune}, code_insee={adr_codeinsee}, get_codepostal={adr_cpostal}"
                 )
-            # mettre à jour adr_fields["adr_cpostal"] pour garantir la cohérence de l'adresse normalisée qui sera générée
-            adr_fields["adr_cpostal"] = adr_cpostal
 
         # - créer une adresse normalisée ; la cohérence des champs est vérifiée
-        adr_adresse = create_adresse_normalisee(adr_fields)
+        adr_adresse = create_adresse_normalisee(
+            adr_num, adr_ind, adr_voie, adr_compl, adr_cpostal, adr_commune
+        )
         # - rassembler les champs
         doc_adr = {
             # adresse
             "adr_ad_brute": adr_ad_brute,  # adresse brute
-            "adr_num": adr_fields["adr_num"],  # numéro de la voie
-            "adr_ind": adr_fields["adr_ind"],  # indice de répétition
-            "adr_voie": adr_fields["adr_voie"],  # nom de la voie
-            "adr_compl": adr_fields["adr_compl"],  # complément d'adresse
-            "adr_cpostal": adr_fields["adr_cpostal"],  # code postal
-            "adr_ville": adr_fields["adr_commune"],  # ville
+            "adr_num": adr_num,  # numéro de la voie
+            "adr_ind": adr_ind,  # indice de répétition
+            "adr_voie": adr_voie,  # nom de la voie
+            "adr_compl": adr_compl,  # complément d'adresse
+            "adr_cpostal": adr_cpostal,  # code postal
+            "adr_ville": adr_commune,  # ville
             "adr_adresse": adr_adresse,  # adresse normalisée
             "adr_codeinsee": adr_codeinsee,  # code insee (5 chars)  # complété en aval par "enrichi"
         }

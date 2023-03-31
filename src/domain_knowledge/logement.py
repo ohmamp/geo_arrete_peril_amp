@@ -67,8 +67,7 @@ RE_GEST = (
     # contexte droit
     + r"(?:"
     # (contenant éventuellement son adresse)
-    + r"[,]?\s+(?:sis(?:e)?|domicilié(?:e)?)\s+"
-    + rf"{RE_ADRESSE}"
+    + rf"[,]?\s+(?:{RE_SIS_ADR}|{RE_DOMICILIE_ADR})"
     + r"|[,.]"  # motif générique attrape tout
     + r")"
     # fin contexte droit
@@ -371,6 +370,9 @@ def get_adr_doc(page_txt: str) -> bool:
             adr_brute = normalize_string(adr_brute)
             # - extraire la ou les adresses précises, décomposée en champs
             # (numéro, indicateur, voie...)
+            # WIP on prend le texte de la page, borné à gauche avec le début de l'adresse
+            # mais pas borné à droite pour avoir le contexte droit (nécessaire pour
+            # les adresses courtes, car le nom de voie est borné par un lookahead)
             adresses_proc = process_adresse_brute(adr_brute)
             adresses.append(
                 {

@@ -6,6 +6,8 @@ import logging
 import re
 from typing import Dict, List
 
+import pandas as pd
+
 # from src.domain_knowledge.cadastre import RE_CAD_MARSEILLE  # (inopérant?)
 from src.domain_knowledge.codes_geo import (
     RE_COMMUNES_AMP_ALLFORMS,
@@ -103,14 +105,11 @@ RE_TYP_VOIE = (
 RE_CP = r"(?<![\dP])\d{5}"  # WIP: ...(?!\d)"
 P_CP = re.compile(RE_CP)
 
-# RE_NOM_VOIE = rf"""(?:{RE_TOK}(?:[\s-]{RE_TOK})*)"""
-# TODO gérer "chemin de X *à* Y" (interférence avec "à" comme borne)
-# TODO gérer "15 *à* 21 avenue de..." (interférence avec "à" comme borne)
-RE_NOM_VOIE = (
-    r"[\s\S]+?"  # n'importe quelle suite de caractères, vides ou non, jusqu'à un séparateur ou un code postal
-    # (NB: c'est une "lookahead assertion", qui ne consomme pas les caractères)
-    + r"(?="
-    + r"(?:"
+# nom de voie
+# peut être n'importe quelle suite de caractères, vides ou non, jusqu'à un séparateur, un code postal
+# ou une autre adresse
+RE_NOM_VOIE_RCONT = (
+    r"(?:"
     + r"\s*,\s+"  # séparateur "," (ex: 2 rue xxx[,] 13420 GEMENOS)
     + rf"|(\s*[-–])?\s*{RE_CP}"  # borne droite <code_postal>
     + r"|\s*–\s*"  # séparateur "–"
@@ -122,10 +121,17 @@ RE_NOM_VOIE = (
     + r"|(?<!du )b[âa]timent"  # borne droite "bâtiment", sauf si "du bâtiment" ("rue du bâtiment" existe dans certaines communes)
     + r"|\s+b[âa]t\s+"  # bât(iment)
     # + rf"|\s*{RE_CAD_MARSEILLE}"  # (inopérant?) borne droite <ref parcelle> (seulement Marseille, expression longue sans grand risque de faux positif)
+    # cas balai EOS (end of string): pour le moment, requiert une regex spécifique à certains appels
     # + r"|$"  # (effets indésirables) cas balai: fin de la zone de texte (nécessaire pour ré-extraire une adresse à partir de l'adresse brute)
     + r")"
-    + r")"
 )
+# n'importe quelle suite de caractères, vides ou non, jusqu'à un séparateur ou un code postal
+# NB: "chemin de X *à* Y" (interférence avec "à" comme borne) est géré dans RE_VOIE
+# TODO gérer "15 *à* 21 avenue de..." (interférence avec "à" comme borne)
+RE_NOM_VOIE = (
+    r"[\s\S]+?"  # "+?" délimité par une lookahead assertion dans la regex englobante
+)
+# ancienne version: RE_NOM_VOIE = rf"""(?:{RE_TOK}(?:[\s-]{RE_TOK})*)"""
 
 # TODO s'arrêter quand on rencontre une référence cadastrale (lookahead?)
 RE_COMMUNE = (
@@ -217,10 +223,11 @@ RE_VOIE = (
     + r"|(?:Saint\s+Menet\s+aux\s+Accates)"
     + r")"
     + r")"
-    # motif générique: <type_voie> <nom_voie>
-    + rf"|(?:(?:{RE_TYP_VOIE})\s+(?:{RE_NOM_VOIE}))"
+    # motif générique: <type_voie> <nom_voie> (lookahead pour délimiter le <nom_voie>)
+    + rf"|(?:(?:{RE_TYP_VOIE})\s+(?:{RE_NOM_VOIE}(?={RE_NOM_VOIE_RCONT})))"
     + r")"
 )
+
 P_VOIE = re.compile(RE_VOIE, re.IGNORECASE | re.MULTILINE)
 
 # numéro, indicateur et voie
@@ -291,7 +298,14 @@ RE_ADRESSE_NG = (
 P_ADRESSE_NG = re.compile(RE_ADRESSE_NG, re.MULTILINE | re.IGNORECASE)
 
 
-def create_adresse_normalisee(adr_fields: Dict) -> str:
+def create_adresse_normalisee(
+    adr_num: str,
+    adr_ind: str,
+    adr_voie: str,
+    adr_compl: str,
+    adr_cpostal: str,
+    adr_ville: str,
+) -> str:
     """Créer une adresse normalisée.
 
     L'adresse normalisée rassemble les champs extraits de l'adresse brute, et ailleurs
@@ -299,8 +313,18 @@ def create_adresse_normalisee(adr_fields: Dict) -> str:
 
     Parameters
     ----------
-    adr_fields: dict
-        Champs de l'adresse, extraits de l'adresse brute
+    adr_num: str
+        Numéro de l'adresse
+    adr_ind: str
+        Indice de l'adresse
+    adr_voie: str
+        Nom de la voie (incluant le type)
+    adr_compl: str
+        Complément d'adresse
+    adr_cpostal: str
+        Code postal
+    adr_ville: str
+        Commune
 
     Returns
     -------
@@ -308,14 +332,16 @@ def create_adresse_normalisee(adr_fields: Dict) -> str:
         Adresse normalisée
     """
     adr_norm_parts = [
-        adr_fields["adr_num"],
-        adr_fields["adr_ind"],
-        adr_fields["adr_voie"],
-        adr_fields["adr_compl"],
-        adr_fields["adr_cpostal"],
-        adr_fields["adr_commune"],
+        adr_num,
+        adr_ind,
+        adr_voie,
+        adr_compl,
+        adr_cpostal,
+        adr_ville,
     ]
-    adr_norm = " ".join(x for x in adr_norm_parts if x)  # TODO normaliser la graphie?
+    adr_norm = " ".join(
+        x for x in adr_norm_parts if pd.notna(x)
+    )  # TODO normaliser la graphie?
     adr_norm = normalize_string(adr_norm)
     return adr_norm
 
@@ -394,7 +420,7 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
                     "adr_voie": voie,
                     "adr_compl": adr_compl,
                     "adr_cpostal": cpostal,
-                    "adr_commune": commune,
+                    "adr_ville": commune,
                 }
                 adresses.append(adr_fields)
             else:
@@ -419,7 +445,7 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
                             "adr_voie": voie,
                             "adr_compl": adr_compl,
                             "adr_cpostal": cpostal,
-                            "adr_commune": commune,
+                            "adr_ville": commune,
                         }
                         adresses.append(adr_fields)
                     else:
@@ -435,7 +461,7 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
                                 "adr_voie": voie,
                                 "adr_compl": adr_compl,
                                 "adr_cpostal": cpostal,
-                                "adr_commune": commune,
+                                "adr_ville": commune,
                             }
                             adresses.append(adr_fields)
         # WIP code postal disparait
@@ -454,7 +480,7 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
             "adr_voie": None,
             "adr_compl": None,
             "adr_cpostal": None,
-            "adr_commune": None,
+            "adr_ville": None,
         }
         # TODO liste contenant un seul dict aux champs tous None, ou liste vide (à gérer) ?
         return [adr_fields]

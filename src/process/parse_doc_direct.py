@@ -9,7 +9,6 @@ from typing import Dict, List
 from src.domain_knowledge.actes import P_ACCUSE
 from src.domain_knowledge.adresse import (
     create_adresse_normalisee,
-    process_adresse_brute,
 )
 from src.domain_knowledge.cadastre import generate_refcadastrale_norm, get_parcelle
 from src.domain_knowledge.codes_geo import get_codeinsee, get_codepostal
@@ -44,21 +43,13 @@ def extract_adresses_commune(
     if not adresses_brutes:
         return []
     # prendre la 1re zone d'adresses reconnue dans le texte (heuristique)
-    adresse_brute = adresses_brutes[0]["adresse_brute"]
-
-    # RESUME HERE 2023-03-31
-    # - extraire les éléments d'adresse en traitant l'adresse brute
-    adr_fields = process_adresse_brute(adr_ad_brute)
-    # WIP 2023-03-05 temporairement, prendre la 1re adresse ; il faudra toutes les écrire
-    adr_fields = adr_fields[0]
-    # end WIP
-
+    # TODO en repérer d'autres? incertain
+    adr0 = adresses_brutes[0]
+    adresse_brute = adr0["adresse_brute"]
     # TODO améliorer les résultats par une collecte plus exhaustive (qui nécessiterait le dédoublonnage) ou une meilleure heuristique ?
     # extraire la ou les adresses de cette zone
-    adresses = [
-        ({"adr_ad_brute": adresse_brute} | x)
-        for x in process_adresse_brute(adresse_brute)
-    ]
+    adresses = [({"adr_ad_brute": adresse_brute} | x) for x in adr0["adresses"]]
+    # end WIP
     if not adresses:
         logging.error(
             f"{fn_pdf}: aucune adresse extraite de la zone d'adresse(s): {adresse_brute}"

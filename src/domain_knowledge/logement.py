@@ -338,6 +338,7 @@ RE_ADR_CLEANUP = (
 
 
 # TODO plusieurs adresses, ex: "32, rue Félix Zoccola, 1-3-5, rue Edgar Quinet.pdf"
+# FIXME adr_doc: "7 rue de la Tour Peyrolles en Provence.pdf"
 def get_adr_doc(page_txt: str) -> bool:
     """Extrait la ou les adresses visées par l'arrêté.
 
@@ -356,8 +357,11 @@ def get_adr_doc(page_txt: str) -> bool:
     adresses = []
     if matches_adr := list(P_ADR_DOC.finditer(page_txt)):
         for m_adr in matches_adr:
-            logging.warning(f"adr_doc: {m_adr.group(0)}\t{m_adr.groupdict()}")
+            logging.warning(
+                f"adr_doc: {m_adr.group(0)}\n{m_adr.groups()}\n{m_adr.groupdict()}"
+            )
             adr_brute = m_adr.group("adresse")
+            logging.warning(f"adr_brute brute: {adr_brute}")
             # nettoyer la valeur récupérée
             # - couper sur certains contextes droits
             adr_brute = re.sub(

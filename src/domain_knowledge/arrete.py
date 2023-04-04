@@ -8,7 +8,7 @@ import re
 
 from src.domain_knowledge.adresse import RE_COMMUNE
 from src.utils.text_utils import RE_CARDINAUX, RE_NO, RE_ORDINAUX
-from src.utils.str_date import RE_DATE
+from src.utils.str_date import RE_DATE, RE_MM
 
 
 # "arrêté" et ses graphies
@@ -225,6 +225,10 @@ RE_NUM_ARR = (
     # en-tête Peyrolles-en-Provence
     + rf"|Arrêté\s+{RE_NO}"
     + rf"|ARRETE\s+{RE_NO}"
+    # abrégé Peyrolles, ex: A 2020-02-117
+    + r"|(?:A\s(?=\d{4}-"
+    + RE_MM
+    + r"-\d{3}))"  # fin abrégé
     # + rf"|^{RE_NO}"  # motif trop peu spécifique, capture par exemple un numéro de parcelle
     + r")"
     + r"\s*(?P<num_arr>[^,;\n(]+)"

@@ -59,21 +59,20 @@ def extract_adresses_commune(
     for adresse in adresses:
         # - déterminer la commune de l'adresse visée par l'arrêté en reconciliant la commune mentionnée
         # dans cette adresse avec celle extraite des mentions de l'autorité ou du template
-        adresse["adr_commune"] = determine_commune(
-            adresse["adr_commune"], commune_maire
-        )
-        if not adresse["adr_commune"]:
+        adresse["adr_ville"] = determine_commune(adresse["adr_ville"], commune_maire)
+        if not adresse["adr_ville"]:
             logging.warning(f"{fn_pdf}: impossible de déterminer la commune")
         # - déterminer le code INSEE de la commune
         # FIXME communes hors Métropole: le filtrage sera-t-il fait en amont, lors de l'extraction depuis actes? sinon AssertionError ici
         try:
             adresse["adr_codeinsee"] = get_codeinsee(
-                adresse["adr_commune"], adresse["adr_cpostal"]
+                adresse["adr_ville"], adresse["adr_cpostal"]
             )
         except AssertionError:
             print(
-                f"{fn_pdf}: get_codeinsee(): adr_commune={adresse['adr_commune']}, adr_cpostal={adresse['adr_cpostal']}"
+                f"{fn_pdf}: get_codeinsee(): adr_ville={adresse['adr_ville']}, adr_cpostal={adresse['adr_cpostal']}"
             )
+            print(f"{adresse}")
             raise
         if not adresse["adr_codeinsee"]:
             logging.warning(f"{fn_pdf}: impossible de déterminer le code INSEE")
@@ -81,14 +80,21 @@ def extract_adresses_commune(
         # à partir du code INSEE de la commune (ne fonctionne pas pour Aix-en-Provence)
         if not adresse["adr_cpostal"]:
             adresse["adr_cpostal"] = get_codepostal(
-                adresse["adr_commune"], adresse["adr_codeinsee"]
+                adresse["adr_ville"], adresse["adr_codeinsee"]
             )
             if not adresse["adr_cpostal"]:
                 logging.warning(
-                    f"{fn_pdf}: Pas de code postal: adr_brute={adresse['adr_ad_brute']}, commune={adresse['adr_commune']}, code_insee={adresse['adr_codeinsee']}, get_codepostal={adresse['adr_cpostal']}"
+                    f"{fn_pdf}: Pas de code postal: adr_brute={adresse['adr_ad_brute']}, commune={adresse['adr_ville']}, code_insee={adresse['adr_codeinsee']}, get_codepostal={adresse['adr_cpostal']}"
                 )
         # - créer une adresse normalisée ; la cohérence des champs est vérifiée
-        adresse["adr_adresse"] = create_adresse_normalisee(adresse)
+        adresse["adr_adresse"] = create_adresse_normalisee(
+            adresse["adr_num"],
+            adresse["adr_ind"],
+            adresse["adr_voie"],
+            adresse["adr_compl"],
+            adresse["adr_cpostal"],
+            adresse["adr_ville"],
+        )
 
     return adresses
 

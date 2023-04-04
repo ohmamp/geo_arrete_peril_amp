@@ -59,6 +59,7 @@ RE_ADR_RCONT = (
     + r"|menace\s+de"
     + r"|mentionné"
     + r"|mettant\s+fin"
+    + r"|^Nomenclature\s+ACTES"
     + r"|n['’](?:a|ont)\s+pas"
     + rf"|{RE_NO}"  # WIP 2023-03-12
     + r"|ont\s+été\s+évacués"

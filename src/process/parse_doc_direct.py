@@ -24,7 +24,11 @@ from src.domain_knowledge.typologie_securite import (
     get_int_hab,
     get_urgence,
 )
-from src.preprocess.data_sources import EXCLUDE_FILES
+from src.preprocess.data_sources import (
+    EXCLUDE_FILES,
+    EXCLUDE_FIXME_FILES,
+    EXCLUDE_HORS_AMP,
+)
 from src.process.export_data import (
     DTYPE_ADRESSE,
     DTYPE_ARRETE,
@@ -141,10 +145,22 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
     doc_data: dict
         Données extraites du document.
     """
+    fn_pdf = fp_pdf_in.name
+
     pages = load_pages_text(fp_txt_in)
     if not any(pages):
         logging.warning(f"{fp_txt_in}: aucune page de texte")
-        return {"adresses": [], "arretes": [], "notifies": [], "parcelles": []}
+        return {
+            "adresses": [],
+            "arretes": [
+                {
+                    "pdf": fn_pdf,
+                    "url": fp_pdf_in,  # FS_URL.format(yyyy="unk", fn_pdf)  # TODO arretes["date"].dt.year ?
+                }
+            ],
+            "notifies": [],
+            "parcelles": [],
+        }
 
     # filtrer les pages qui sont à sortir du traitement:
     # - la ou les éventuelles pages d'accusé de réception d'actes
@@ -161,7 +177,6 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
     ]
 
     # analyser la structure des pages
-    fn_pdf = fp_pdf_in.name  # FIXME temporaire?
     doc_content = parse_arrete_pages(fn_pdf, filt_pages)
 
     # extraire les données
@@ -287,6 +302,14 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
             print(f"{notifies}")
             raise
 
+    # si parse_content() a renvoyé [], arretes vaut toujours {} mais on veut pdf et url
+    # TODO corriger, c'est moche (et un peu fragile)
+    if not arretes:
+        arretes = {
+            "pdf": fn_pdf,
+            "url": fp_pdf_in,  # FS_URL.format(yyyy="unk", fn_pdf)  # TODO arretes["date"].dt.year ?
+        }
+
     doc_data = {
         "adresses": adresses,
         "arretes": [arretes],  # a priori un seul par fichier
@@ -334,7 +357,10 @@ def process_files(
     fps_pdf = sorted(
         x
         for x in in_dir_pdf.glob("*")
-        if ((x.suffix.lower() == ".pdf") and (x.name not in EXCLUDE_FILES))
+        if (
+            (x.suffix.lower() == ".pdf")
+            and (x.name not in set(EXCLUDE_FILES + EXCLUDE_FIXME_FILES))
+        )
     )
 
     # 4 tables de sortie
@@ -361,6 +387,7 @@ def process_files(
             raise ValueError(f"Aucun fichier txt trouvé pour {fp_pdf}")
         # print(f"---------\n{fp_pdf}")  # DEBUG
         doc_data = parse_arrete(fp_pdf, fp_txt)
+
         # ajout des entrées dans les 4 tables
         rows_adresse.extend(
             ({"idu": idu} | x | {"datemaj": datemaj}) for x in doc_data["adresses"]

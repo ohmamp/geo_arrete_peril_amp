@@ -157,6 +157,9 @@ EXCLUDE_FILES = [
     # TODO test: ces deux documents simples devraient être exclus
     "75 rue Longue des Capucins 16 rue de la Fare annexe 1.pdf",  # TODO test de détection?
     "péril simple 75 rue Longue des Capucins 16 annexe 2.pdf",  # TODO test?
+]
+
+EXCLUDE_HORS_AMP = [
     # communes hors Métropole: ce filtrage sera-t-il fait en amont, lors de l'export des données?
     "1, rue Raspail Tarascon.pdf",  # hors AMP: Tarascon
     "arrêté de péril - 22 rue Mirabeau à Tarascon - 141220.pdf",  # hors AMP: Tarascon

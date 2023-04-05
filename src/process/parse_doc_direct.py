@@ -67,6 +67,9 @@ def extract_adresses_commune(
         Adresses visées par l'arrêté
     """
     adresses_visees = get_adr_doc(pg_txt_body)
+    # if fn_pdf == "90 cours Sextius - ML.pdf":
+    #     print(f"{commune_maire}, {adresses_visees}")
+    #     raise ValueError("don't stop me now (too soon)")
     if not adresses_visees:
         return []
     # renommer les champs
@@ -114,13 +117,12 @@ def extract_adresses_commune(
                         remove_accents(sel_adr["voie"]).replace("’", "'")
                     ).lower(),
                 )
-                print(f">>>>>> sel_short: {sel_short}")
+                # print(f">>>>>> sel_short: {sel_short}")
                 sel_adr["cpostal"] = numvoie2cp.get(sel_short, None)
-    if fn_pdf == "61 route d'Allauch 13011.pdf":
-        print(adresses_visees)
-        print(numvoie2cp)
-        print(adresses)
-        raise ValueError("don't stop me now")
+    # if fn_pdf == "90 cours Sextius - ML.pdf":
+    #     print(f"{adresses_visees}\n{numvoie2cp}\n{adresses}")
+    #     raise ValueError("don't stop me now")
+    #     pass
 
     # si besoin d'une alternative: déterminer commune, code INSEE et code postal pour adresses[0] et propager les valeurs aux autres adresses
     for adresse in adresses:

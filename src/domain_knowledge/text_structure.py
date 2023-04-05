@@ -93,9 +93,9 @@ RE_ADR_DOC = (
     + r"situ[ée](?:\s+(?:au|du))?"
     + r"|désordres\s+(?:importants\s+)?(?:sur|affectant)\s+(?:le\s+bâtiment|l['’]immeuble)\s+sis"
     + r"|un\s+péril\s+grave\s+et\s+imminent\s+(?:à|au)"
-    + r"|immeuble\s+(?:du|numéroté)"
+    + r"|immeuble\s+(?:du|numéroté|mena[çc]ant\s+ruine)"
     # + r"|sis[e]?(?:\s+à)?"
-    + r"|(?:(?<!Risques, )sis[e]?[,]?(?:\s+(?:[àa]|au|du))?)"  # éviter un match sur l'adresse d'un service municipal
+    + r"|(?:(?<!Risques, )sis(e|es)?[,]?(?:\s+(?:[àa]|au|du))?)"  # éviter un match sur l'adresse d'un service municipal
     # Objet: <classe>? - <adresse> (ex: "Objet: Péril grave et imminent - 8 rue X")
     + r"|(?:Objet\s*:"
     + rf"(?:\s+{RE_CLASSE}(?:\s*[,:–-]|\s+au)?)?"

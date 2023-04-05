@@ -29,7 +29,7 @@ RE_SIS_ADR = (
 
 RE_DOMICILIE_ADR = (
     r"(?:"  # début global
-    + r"domicilié(?:e|s|es)?"
+    + r"domicili[ée](?:e|s|es)?"
     + r"(?:\s+(?:au|à)\s+|\s*,\s+|\s+)"
     + rf"(?:{RE_ADRESSE})"
     + r")"  # fin global
@@ -111,7 +111,7 @@ RE_PROPRIO_MONO = (
     + r"[,]?\s+(?:représenté(?:e)?\s+par)\s+(?:[,–-]\s*)?"
     + r"[^,–]+"
     + r")?"
-    + r"[,]?\s+(?:sis(?:e)?|domicili[ée](?:e)?)\s+(?:[,–-]\s*)?"
+    + r"[,]?\s+(?:sis(?:e|es)?|domicili[ée](?:e|s|es)?)\s+(?:[,–-]\s*)?"
     + r"(?P<prop_adr>"
     + r"[\s\S]*?"  # complément d'adresse non-capturé dans RE_ADRESSE (ex: "Les toits de la Pounche")
     + rf"{RE_ADRESSE}"  # adresse du propriétaire
@@ -134,7 +134,7 @@ RE_PROPRIO = (
     # TODO propriétaires non SCI
     + r")"
     # contexte droit: adresse éventuelle
-    + r"[,]?\s+(?:sis(?:e)?|domicili[ée](?:e)?)\s+"
+    + r"[,]?\s+(?:sis(?:e|es)?|domicili[ée](?:e|s|es)?)\s+"
     + r"(?P<prop_adr>"
     + rf"{RE_ADRESSE}"
     # TODO "dont le représentant est..."
@@ -286,7 +286,7 @@ RE_SYNDIC_LONG = (
     + r")"  # fin optionnel: adresse et/ou qualité du syndic
     + r")"  # fin syndic_post
     # sinon arrêter le nom du syndic dès qu'on rencontre "sis" ou "domicilié" suivi d'une adresse non reconnue, qu'on capture jusqu'à la première virgule ou point
-    + r"|(?:\s+(sis|domicilié)[^,.]+?)"  # s'arrêter à "," ou ".", ou "sis" ou "domicilié" sans que la suite ne soit une adresse reconnue
+    + r"|(?:\s+(?:sis(?:e|es)?|domicili[ée](?:e|s|es)?)[^,.]+?)"  # s'arrêter à "," ou ".", ou "sis" ou "domicilié" sans que la suite ne soit une adresse reconnue
     # sinon arrêter le nom du syndic à la première virgule ou point
     + r"|(?:\s*[,.]\s+)"
     + r")"  # fin contexte droit

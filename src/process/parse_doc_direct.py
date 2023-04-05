@@ -38,7 +38,7 @@ from src.process.export_data import (
 from src.process.extract_data import determine_commune
 from src.process.parse_doc import parse_arrete_pages
 from src.utils.str_date import process_date_brute
-from src.utils.text_utils import normalize_string
+from src.utils.text_utils import normalize_string, remove_accents
 from src.utils.txt_format import load_pages_text
 
 
@@ -66,25 +66,61 @@ def extract_adresses_commune(
     adresses: list(dict)
         Adresses visées par l'arrêté
     """
-    adresses_brutes = get_adr_doc(pg_txt_body)
-    if not adresses_brutes:
+    adresses_visees = get_adr_doc(pg_txt_body)
+    if not adresses_visees:
         return []
+    # renommer les champs
+    # TODO le faire dans get_adr_doc et adapter le code dans les autres modules
+    adresses_visees = [
+        {
+            "ad_brute": x["adresse_brute"],
+            "adresses": [
+                {k.replace("adr_", ""): v for k, v in y.items()} for y in x["adresses"]
+            ],
+        }
+        for x in adresses_visees
+    ]
+
     # prendre la 1re zone d'adresses reconnue dans le texte (heuristique)
     # TODO en repérer d'autres? incertain
-    adr0 = adresses_brutes[0]
-    adresse_brute = adr0["adresse_brute"]
+    adr0 = adresses_visees[0]
+    adresse_brute = adr0["ad_brute"]
     # TODO améliorer les résultats par une collecte plus exhaustive (qui nécessiterait le dédoublonnage) ou une meilleure heuristique ?
     # extraire la ou les adresses de cette zone
     # (on supprime au passage les préfixes "adr_" des noms des champs, archaïsme à corriger plus tard éventuellement)
-    adresses = [
-        ({"ad_brute": adresse_brute} | {k.replace("adr_", ""): v for k, v in x.items()})
-        for x in adr0["adresses"]
-    ]
-    # end WIP
+    adresses = [({"ad_brute": adresse_brute} | x) for x in adr0["adresses"]]
     if not adresses:
         logging.error(
             f"{fn_pdf}: aucune adresse extraite de la zone d'adresse(s): {adresse_brute}"
         )
+
+    # WIP 2023-04-05 si la 1re adresse n'a pas de code postal, tenter de récupérer le code postal des adresses suivantes
+    if len(adresses_visees) > 1:
+        numvoie2cp = {
+            (
+                y["num"],
+                normalize_string(remove_accents(y["voie"]).replace("’", "'")).lower(),
+            ): y["cpostal"]
+            for x in adresses_visees
+            for y in x["adresses"]
+            if y["cpostal"]
+        }
+        # print(numvoie2cp)
+        for sel_adr in adresses:
+            if sel_adr["num"] and sel_adr["voie"] and not sel_adr["cpostal"]:
+                sel_short = (
+                    sel_adr["num"],
+                    normalize_string(
+                        remove_accents(sel_adr["voie"]).replace("’", "'")
+                    ).lower(),
+                )
+                print(f">>>>>> sel_short: {sel_short}")
+                sel_adr["cpostal"] = numvoie2cp.get(sel_short, None)
+    if fn_pdf == "61 route d'Allauch 13011.pdf":
+        print(adresses_visees)
+        print(numvoie2cp)
+        print(adresses)
+        raise ValueError("don't stop me now")
 
     # si besoin d'une alternative: déterminer commune, code INSEE et code postal pour adresses[0] et propager les valeurs aux autres adresses
     for adresse in adresses:
@@ -92,7 +128,9 @@ def extract_adresses_commune(
         # dans cette adresse avec celle extraite des mentions de l'autorité ou du template
         adresse["ville"] = determine_commune(adresse["ville"], commune_maire)
         if not adresse["ville"]:
-            logging.warning(f"{fn_pdf}: impossible de déterminer la commune")
+            logging.warning(
+                f"{fn_pdf}: impossible de déterminer la commune: {adresse['ville'], commune_maire}"
+            )
         # - déterminer le code INSEE de la commune
         # FIXME communes hors Métropole: le filtrage sera-t-il fait en amont, lors de l'extraction depuis actes? sinon AssertionError ici
         try:
@@ -104,7 +142,9 @@ def extract_adresses_commune(
             print(f"{adresse}")
             raise
         if not codeinsee:
-            logging.warning(f"{fn_pdf}: impossible de déterminer le code INSEE")
+            logging.warning(
+                f"{fn_pdf}: impossible de déterminer le code INSEE: {adresse['ville'], adresse['cpostal']}"
+            )
         # - si l'adresse ne contenait pas de code postal, essayer de déterminer le code postal
         # à partir du code INSEE de la commune (ne fonctionne pas pour Aix-en-Provence)
         if not adresse["cpostal"]:
@@ -230,6 +270,24 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
     cpostal = None  # valeur par défaut
     for pg_txt_body in pages_body:
         if pg_txt_body:
+            # extraire les informations sur l'arrêté
+            if "classe" not in arretes and (classe := get_classe(pg_txt_body)):
+                arretes["classe"] = classe
+            if "urgence" not in arretes and (urgence := get_urgence(pg_txt_body)):
+                arretes["urgence"] = urgence
+            if "demo" not in arretes and (demo := get_demo(pg_txt_body)):
+                arretes["demo"] = demo
+            if "int_hab" not in arretes and (int_hab := get_int_hab(pg_txt_body)):
+                arretes["int_hab"] = int_hab
+            if "equ_com" not in arretes and (equ_com := get_equ_com(pg_txt_body)):
+                arretes["equ_com"] = equ_com
+            if "pdf" not in arretes:
+                arretes["pdf"] = fn_pdf
+            if "url" not in arretes:
+                arretes[
+                    "url"
+                ] = fp_pdf_in  # FS_URL.format(yyyy="unk", fn_pdf)  # TODO arretes["date"].dt.year ?
+
             # extraire la ou les adresse(s) visée(s) par l'arrêté détectées sur cette page
             if not adresses:
                 # pour le moment, on se contente de la première page contenant au moins une zone d'adresse,
@@ -243,49 +301,29 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                     adresses.extend(pg_adresses)
                     # WIP on prend le code INSEE et code postal de la 1re adresse
                     # print(adrs_doc)
-                    codeinsee = adresses[0]["codeinsee"]
                     cpostal = adresses[0]["cpostal"]
-
-            # extraire les informations sur l'arrêté
-            if "classe" not in arretes:
-                arretes["classe"] = get_classe(pg_txt_body)
-            if "urgence" not in arretes:
-                arretes["urgence"] = get_urgence(pg_txt_body)
-            if "demo" not in arretes:
-                arretes["demo"] = get_demo(pg_txt_body)
-            if "int_hab" not in arretes:
-                arretes["int_hab"] = get_int_hab(pg_txt_body)
-            if "equ_com" not in arretes:
-                arretes["equ_com"] = get_equ_com(pg_txt_body)
-            if "pdf" not in arretes:
-                arretes["pdf"] = fn_pdf
-            if "url" not in arretes:
-                arretes[
-                    "url"
-                ] = fp_pdf_in  # FS_URL.format(yyyy="unk", fn_pdf)  # TODO arretes["date"].dt.year ?
-            if "codeinsee" not in arretes:
-                arretes["codeinsee"] = codeinsee
+                    codeinsee = adresses[0]["codeinsee"]
+                    if ("codeinsee" not in arretes) and codeinsee:
+                        arretes["codeinsee"] = codeinsee
 
             # extraire les notifiés
-            proprios = get_proprio(pg_txt_body)
-            if proprios is not None:
+
+            if proprios := get_proprio(pg_txt_body):
                 notifies["proprios"].add(
                     normalize_string(proprios)
                 )  # WIP: proprios = [] + extend()
-            syndics = get_syndic(pg_txt_body)
-            if syndics is not None:
+            if syndics := get_syndic(pg_txt_body):
                 notifies["syndics"].add(
                     normalize_string(syndics)
                 )  # WIP: syndics = [] + extend ?
-            gests = get_gest(pg_txt_body)
-            if gests is not None:
+
+            if gests := get_gest(pg_txt_body):
                 notifies["gests"].add(
                     normalize_string(gests)
                 )  # WIP: gests = [] + extend ?
 
             # extraire la ou les parcelles visées par l'arrêté
-            pg_parcelles_str = get_parcelle(pg_txt_body)
-            if pg_parcelles_str:
+            if pg_parcelles_str := get_parcelle(pg_txt_body):
                 refcads_norm = [
                     generate_refcadastrale_norm(
                         codeinsee, pg_parcelles_str, fn_pdf, cpostal

@@ -172,6 +172,8 @@ RE_BAT = (
 RE_APT = r"(?:Appartement|Appart|Apt)"
 
 # éléments possibles de complément d'adresse
+# FIXME le lookahead empêche de capturer les compléments d'adresses courtes, sans code postal ni séparateur (ex: "28 BOULEVARD DE LA LIBÉRATION BÂTIMENTS A ET B")
+# FIXME empêcher de capturer un nom de commune connu?
 RE_ADR_COMPL_ELT = (
     r"(?:"  # groupe global
     + r"(?:"

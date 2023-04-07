@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# custom cookiecutter data
+data/raw/*
+data/external/arrete-ex-pertuis
+data/external/arretes_type_amp
+data/interim/*
+data/processed/*
+data/runs/*
+data/archive/*
+logs/*

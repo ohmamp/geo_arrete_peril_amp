@@ -88,9 +88,9 @@ S_RE_COMMUNES_VARS = (
     # - espaces
     .str.replace(r"\s+", r"\\s+", regex=True)
     # - espaces à la place des traits d'union
-    .str.replace(r"-", r"[\s-]", regex=True)
+    .str.replace(r"-", r"[\\s-]", regex=True)
     # - apostrophes
-    .str.replace(r"'", r"['’\s]", regex=True)
+    .str.replace(r"'", r"['’\\s]", regex=True)
     # - accents
     # a
     .str.replace(r"À", r"[ÀA]", regex=True)

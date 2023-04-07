@@ -46,6 +46,76 @@ from src.utils.txt_format import load_pages_text
 FS_URL = "https://sig.ampmetropole.fr/geodata/geo_arretes/peril/{yyyy}/{pdf}"
 
 
+def enrich_adresse(fn_pdf: str, adresse: dict, commune_maire: str) -> Dict:
+    """Consolide et enrichit une adresse, avec ville et codes (INSEE et code postal).
+
+    Harmonise et complète les informations extraites de l'adresse visée à partir
+    des informations extraites du template ou de l'autorité prenant l'arrêté.
+    Ajoute une adresse normalisée.
+
+    Parameters
+    ----------
+    fn_pdf: str
+        Nom du fichier PDF (pour debug).
+    adresse: dict
+        Adresse visée par le document.
+    commune_maire: str
+        Ville extraite du template ou de l'autorité prenant l'arrêté.
+
+    Returns
+    -------
+    adresse_enr: dict
+        Adresse enrichie et augmentée.
+    """
+    adresse_enr = adresse.copy()
+    # - déterminer la commune de l'adresse visée par l'arrêté en reconciliant la commune mentionnée
+    # dans cette adresse avec celle extraite des mentions de l'autorité ou du template
+    adresse_enr["ville"] = determine_commune(adresse_enr["ville"], commune_maire)
+    if not adresse_enr["ville"]:
+        logging.warning(
+            f"{fn_pdf}: impossible de déterminer la commune: {adresse_enr['ville'], commune_maire}"
+        )
+    # - déterminer le code INSEE de la commune
+    # FIXME communes hors Métropole: le filtrage sera-t-il fait en amont, lors de l'extraction depuis actes? sinon AssertionError ici
+    try:
+        codeinsee = get_codeinsee(adresse_enr["ville"], adresse_enr["cpostal"])
+    except AssertionError:
+        print(
+            f"{fn_pdf}: get_codeinsee(): adr_ville={adresse_enr['ville']}, adr_cpostal={adresse_enr['cpostal']}"
+        )
+        print(f"{adresse}")
+        raise
+    else:
+        if not codeinsee:
+            logging.warning(
+                f"{fn_pdf}: impossible de déterminer le code INSEE: {adresse_enr['ville'], adresse_enr['cpostal']}"
+            )
+    # - si l'adresse ne contenait pas de code postal, essayer de déterminer le code postal
+    # à partir du code INSEE de la commune (ne fonctionne pas pour Aix-en-Provence)
+    if not adresse_enr["cpostal"]:
+        adresse_enr["cpostal"] = get_codepostal(adresse_enr["ville"], codeinsee)
+        if not adresse_enr["cpostal"]:
+            logging.warning(
+                f"{fn_pdf}: Pas de code postal: adr_brute={adresse_enr['ad_brute']}, commune={adresse_enr['ville']}, code_insee={codeinsee}, get_codepostal={adresse_enr['cpostal']}"
+            )
+    # - créer une adresse normalisée ; la cohérence des champs est vérifiée
+    if adresse_enr["ad_brute"]:
+        adresse_enr["adresse"] = create_adresse_normalisee(
+            adresse_enr["num"],
+            adresse_enr["ind"],
+            adresse_enr["voie"],
+            adresse_enr["compl"],
+            adresse_enr["cpostal"],
+            adresse_enr["ville"],
+        )
+    else:
+        adresse_enr["adresse"] = None
+    # - positionner finalement le code INSEE
+    adresse_enr["codeinsee"] = codeinsee
+
+    return adresse_enr
+
+
 def extract_adresses_commune(
     fn_pdf: str, pg_txt_body: str, commune_maire: str
 ) -> List[Dict]:
@@ -67,11 +137,27 @@ def extract_adresses_commune(
         Adresses visées par l'arrêté
     """
     adresses_visees = get_adr_doc(pg_txt_body)
-    # if fn_pdf == "90 cours Sextius - ML.pdf":
-    #     print(f"{commune_maire}, {adresses_visees}")
-    #     raise ValueError("don't stop me now (too soon)")
+    if fn_pdf == "171, avenue de Toulon.pdf":
+        print(f"{commune_maire}, {adresses_visees}")
+        # raise ValueError("don't stop me now (too soon)")
+
     if not adresses_visees:
-        return []
+        adr = {
+            # adresse brute
+            "ad_brute": None,
+            # champs
+            "num": None,
+            "ind": None,
+            "voie": None,
+            "compl": None,
+            "cpostal": None,
+            "ville": None,
+            # adresse propre
+            "adresse": None,
+        }
+        adr_enr = enrich_adresse(fn_pdf, adr, commune_maire)
+        return [adr_enr]
+
     # renommer les champs
     # TODO le faire dans get_adr_doc et adapter le code dans les autres modules
     adresses_visees = [
@@ -124,49 +210,9 @@ def extract_adresses_commune(
     #     raise ValueError("don't stop me now")
     #     pass
 
-    # si besoin d'une alternative: déterminer commune, code INSEE et code postal pour adresses[0] et propager les valeurs aux autres adresses
-    for adresse in adresses:
-        # - déterminer la commune de l'adresse visée par l'arrêté en reconciliant la commune mentionnée
-        # dans cette adresse avec celle extraite des mentions de l'autorité ou du template
-        adresse["ville"] = determine_commune(adresse["ville"], commune_maire)
-        if not adresse["ville"]:
-            logging.warning(
-                f"{fn_pdf}: impossible de déterminer la commune: {adresse['ville'], commune_maire}"
-            )
-        # - déterminer le code INSEE de la commune
-        # FIXME communes hors Métropole: le filtrage sera-t-il fait en amont, lors de l'extraction depuis actes? sinon AssertionError ici
-        try:
-            codeinsee = get_codeinsee(adresse["ville"], adresse["cpostal"])
-        except AssertionError:
-            print(
-                f"{fn_pdf}: get_codeinsee(): adr_ville={adresse['ville']}, adr_cpostal={adresse['cpostal']}"
-            )
-            print(f"{adresse}")
-            raise
-        if not codeinsee:
-            logging.warning(
-                f"{fn_pdf}: impossible de déterminer le code INSEE: {adresse['ville'], adresse['cpostal']}"
-            )
-        # - si l'adresse ne contenait pas de code postal, essayer de déterminer le code postal
-        # à partir du code INSEE de la commune (ne fonctionne pas pour Aix-en-Provence)
-        if not adresse["cpostal"]:
-            adresse["cpostal"] = get_codepostal(adresse["ville"], codeinsee)
-            if not adresse["cpostal"]:
-                logging.warning(
-                    f"{fn_pdf}: Pas de code postal: adr_brute={adresse['ad_brute']}, commune={adresse['ville']}, code_insee={codeinsee}, get_codepostal={adresse['cpostal']}"
-                )
-        # - créer une adresse normalisée ; la cohérence des champs est vérifiée
-        adresse["adresse"] = create_adresse_normalisee(
-            adresse["num"],
-            adresse["ind"],
-            adresse["voie"],
-            adresse["compl"],
-            adresse["cpostal"],
-            adresse["ville"],
-        )
-        adresse["codeinsee"] = codeinsee
-
-    return adresses
+    # si besoin d'une alternative: déterminer commune, code INSEE et code postal pour les adresses[0] et propager les valeurs aux autres adresses
+    adresses_enr = [enrich_adresse(fn_pdf, x, commune_maire) for x in adresses]
+    return adresses_enr
 
 
 def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
@@ -296,6 +342,7 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                 # et sur cette page, de la première zone d'adresse trouvée ;
                 # une zone peut contenir une ou plusieurs adresses obtenues par "dépliage" (ex: 12 - 14 rue X)
                 # TODO examiner les erreurs et déterminer si une autre stratégie donnerait de meilleurs résultats
+                # si une adresse a déjà été ajoutée mais qu'elle n'a été remplie que grâce à commune_maire
                 pg_adresses = extract_adresses_commune(
                     fn_pdf, pg_txt_body, adr_commune_maire
                 )
@@ -307,9 +354,24 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                     codeinsee = adresses[0]["codeinsee"]
                     if ("codeinsee" not in arretes) and codeinsee:
                         arretes["codeinsee"] = codeinsee
+            elif len(adresses) == 1 and not adresses[0]["ad_brute"]:
+                # si une adresse a déjà été ajoutée mais qu'elle n'a été remplie que grâce à commune_maire
+                pg_adresses = extract_adresses_commune(
+                    fn_pdf, pg_txt_body, adr_commune_maire
+                )
+                if pg_adresses and pg_adresses[0]["ad_brute"]:
+                    # on a bien extrait au moins une adresse du texte
+                    adresses = (
+                        pg_adresses  # on oublie l'adresse par défaut pré-existante
+                    )
+                    # WIP on prend le code INSEE et code postal de la 1re adresse
+                    # print(adrs_doc)
+                    cpostal = adresses[0]["cpostal"]
+                    codeinsee = adresses[0]["codeinsee"]
+                    if ("codeinsee" not in arretes) and codeinsee:
+                        arretes["codeinsee"] = codeinsee
 
             # extraire les notifiés
-
             if proprios := get_proprio(pg_txt_body):
                 notifies["proprios"].add(
                     normalize_string(proprios)

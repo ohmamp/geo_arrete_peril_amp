@@ -137,9 +137,9 @@ def extract_adresses_commune(
         Adresses visées par l'arrêté
     """
     adresses_visees = get_adr_doc(pg_txt_body)
-    if fn_pdf == "171, avenue de Toulon.pdf":
-        print(f"{commune_maire}, {adresses_visees}")
-        # raise ValueError("don't stop me now (too soon)")
+    # if fn_pdf == "périmètre de sécurité 82 Hoche 105 Kleber 13003.pdf":
+    #     print(f"{commune_maire}, {adresses_visees}")
+    #     # raise ValueError("don't stop me now (too soon)")
 
     if not adresses_visees:
         adr = {
@@ -356,19 +356,21 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                         arretes["codeinsee"] = codeinsee
             elif len(adresses) == 1 and not adresses[0]["ad_brute"]:
                 # si une adresse a déjà été ajoutée mais qu'elle n'a été remplie que grâce à commune_maire
+                # (donc ne contient qu'une commune), on en cherche une plus précise sur la page suivante,
+                # à tout hasard
                 pg_adresses = extract_adresses_commune(
                     fn_pdf, pg_txt_body, adr_commune_maire
                 )
                 if pg_adresses and pg_adresses[0]["ad_brute"]:
-                    # on a bien extrait au moins une adresse du texte
-                    adresses = (
-                        pg_adresses  # on oublie l'adresse par défaut pré-existante
-                    )
+                    # on a bien extrait au moins une adresse du texte, on remplace l'adresse contenant
+                    # seulement une commune
+                    adresses = pg_adresses
                     # WIP on prend le code INSEE et code postal de la 1re adresse
                     # print(adrs_doc)
                     cpostal = adresses[0]["cpostal"]
                     codeinsee = adresses[0]["codeinsee"]
-                    if ("codeinsee" not in arretes) and codeinsee:
+                    if codeinsee:
+                        # on remplace le code commune INSEE pour tout le document
                         arretes["codeinsee"] = codeinsee
 
             # extraire les notifiés

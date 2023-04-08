@@ -15,6 +15,8 @@ from src.domain_knowledge.codes_geo import (
 from src.utils.text_utils import normalize_string
 
 
+# TODO récupérer le code postal dans les cas complexes: "périmètre de sécurité 82 Hoche 105 Kleber 13003.pdf"
+
 # TODO gérer "106-108 rue X *(102-104 selon cadastre)*"
 
 # TODO 40 arrêtés 13055 (dont 3 sans référence cadastrale):

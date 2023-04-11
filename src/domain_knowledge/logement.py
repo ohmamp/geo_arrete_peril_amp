@@ -6,9 +6,9 @@ Propriétaire, gestionnaire, syndic ou administrateur, adresse de l'immeuble con
 import logging
 import re
 
-from src.domain_knowledge.adresse import RE_ADRESSE, process_adresse_brute
+from src.domain_knowledge.adresse import RE_ADR_RCONT, RE_ADRESSE, process_adresse_brute
 from src.domain_knowledge.agences_immo import RE_CABINET, RE_NOMS_CABINETS
-from src.domain_knowledge.text_structure import P_ADR_DOC, RE_ADR_RCONT
+from src.domain_knowledge.typologie_securite import RE_CLASSE
 from src.utils.text_utils import normalize_string
 
 
@@ -335,6 +335,36 @@ RE_ADR_CLEANUP = (
     + rf"{RE_ADR_RCONT}"
     + r"[\s\S]*"
 )
+# M_ADR_CLEANUP = re.compile(RE_ADR_CLEANUP, re.MULTILINE | re.IGNORECASE)
+
+
+# adresse du bâtiment visé par l'arrêté
+# TODO choisir la ou les bonnes adresses quand il y a risque de confusion
+# (ex compliqué: "59, rue Peysonnel 13003 - PGI 18.06.20.pdf")
+RE_ADR_DOC = (
+    # contexte gauche (pas de lookbehind car pas de longueur fixe et unique)
+    r"(?:"
+    + r"situ[ée](?:\s+(?:au|du))?"
+    + r"|désordres\s+(?:importants\s+)?(?:sur|affectant)\s+(?:le\s+bâtiment|l['’]immeuble)\s+sis"
+    + r"|un\s+péril\s+grave\s+et\s+imminent\s+(?:à|au)"
+    + r"|immeuble\s+(?:du|numéroté|mena[çc]ant\s+ruine)"
+    # + r"|sis[e]?(?:\s+à)?"
+    + r"|(?:(?<!Risques, )sis(e|es)?[,]?(?:\s+(?:[àa]|au|du))?)"  # éviter un match sur l'adresse d'un service municipal
+    # Objet: <classe>? - <adresse> (ex: "Objet: Péril grave et imminent - 8 rue X")
+    + r"|(?:Objet\s*:"
+    + rf"(?:\s+{RE_CLASSE}(?:\s*[,:–-]|\s+au)?)?"
+    + r")"  # fin "Objet:(classe)?"
+    + rf"|(?:{RE_CLASSE}\s*[–-])"  # <classe> - <adresse>
+    + r")\s+"  # fin alternatives contexte gauche
+    # adresse du document
+    + rf"(?P<adresse>{RE_ADRESSE})"  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
+    # contexte droit
+    + r"(?=\s*"  # WIP \s+  # WIP (?=  # was: P<rcont>
+    + r"(?:[,;:–-]\s*|[(])?"  # NEW 2023-03-11: ";"  # WIP \s+
+    + rf"(?:{RE_ADR_RCONT})"  # WIP (?=
+    + r")?"
+)
+P_ADR_DOC = re.compile(RE_ADR_DOC, re.MULTILINE | re.IGNORECASE)
 
 
 # TODO plusieurs adresses, ex: "32, rue Félix Zoccola, 1-3-5, rue Edgar Quinet.pdf"
@@ -393,6 +423,3 @@ def get_adr_doc(page_txt: str) -> bool:
                 }
             )
     return adresses
-
-
-# M_ADR_CLEANUP = re.compile(RE_ADR_CLEANUP, re.MULTILINE | re.IGNORECASE)

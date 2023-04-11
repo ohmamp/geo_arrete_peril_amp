@@ -8,11 +8,13 @@ from typing import Dict, List
 
 import pandas as pd
 
+# from src.domain_knowledge.arrete import RE_ARRETE
+
 # from src.domain_knowledge.cadastre import RE_CAD_MARSEILLE  # (inopérant?)
 from src.domain_knowledge.codes_geo import (
     RE_COMMUNES_AMP_ALLFORMS,
 )
-from src.utils.text_utils import normalize_string
+from src.utils.text_utils import RE_NO, normalize_string
 
 
 # TODO récupérer le code postal dans les cas complexes: "périmètre de sécurité 82 Hoche 105 Kleber 13003.pdf"
@@ -144,7 +146,7 @@ RE_NOM_VOIE = (
     rf"{RE_NOSEP}+"
     + rf"(?:"
     + rf"{RE_SEP}+"
-    + r"(?!(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle))"  # negative lookahead: éviter de capturer n'importe quoi
+    + r"(?!(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle|cadastr[ée]))"  # negative lookahead: éviter de capturer n'importe quoi
     + rf"{RE_NOSEP}+)*?"  # (?!{RE_CP}) (avant 2e RE_NOSEP)
 )
 
@@ -155,11 +157,11 @@ RE_COMMUNE = (
     + RE_COMMUNES_AMP_ALLFORMS
     # générique, pour communes hors métropole AMP
     + r"|(?:"
-    + r"(?!\s*(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle))"  # negative lookahead: éviter de capturer n'importe quoi
+    + r"(?!\s*(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle|cadastr[ée]))"  # negative lookahead: éviter de capturer n'importe quoi
     + rf"[A-ZÀ-Ý]{RE_LETTERS}"  # au moins 1 token qui commence par une majuscule
     + r"(?:"
     + r"['’\s-]"  # séparateur: tiret, apostrophe, espace
-    + r"(?!\s*(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle))"  # negative lookahead: éviter de capturer n'importe quoi
+    + r"(?!\s*(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle|cadastr[ée]))"  # negative lookahead: éviter de capturer n'importe quoi
     + rf"{RE_LETTERS}"
     + r"){0,4}"  # + 0 à 3 tokens après séparateur
     + r")"
@@ -527,3 +529,79 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
         )
     # end WIP code postal
     return adresses
+
+
+# - adresse
+# contexte droit (lookahead) possible pour une adresse de document
+RE_ADR_RCONT = (
+    r"(?:"
+    + r"parcelle|section|référence|cadastr[ée]|situé"
+    + r"|concernant|concerné"
+    + r"|à\s+l[’']exception"
+    + r"|à\s+leur\s+jonction"
+    + r"|ainsi"
+    + r"|appartenant"  # NEW 2023-03-11
+    + r"|assorti"
+    + r"|avec\s+risque"
+    + r"|ce\s+diagnostic"
+    + r"|ces\s+derniers"
+    + r"|condamner"
+    + r"|copropriété"
+    + r"|de\s+mettre\s+fin"
+    + r"|depuis"
+    + r"|(?:doit|doivent|devra|devront|il\s+devra|peut|peuvent)\s+(être|exploiter|prendre|(?:dans|sous)\s+un\s+délai)"
+    + r"|(?:est|sont)\s+(?:à\s+l['’]état|de\s+nouveau|dans|à)"
+    + r"|(?:est|sont)\s+(?:mis\s+en\s+demeure)"
+    + r"|(?:est|sont|reste|restent)\s+((strictement\s+)?interdit|accessible|pris)"  # (?:e|s|es)?
+    + r"|(?:(?:est|sont|ont\s+été|est\s+de|doit|doivent)$)"
+    + r"|et(?:\s+à\s+en)?\s+interdire"
+    + r"|et\s+au\s+cabinet"
+    + r"|et\s+(?:concerné|donnant\s+sur)"
+    + r"|et\s+de\s+l['’]appartement"  # la fin du motif évite de capturer "rue Roug*et de *Lisle"
+    + r"|et\s+des\s+risques"
+    + r"|et\s+installation"
+    # + r"|et\s+l['’]immeuble"  # 2023-03-11
+    + rf"|et\s+l['’]"  # {RE_ARRETE}"
+    + r"|(?:et\s+(?:l['’]\s*|son\s+))?occupation"
+    + r"|et\s+notamment"
+    + r"|et\s+ordonne"
+    + r"|et\s+repr[ée]sentant"
+    + r"|et\s+sur\s+l"
+    + r"|étaiement"
+    + r"|évacuation"
+    + r"|faire\s+réaliser"
+    + r"|figurant"
+    + r"|fragilisé"  # 2023-03-11
+    + r"|il\s+sera"
+    + r"|jusqu['’](?:au|à)"  # 2023-03-11
+    + r"|le\s+rapport"
+    + r"|leur\s+demandant"
+    + r"|lors\s+de"
+    + r"|menace\s+de"
+    + r"|mentionné"
+    + r"|mettant\s+fin"
+    + r"|^Nomenclature\s+ACTES"
+    + r"|n['’](?:a|ont)\s+pas"
+    + rf"|{RE_NO}"  # WIP 2023-03-12
+    + r"|ont\s+été\s+évacués"
+    + r"|permettant"
+    + r"|(?:pour$)"
+    + r"|préconise"  # 2023-03-11
+    + r"|présence\s+de"
+    + r"|présente"
+    + r"|pris\s+en\s+l"
+    + r"|(?:pris$)"
+    + r"|propri[ée]taire"
+    + r"|qui\s+se\s+retrouve"
+    + r"|réalisé|effectué|établi"
+    + r"|représenté"
+    + r"|selon\s+les\s+hachures"
+    + r"|signé"
+    + r"|sur\s+une\s+largeur"
+    + r"|sur\s+la\s+(?:base|parcelle)"
+    + r"|susceptible"
+    + r"|suivant\s+annexe"
+    # + r"|(?:[.]$)"  # RESUME HERE
+    + r"|(?:^Nous,\s*)|(?:^le\s+maire)|(?:^vu)|(?:^consid[ée]rant)|(?:^article)|(?:^Propri[ée]t[ée]\s+de)"  # NEW 2023-03-29 "le maire"
+    + r")"
+)

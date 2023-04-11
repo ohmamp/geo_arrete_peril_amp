@@ -124,6 +124,7 @@ RE_NOM_VOIE_RCONT = (
     + r"|\s*[/]\s*"  # séparateur "/" (double adresse: "2 rue X / 31 rue Y 13001 Marseille")
     + r"|\s+et\s+"  # séparateur "et" (double adresse: "2 rue X et 31 rue Y 13001 Marseille")
     + rf"|(?:(\s*[-–,])?\s*(?:{RE_NUM_IND_LIST})[,]?\s+{RE_TYP_VOIE})"  # on bute directement sur une 2e adresse (rare mais ça arrive)
+    + r"|(?:\s*[(][^)]+\s+selon\s+cadastre[)])"  # complément d'adresse ; ex: "12 rue X (18 selon cadastre)"
     + r"|(?:\s+[àa]\s+(?!vent\s+))"  # borne droite "à", sauf "à vent" : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
     + r"|\s+(?<!du )b[âa]timent"  # borne droite "bâtiment", sauf si "du bâtiment" ("rue du bâtiment" existe dans certaines communes)
     + r"|\s+b[âa]t\s+"  # bât(iment)
@@ -140,7 +141,11 @@ RE_NOM_VOIE_RCONT = (
 # v1: RE_NOM_VOIE = rf"""(?:{RE_TOK}(?:[\s-]{RE_TOK})*)"""
 # v2: RE_NOM_VOIE = r"[\S\s]+?"  # "+?" délimité par une lookahead assertion dans la regex englobante
 RE_NOM_VOIE = (
-    rf"{RE_NOSEP}+(?:{RE_SEP}+{RE_NOSEP}+)*?"  # (?!{RE_CP}) (avant 2e RE_NOSEP)
+    rf"{RE_NOSEP}+"
+    + rf"(?:"
+    + rf"{RE_SEP}+"
+    + r"(?!(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle))"  # negative lookahead: éviter de capturer n'importe quoi
+    + rf"{RE_NOSEP}+)*?"  # (?!{RE_CP}) (avant 2e RE_NOSEP)
 )
 
 # TODO s'arrêter quand on rencontre une référence cadastrale (lookahead?)
@@ -150,10 +155,11 @@ RE_COMMUNE = (
     + RE_COMMUNES_AMP_ALLFORMS
     # générique, pour communes hors métropole AMP
     + r"|(?:"
+    + r"(?!\s*(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle))"  # negative lookahead: éviter de capturer n'importe quoi
     + rf"[A-ZÀ-Ý]{RE_LETTERS}"  # au moins 1 token qui commence par une majuscule
     + r"(?:"
-    + r"(?!\n(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de))"  # negative lookahead: éviter de capturer n'importe quoi
     + r"['’\s-]"  # séparateur: tiret, apostrophe, espace
+    + r"(?!\s*(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle))"  # negative lookahead: éviter de capturer n'importe quoi
     + rf"{RE_LETTERS}"
     + r"){0,4}"  # + 0 à 3 tokens après séparateur
     + r")"
@@ -185,6 +191,7 @@ RE_ADR_COMPL_ELT = (
     + r"(?:Les\s+Docks\s+Atrium\s+[\d.]+)"  # grand immeuble de bureaux
     + r"|(?:Immeuble\s+sur\s+rue)"  # désignation de bâtiment sur la parcelle
     + r"|(?:garage)"  # désignation de bâtiment sur la parcelle
+    + r"|(?:[(][^)]+\s+selon\s+cadastre[)])"  # ex: "12 rue X (18 selon cadastre)"  # FIXME rattacher plutôt au NUM_IND_VOIE
     # motif général
     + rf"|(?:{RE_RESID}|{RE_BAT}|{RE_APT})"  # résidence | bâtiment | appartement
     + r"\s*[^,–]*?"  # \s*[^,–]+ # contenu: nom de résidence, du bâtiment, de l'appartement...
@@ -250,6 +257,8 @@ RE_NUM_IND_VOIE = (
     + rf"{RE_VOIE}"  # type et nom de la voie (ex: rue Jean Roques ; la Canebière)  # ?P<voie>
     + r")"
 )
+# FIXME ajouter champ: + r"|(?:[(][^)]+\s+selon\s+cadastre[)])"  # ex: "12 rue X (18 selon cadastre)"  # FIXME rattacher plutôt au NUM_IND_VOIE
+
 # inutilisé
 # P_NUM_IND_VOIE = re.compile(RE_NUM_IND_VOIE, re.IGNORECASE | re.MULTILINE)
 
@@ -307,7 +316,7 @@ RE_ADRESSE_NG = (
     + rf"(?P<num_ind_voie_list>{RE_NUM_IND_VOIE_LIST})"  # 1 à N adresses courtes (numéro, indicateur, voie)
     + rf"(?:(?:\s*[,–-])?\s*(?P<compl_fin>{RE_ADR_COMPL}))?"  # WIP (optionnel) complément d'adresse (post)
     + r"(?:"  # (optionnel) code postal et/ou commune
-    + r"(?:(?:\s*[,.–-])+|(?:\s+[àa]))?"  # ex: 2 rue xxx[,] 13420 GEMENOS
+    + r"(?:(?:\s*[,;.–-])+|(?:\s+[àa]))?"  # ex: 2 rue xxx[,] 13420 GEMENOS
     + rf"(?:\s*(?P<code_postal>{RE_CP}))?"  # \s+  # sinon: \s*–\s+ | ...  # optionnel code postal
     + rf"(?:\s*(?P<commune>{RE_COMMUNE}))?"  # optionnel commune
     + r")?"  # fin optionnel code postal et/ou commune
@@ -406,6 +415,10 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
         logging.warning(f"aucune adresse extraite de {adr_ad_brute} par P_ADRESSE_NG")
         print(f"aucune adresse extraite de {adr_ad_brute} par P_ADRESSE_NG")
         raise
+    else:
+        logging.warning(
+            f"process_adresse_brute: {m_adresse.group(0)}\n{m_adresse.groups()}\n{m_adresse.groupdict()}"
+        )
     # récupérer les champs communs à toutes les adresses groupées: complément,
     # code postal et commune
     adr_compl = " ".join(

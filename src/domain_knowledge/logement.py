@@ -364,9 +364,10 @@ def get_adr_doc(page_txt: str) -> bool:
             logging.warning(f"adr_brute brute: {adr_brute}")
             # nettoyer la valeur récupérée
             # - couper sur certains contextes droits
-            adr_brute = re.sub(
-                RE_ADR_CLEANUP, "", adr_brute, flags=(re.MULTILINE | re.IGNORECASE)
-            )
+            if False:
+                adr_brute = re.sub(
+                    RE_ADR_CLEANUP, "", adr_brute, flags=(re.MULTILINE | re.IGNORECASE)
+                )  # RESUME HERE 2023-04-11 il faut réussir à se passer du cleanup
             # - enlever l'éventuelle ponctuation finale
             if adr_brute.endswith((".", ",")):
                 adr_brute = adr_brute[:-1]

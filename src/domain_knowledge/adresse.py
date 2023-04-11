@@ -127,7 +127,7 @@ RE_NOM_VOIE_RCONT = (
     + r"|(?:\s+[àa]\s+(?!vent\s+))"  # borne droite "à", sauf "à vent" : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
     + r"|\s+(?<!du )b[âa]timent"  # borne droite "bâtiment", sauf si "du bâtiment" ("rue du bâtiment" existe dans certaines communes)
     + r"|\s+b[âa]t\s+"  # bât(iment)
-    + r"|(?:^(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article))"  # WIP 2023-04-01
+    + r"|(?:^(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article))"
     # + rf"|\s*{RE_CAD_MARSEILLE}"  # (inopérant?) borne droite <ref parcelle> (seulement Marseille, expression longue sans grand risque de faux positif)
     # cas balai EOS (end of string): pour le moment, requiert une regex spécifique à certains appels
     # + r"|$"  # (effets indésirables) cas balai: fin de la zone de texte (nécessaire pour ré-extraire une adresse à partir de l'adresse brute)
@@ -224,7 +224,7 @@ RE_VOIE = (
     # exception: grand(e) rue
     + r"|(?:grand(e)?\s+rue)"
     # cas particulier: nom "double" avec un tiret (qui sinon est considéré comme séparateur avec un complément d'adresse ou une commune)
-    + r"|(?:place\s+de\s+l['’\s]église\s+-\s+François\s+Maleterre)"
+    + r"|(?:place\s+de\s+l['’\s][ée]glise\s+-\s+Fran[çc]ois\s+Maleterre)"
     # cas particulier: chemin de X à Y (nécessaire car "à" est une des bornes droites de RE_NOM_VOIE)
     + r"|(?:chemin\s+de\s+"
     + r"(?:"

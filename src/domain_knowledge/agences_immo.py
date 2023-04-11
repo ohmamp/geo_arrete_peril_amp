@@ -4,6 +4,8 @@
 - Lister les syndics connus peut accélérer et mieux focaliser la capture.
 """
 
+# TODO normaliser les valeurs, en utilisant le dict de reco+normalisation, avant export
+
 import re
 
 RE_CABINET = r"(?:cabinet|groupe|agence(?:\s+immobili[èe]re)?)"

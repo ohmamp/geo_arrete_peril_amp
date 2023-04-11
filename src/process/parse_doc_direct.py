@@ -2,7 +2,10 @@
 
 """
 
+# TODO remplacer les listes de documents à exclure, dressées manuellement, par une procédure de détection automatique
+
 import argparse
+from collections import OrderedDict
 from datetime import datetime
 import logging
 from pathlib import Path
@@ -271,11 +274,11 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
     adresses = []
     arretes = {}  # un seul
     notifies = {
-        "proprios": set(),  # propriétaires
-        "syndics": set(),  # syndic (normalement unique)
-        "gests": set(),  # gestionnaire (normalement unique)
+        "proprios": OrderedDict(),  # propriétaires
+        "syndics": OrderedDict(),  # syndic (normalement unique)
+        "gests": OrderedDict(),  # gestionnaire (normalement unique)
     }
-    parcelles = set()  # références de parcelles cadastrales
+    parcelles = OrderedDict()  # références de parcelles cadastrales
 
     # - au préalable, rassembler toutes les données en ajoutant le numéro de page (FIXME)
     pages_body = [pg_cont["body"] for pg_cont in doc_content]
@@ -375,18 +378,19 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
 
             # extraire les notifiés
             if proprios := get_proprio(pg_txt_body):
-                notifies["proprios"].add(
-                    normalize_string(proprios)
-                )  # WIP: proprios = [] + extend()
+                norm_proprios = normalize_string(proprios)
+                notifies["proprios"][
+                    norm_proprios
+                ] = proprios  # WIP: proprios = [] + extend()
             if syndics := get_syndic(pg_txt_body):
-                notifies["syndics"].add(
-                    normalize_string(syndics)
-                )  # WIP: syndics = [] + extend ?
+                norm_syndics = normalize_string(syndics)
+                notifies["syndics"][
+                    norm_syndics
+                ] = syndics  # WIP: syndics = [] + extend ?
 
             if gests := get_gest(pg_txt_body):
-                notifies["gests"].add(
-                    normalize_string(gests)
-                )  # WIP: gests = [] + extend ?
+                norm_gests = normalize_string(gests)
+                notifies["gests"][norm_gests] = gests  # WIP: gests = [] + extend ?
 
             # extraire la ou les parcelles visées par l'arrêté
             if pg_parcelles_str := get_parcelle(pg_txt_body):
@@ -395,7 +399,9 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                         codeinsee, pg_parcelles_str, fn_pdf, cpostal
                     )
                 ]
-                parcelles = parcelles | set(refcads_norm)  # FIXME get_parcelle:list()
+                parcelles = parcelles | OrderedDict(
+                    [(x, pg_parcelles_str) for x in refcads_norm]
+                )  # FIXME get_parcelle:list()
     if False:
         # WIP hypothèses sur les notifiés
         try:
@@ -463,7 +469,10 @@ def process_files(
         for x in in_dir_pdf.glob("*")
         if (
             (x.suffix.lower() == ".pdf")
-            and (x.name not in set(EXCLUDE_FILES + EXCLUDE_FIXME_FILES))
+            and (
+                x.name
+                not in set(EXCLUDE_FILES + EXCLUDE_FIXME_FILES)  # + EXCLUDE_HORS_AMP)
+            )
         )
     )
 
@@ -481,7 +490,6 @@ def process_files(
         # if fp_otxt.is_file():
         #     # texte ocr
         #     fp_txt = fp_otxt
-        # elif fp_ntxt.is_file():
         if fp_ntxt.is_file():
             # sinon texte natif
             fp_txt = fp_ntxt

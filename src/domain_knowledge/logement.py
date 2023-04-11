@@ -377,7 +377,14 @@ def get_adr_doc(page_txt: str) -> bool:
             # WIP on prend le texte de la page, borné à gauche avec le début de l'adresse
             # mais pas borné à droite pour avoir le contexte droit (nécessaire pour
             # les adresses courtes, car le nom de voie est borné par un lookahead)
-            adresses_proc = process_adresse_brute(adr_brute)
+            try:
+                adresses_proc = process_adresse_brute(adr_brute)
+            except AssertionError:
+                print(
+                    f"adr_doc: {m_adr.group(0)}\n{m_adr.groups()}\n{m_adr.groupdict()}"
+                )
+                raise
+
             adresses.append(
                 {
                     "adresse_brute": adr_brute,

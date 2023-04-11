@@ -81,7 +81,7 @@ RE_ADR_RCONT = (
     + r"|susceptible"
     + r"|suivant\s+annexe"
     # + r"|(?:[.]$)"  # RESUME HERE
-    + r"|(?:^Nous,\s+)|(?:^le\s+maire)|(?:^vu)|(?:^consid[ée]rant)|(?:^article)"  # NEW 2023-03-29 "le maire"
+    + r"|(?:^Nous,\s*)|(?:^le\s+maire)|(?:^vu)|(?:^consid[ée]rant)|(?:^article)|(?:^Propri[ée]t[ée]\s+de)"  # NEW 2023-03-29 "le maire"
     + r")"
 )
 # adresse du bâtiment visé par l'arrêté

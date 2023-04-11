@@ -127,7 +127,8 @@ RE_NOM_VOIE_RCONT = (
     + r"|(?:\s+[àa]\s+(?!vent\s+))"  # borne droite "à", sauf "à vent" : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
     + r"|\s+(?<!du )b[âa]timent"  # borne droite "bâtiment", sauf si "du bâtiment" ("rue du bâtiment" existe dans certaines communes)
     + r"|\s+b[âa]t\s+"  # bât(iment)
-    + r"|(?:^(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article))"
+    + r"|\s+parcelle"  # parcelle (référence cadastrale)
+    + r"|(?:\n+(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de))"
     # + rf"|\s*{RE_CAD_MARSEILLE}"  # (inopérant?) borne droite <ref parcelle> (seulement Marseille, expression longue sans grand risque de faux positif)
     # cas balai EOS (end of string): pour le moment, requiert une regex spécifique à certains appels
     # + r"|$"  # (effets indésirables) cas balai: fin de la zone de texte (nécessaire pour ré-extraire une adresse à partir de l'adresse brute)
@@ -151,7 +152,7 @@ RE_COMMUNE = (
     + r"|(?:"
     + rf"[A-ZÀ-Ý]{RE_LETTERS}"  # au moins 1 token qui commence par une majuscule
     + r"(?:"
-    + r"(?!\n(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article))"  # negative lookahead: éviter de capturer n'importe quoi
+    + r"(?!\n(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de))"  # negative lookahead: éviter de capturer n'importe quoi
     + r"['’\s-]"  # séparateur: tiret, apostrophe, espace
     + rf"{RE_LETTERS}"
     + r"){0,4}"  # + 0 à 3 tokens après séparateur
@@ -179,6 +180,7 @@ RE_APT = r"(?:Appartement|Appart|Apt)"
 RE_ADR_COMPL_ELT = (
     r"(?:"  # groupe global
     + r"(?:"
+    # + r"(?!^(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de))"  # negative lookahead: éviter de capturer n'importe quoi  # 2023-04-11: inopérant?
     # cas particulier
     + r"(?:Les\s+Docks\s+Atrium\s+[\d.]+)"  # grand immeuble de bureaux
     + r"|(?:Immeuble\s+sur\s+rue)"  # désignation de bâtiment sur la parcelle
@@ -278,6 +280,7 @@ RE_NUM_IND_VOIE_LIST = (
 P_NUM_IND_VOIE_LIST = re.compile(RE_NUM_IND_VOIE_LIST, re.IGNORECASE | re.MULTILINE)
 
 # TODO double adresse: 2 rue X / 31 rue Y 13001 Marseille (RE distincte, pour les named groups)
+# TODO "parcelle (cadastrée) ..." entre le num_ind_voie et cp_commune
 RE_ADRESSE = (
     r"(?:"
     + rf"((?:{RE_ADR_COMPL})(?:\s*[,–-])?\s*)?"  # WIP (optionnel) complément d'adresse (pré)

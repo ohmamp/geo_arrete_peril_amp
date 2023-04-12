@@ -487,10 +487,10 @@ def process_files(
         # fichier txt
         fp_otxt = in_dir_otxt / f"{fp_pdf.stem}.txt"  # ocr
         fp_ntxt = in_dir_ntxt / f"{fp_pdf.stem}.txt"  # natif
-        # if fp_otxt.is_file():
-        #     # texte ocr
-        #     fp_txt = fp_otxt
-        if fp_ntxt.is_file():
+        if fp_otxt.is_file():
+            # texte ocr
+            fp_txt = fp_otxt
+        elif fp_ntxt.is_file():
             # sinon texte natif
             fp_txt = fp_ntxt
         else:

@@ -210,8 +210,12 @@ def get_codeinsee(nom_commune: str, cpostal: str) -> str:
             "la Gardanne",
         )  # FIXME: arrêtés mal lus
     except AssertionError:
-        print(repr(nom_commune))
-        raise
+        # TODO détecter et exclure les communes hors Métropole en amont?
+        logging.warning(
+            f"Impossible de déterminer le code INSEE pour {nom_commune}, hors métropole?"
+        )
+        # raise
+        return None
 
     if (
         nom_commune.lower().startswith("marseille")
@@ -267,8 +271,12 @@ def get_codepostal(nom_commune: str, codeinsee: str) -> str:
             "la Gardanne",
         )  # FIXME: arrêtés mal lus
     except AssertionError:
-        print(repr(nom_commune))
-        raise
+        # TODO détecter et exclure les communes hors Métropole en amont?
+        logging.warning(
+            f"Impossible de déterminer le code INSEE pour {nom_commune}, hors métropole?"
+        )
+        # raise
+        return None
 
     if (
         nom_commune.lower().startswith("marseille")

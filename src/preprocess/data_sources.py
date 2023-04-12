@@ -192,3 +192,24 @@ EXCLUDE_FIXME_FILES = [
     "739 av Cytharista Mas de la mer.PDF",  # FIXME 2e nom de voie après un 1er nom de voie + un complément d'adresse
     "A.2019-147 Ch. du Four-Garage.pdf",  # FIXME "adresse courte en voie seule", group(0) ne capture pas le complément d'adresse "Garage" ?
 ]
+
+EXCLUDE_FIXME_ADR_FILES = [
+    "16, cours Foch Aubagne.pdf",  # FIXME adresse: ville="figurant_au" ?
+    "18, cours Foch Aubagne - imminent.pdf",  # FIXME adresse: ville="représentée par ..."
+    "2 rue du 4 septembre - ML 14.01.20.pdf",  # FIXME adresse: voie inclut "Nomenclature ACTES..." + ville="habitat"
+    "23 rue Vauban Arles - 22.05.20 mainlevée.pdf",  # FIXME ville="leur demandant de"
+    "3 rue des Frères Blanchard LA CIOTAT Main_levée.pdf",  # FIXME ville="ainsi qu'à l'Agence"
+    "mainlevée 3 rue des Frères Blanchard La Ciotat -031220.pdf",  # FIXME ville="ainsi qu'à l'Agence"
+    "48, rue Victor Hugo MARIGNANE - ML.pdf",  # FIXME ville="et"
+    "5, impasse de la Fabrique Cabannes.pdf",  # FIXME ville="sur la"
+    "66_moulin_vieux_berre.pdf",  # FIXME ville="sur la"
+    "8, rue Rastègue AUBAGNE.pdf",  # FIXME ville="la fixation de la rambarde"
+    "99_AR-013-211300678-20200831-136-AR-1-1_1.pdf",  # FIXME voie inclut ". Cette interdiction est à caractère..."
+    "Les Pennes Mirabeau - Arrêté de péril imminent 08 06 2016.pdf",  # FIXME voie inclut ville ; ville="doit dans un délai"
+    "Péril 5, avenue Bucelle La Ciotat.PDF",  # FIXME ville="et donnant sur l'avenue"
+    "mainlevée 10, rue Larbonne Marignane.pdf",  # FIXME ville="et"
+    "mainlevée Clos Sanino avenue Roumanille La Ciotat.PDF",  # FIXME ville "et"
+    "péril 4, avenue Elzeard Rougier Aubagne.pdf",  # FIXME voie inclut "ct géré par la SCI..." (ct=et)
+    "péril 91 rue Lacanau Marignane.pdf",  # FIXME voie inclut "lui signalant"
+    "péril rue de la Tour annexe.pdf",  # FIXME ville="PROPRIETAIRE MONSIEUR"
+]

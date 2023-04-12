@@ -412,9 +412,9 @@ def get_urgence(page_txt: str) -> bool:
         or P_CLASS_INT.search(page_txt)
     ):
         # FIXME ajouter la prise en compte des articles cités pour déterminer l'urgence
-        return "oui ou non"
+        return None  # "oui ou non"
     elif M_CLASS_ML.search(page_txt) or M_CLASS_ABRO_INT.search(page_txt):
-        return "/"
+        return None  # "/"
     else:
         return None
 

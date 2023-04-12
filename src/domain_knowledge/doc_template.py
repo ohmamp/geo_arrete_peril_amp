@@ -7,8 +7,24 @@ import re
 
 from src.utils.text_utils import RE_NO
 
+# "République Française" et devise, dans les en-têtes de plusieurs communes
+RE_RF = r"R[ée]publique\s+Fran[çc]aise"
+RE_RF_DEVISE = r"Libert[ée]\s*[-—#Y]?\s*[EÉ]galit[ée]\s*[-—#Y]?\s*Fraternit[ée]"
+# département des Bouches-du-Rhône
+RE_DEP_013 = r"(D[ée]partement\s+des\s+)?Bouches\s*[-—]?\s*du\s*[-—]?\s*Rh[ôo]ne"
+# arrondissements
+RE_ARD_013 = (
+    r"Arrondissement\s+"
+    + r"(d['’]\s*(Aix\s*[-—]?\s*en\s*[-—]?\s*Provence|Arles|[ÎIl]stres)"
+    + r"|de\s+Marseille)"
+)
+
 # en-têtes
 RE_HEADERS = [
+    ("RF", r"^" + RE_RF),
+    ("RF", RE_RF_DEVISE),
+    # département des bouches du rhône
+    ("Dep_013", r"^" + RE_DEP_013),
     # texte natif
     (
         "Marseille",
@@ -35,7 +51,7 @@ RE_HEADERS = [
     # texte extrait (image)
     (
         "Allauch",
-        r"^DEPARTEMENT\s+DES\nBOUCHES\s+DU\s+RHONE\n\nAllauch\n\nun\s+certain\s+art\s+de\s+ville",
+        rf"^{RE_DEP_013}" + r"\n\nAllauch\n\nun\s+certain\s+art\s+de\s+ville",
     ),  # p.1, logo en haut à gauche
     # ("Allauch", r""""""),  # p.2 et suiv.: num de page (-2-, -3-...)
     ("Cabriès", r"^EXTRAIT\s+DU\s+REGISTRE\s+DES\s+ARRETES\s+DU\s+MAIRE"),
@@ -46,21 +62,18 @@ RE_HEADERS = [
     (
         "Châteauneuf-les-Martigues",
         r"^[CG]ommune\s+de\s+Châteauneuf-les-Martigues\s+-\s+"
-        + r"Arrondissement\s+d['’][Il]stres\s+-\s+"
-        + r"Bouches\s+du\s+Rhône",
+        + rf"{RE_ARD_013}\s+-\s+"
+        + RE_DEP_013,
     ),  # p.1, OCR à refaire?
     ("Gardanne", r"^Ville\s+de\s+Gardanne$"),  # p. 1
+    ("Gardanne", r"Commune\s+de\s+Gardanne$"),  # (ou) en-tête p.1, colonne de droite
     (
         "Gardanne",
         r"Arrêté\s+" + RE_NO + r"\d{4}-\d{2}-ARR-SIHI\s+" + r"Page\s+\d{1,2}/\d{1,2}",
     ),  # p.2 et suiv
     # TODO vérifier après OCR
-    # ("La Ciotat", r"^Ville\s+de\s+La\s+Ciotat$"),  # p. 1
-    ("Berre-l'Étang", r"^République\s+Française$"),  # p. 1
-    (
-        "Gémenos",
-        r"^DÉPARTEMENT\nDES\s+BOUCHES-DU-RHÔNE\n",
-    ),  # p. 1
+    ("La Ciotat", r"^Ville\s+de\s+La\s+Ciotat$"),  # p. 1
+    # ("Berre-l'Étang", r"^République\s+Française$"),  # p. 1
     ("Gémenos", r"^Ville\s+de\s+Gémenos$"),  # p. 1
     (
         "Gémenos",
@@ -71,9 +84,8 @@ RE_HEADERS = [
     ("Gémenos", r"^ARRÊTÉ\s+DU\s+MAIRE$"),  # p. 1 (optionnel)
     (
         "Jouques",
-        r"^REPUBLIQUE\s+FRANCAISE\n"
-        + r"DEPARTEMENT\s+DES\s+BOUCHES\s+DU\s+RHONE\n"
-        + r"COMMUNE\s+DE\s+JOUQUES",
+        # r"^REPUBLIQUE\s+FRANCAISE\n"
+        rf"^{RE_DEP_013}\n" + r"COMMUNE\s+DE\s+JOUQUES",
     ),  # p. 1 (en haut)
     (
         "La Ciotat",
@@ -85,18 +97,18 @@ RE_HEADERS = [
     ),
     (
         "Martigues",
-        r"^Département\s+des\nBouches-du-Rhône\nArrondissement\s+d['’]Istres$",
-    ),  # p. 1
+        rf"^{RE_ARD_013}",
+    ),
     (
         "Martigues",
         r"^Direction\s+des\s+Affaires\s+Civiles,\nJuridiques\s+et\s+Funéraires\nRéglementation\s+Administrative$",
     ),  # p. 1
-    ("Meyrargues", r"^REPUBLIQUE\n\nFRANÇAISE$"),  # p. 1 (en haut à gauche)
+    # ("Meyrargues", r"^REPUBLIQUE\s+FRANÇAISE"),  # p. 1 (en haut à gauche) ;
     (
         "Meyrargues",
-        r"^DEPARTEMENT\s+DES\s+BOUCHES-DU-RHONE\n"
+        rf"^{RE_DEP_013}\n"
         + r"CANTON\s+DE\s+TRETS\n"
-        + r"ARRONDISSEMENT\s+D['’]AIX\s+EN\s+PROVENCE\n"
+        + rf"{RE_ARD_013}\n"
         + r"METROPOLE\s+D['’]AIX-MARSEILLE-PROVENCE\n"
         + r"\n"
         + r"COMMUNE\s+DE\s+MEYRARGUES\n",
@@ -121,6 +133,15 @@ RE_HEADERS = [
         "Roquevaire",
         r"^Secteur\s+concerné\s+:\s+Libertés\s+publiques\s+et\s+pouvoirs\s+de\s+police$",
     ),  # p. 1 (NB: peut être considéré comme une donnée à extraire dans text_structure)
+    ("Septèmes-les-Vallons", r"^Ville\s+de\s+Septèmes-les-Vallons"),
+    (
+        "Trets",
+        r"^&[']?\s*:\s+04[.,]42[.,]37[.,]55[.,]06",  # tél
+    ),
+    (
+        "Trets",
+        r"^Fax\s*:\s+04[.,]42[.,]37[.,]55[.,]20",  # fax
+    ),
 ]
 # TODO en-tête Aix-en-Provence p. 2 et suivantes: numéro de page (en haut à droite)
 
@@ -184,11 +205,11 @@ RE_FOOTERS = [
     ),  # p.1
     (
         "Châteauneuf-les-Martigues",
-        r"""Hôtel\s+de\s+ville\s+[-–]\s+"""
-        + r"""BP\s+70024\s+[-–]\s+"""
-        + r"""13168\s+Châteauneuf-les-Martigues\s+cedex\s+[-–]\s+"""
-        + r"""04\.42\.76\.89\.00\s+[-–]\s+"""
-        + r"""04\.42\.79\.80\.25$""",
+        r"Hôtel\s+de\s+ville\s+[-–]\s+"
+        + r"BP\s+70024\s+[-–]\s+"
+        + r"13168\s+Châteauneuf-les-Martigues\s+cedex\s+[-–]\s+"
+        + r"04\.42\.76\.89\.00\s+[-–]\s+"
+        + r"04\.42\.79\.80\.25$",
     ),  # p. 1
     ("Gardanne", r"^Arrêté\s+[-–]\s+Secteur\s+Pouvoirs\s+de\s+Police\s+[-–]"),
     (

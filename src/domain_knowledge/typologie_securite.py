@@ -92,13 +92,18 @@ M_CLASS_MS_MOD = re.compile(RE_CLASS_MS_MOD, re.MULTILINE | re.IGNORECASE)
 #
 RE_PGI = r"p[ée]ril" + r"(?:\s+grave(?:\s+et)?)?" + r"\s+imminent"
 RE_CLASS_PGI = (
-    rf"(?:{RE_ARRETE}"
+    r"(?:"
+    # "arrêté (à dire d'expert)? (...)? de péril grave et imminent"
+    + rf"(?:{RE_ARRETE}"
     + rf"(?:\s+{RE_A_DIRE_D_EXPERT})?"
     + r"(?:"
     + r"(?:\s+portant\s+proc[ée]dure)"
     + r"|(?:\s+ordonnant\s+les\s+mesures\s+provisoires\s+n[ée]cessaires\s+au\s+cas)"
     + r")?"
     + rf"\s+de\s+{RE_PGI})"
+    # "Péril grave et imminent" (en début de ligne)
+    + rf"|(?:^{RE_PGI})"
+    + r")"
 )
 M_CLASS_PGI = re.compile(RE_CLASS_PGI, re.MULTILINE | re.IGNORECASE)
 #
@@ -130,6 +135,7 @@ RE_CLASS_MSU_MOD = (
 M_CLASS_MSU_MOD = re.compile(RE_CLASS_MSU_MOD, re.MULTILINE | re.IGNORECASE)
 
 # mainlevée
+# FIXME "13 rue Kruger Gardanne - mainlevée .pdf"
 RE_ML = r"main[-]?\s*lev[ée]e"
 RE_CLASS_ML = (
     r"(?:"
@@ -212,8 +218,8 @@ RE_INTERD_OCCUP = (
     + r"(?:"
     # d'occuper | occupation
     + r"(?:d['’ 4]\s*(?:occuper|occupation))"
-    # ou: d'habiter et d'occuper
-    + r"|(?:d['’\s]\s*habiter\s+et\s+d['’\s]\s*occuper)"
+    # ou: d'habiter (et d'occuper)?
+    + r"|(?:d['’\s]\s*habiter(\s+et\s+d['’\s]\s*occuper)?)"
     # ou: d'accès et d'occupation
     + r"|(?:d['’\s]\s*acc[èe]s\s+et\s+d['’\s]\s*occupation)"
     # ou: d'occupation et d'utilisation
@@ -231,6 +237,7 @@ RE_CLASS_INT = (
     + rf"{RE_ARRETE}\s+d['’\s]\s*{RE_INTERD_OCCUP}"
     # ou: arrêté portant (sur l' | l' | ) interdiction d'occuper
     + rf"|{RE_ARRETE}\s+portant\s+(?:sur\s+l['’]\s*|l['’]\s*)?{RE_INTERD_OCCUP}"
+    + rf"|Objet\s*:\s+{RE_INTERD_OCCUP}"
     + r")"
 )
 P_CLASS_INT = re.compile(RE_CLASS_INT, re.MULTILINE | re.IGNORECASE)

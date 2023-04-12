@@ -220,7 +220,8 @@ RE_NUM_ARR = (
     + rf"|^A\.M\s+{RE_NO}"
     # Marseille (1)
     + rf"|^Décision\s+{RE_NO}"
-    # Meyrargues
+    # Meyrargues ;
+    # (+ Septèmes, quand le layout sera bien lu)
     + rf"|^ARRÊTÉ\s+DU\s+MAIRE\s+{RE_NO}"
     # en-tête Peyrolles-en-Provence
     + rf"|Arrêté\s+{RE_NO}"
@@ -265,7 +266,7 @@ def get_num(page_txt: str) -> bool:
 
 
 # nom de l'arrêté
-RE_NOM_ARR = r"Objet:\s+(?P<nom_arr>[^\n]+)"
+RE_NOM_ARR = r"Objet\s*:\s+(?P<nom_arr>[^\n]+(?:\n[^\n]+)*)"
 P_NOM_ARR = re.compile(RE_NOM_ARR, re.MULTILINE | re.IGNORECASE)
 
 

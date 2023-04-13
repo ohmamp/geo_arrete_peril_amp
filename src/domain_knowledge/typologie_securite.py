@@ -92,18 +92,20 @@ RE_CLASS_MS_MOD = (
     + r")"
 )
 M_CLASS_MS_MOD = re.compile(RE_CLASS_MS_MOD, re.MULTILINE | re.IGNORECASE)
-#
-RE_PGI = r"p[ée]ril" + r"(?:\s+grave(?:\s+et)?)?" + r"\s+imminent"
+
+# tolérance OCR: "imuninent"
+RE_PGI = r"p[ée]ril" + r"(?:\s+grave(?:\s+et)?)?" + r"\s+(?:imminent|imuninent)"
 RE_CLASS_PGI = (
     r"(?:"
     # "arrêté (à dire d'expert)? (...)? de péril grave et imminent"
     + rf"(?:{RE_ARRETE}"
     + rf"(?:\s+{RE_A_DIRE_D_EXPERT})?"
     + r"(?:"
-    + r"(?:\s+portant\s+proc[ée]dure)"
-    + r"|(?:\s+ordonnant\s+les\s+mesures\s+provisoires\s+n[ée]cessaires\s+au\s+cas)"
+    + r"(?:\s+portant\s+(?:proc[ée]dure\s+de|sur\s+un))"
+    + r"|(?:\s+ordonnant\s+les\s+mesures\s+provisoires\s+n[ée]cessaires\s+au\s+cas\s+de)"
+    + r"|(?:\s+de)"
     + r")?"
-    + rf"\s+de\s+{RE_PGI})"
+    + rf"\s+{RE_PGI})"
     # "Péril grave et imminent" (en début de ligne)
     + rf"|(?:^{RE_PGI})"
     # Objet : Péril grave et imminent
@@ -335,6 +337,7 @@ RE_INT_HAB = (
     r"(?:"
     + r"interdiction\s+d['’\s]habiter\s+et\s+d['’\s]occuper"
     + r"|interdiction\s+d['’\s]habiter\s+l['’\s]appartement"
+    + r"|interdiction\s+(?:temporaire\s+)?d['’\s]acc[èe]s\s+et\s+d['’\s]utilisation"
     + r")"
 )
 P_INT_HAB = re.compile(RE_INT_HAB, re.MULTILINE | re.IGNORECASE)

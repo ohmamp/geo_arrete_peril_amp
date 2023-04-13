@@ -216,6 +216,8 @@ RE_NUM_ARR = (
     + r"|^Réf\s*:"
     # Gardanne:
     + r"|^Nos\s+Réf\s+:"
+    # Istres
+    + rf"|^{RE_NO}(?=[^\n]+\s+Mati[èe]re\s+de\s+l['’]acte)"  # N° ...\n\nMatière de l'acte 6.4 (positive lookahead)
     # Martigues:
     + rf"|^A\.M\s+{RE_NO}"
     # Marseille (1)

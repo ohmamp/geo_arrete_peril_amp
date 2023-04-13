@@ -19,6 +19,10 @@ from src.domain_knowledge.arrete import RE_ARRETE
 # formule parfois utilisée
 RE_A_DIRE_D_EXPERT = r"[àa]\s+dire\s+d['’\s]\s*expert"
 
+# Objet : ...
+# "i" pour robustesse OCR
+RE_OBJET = r"Ob(?:j|i|ij)et\s*:\s+"
+
 # procédures: orginaire et urgente
 RE_PROCEDURE_ORDINAIRE = (
     r"(?:\s*[–-])?\s+proc[ée]dure\s+ordin(?:n)?aire"  # robustesse: 2e n optionnel
@@ -39,7 +43,7 @@ RE_CLASS_PS_PO = (
     + rf"(?:{RE_ARRETE}\s+de\s+{RE_PS_PO})"
     # ou: arrêté municipal ordonnant les mesures nécessaires au cas de péril ordinaire
     + rf"|(?:{RE_ARRETE}\s+ordonnant\s+les\s+mesures\s+n[ée]cessaires\s+au\s+cas\s+de\s+{RE_PS_PO})"
-    + rf"|(?:Objet\s*:\s+{RE_PS_PO})"
+    + rf"|(?:{RE_OBJET}(?:{RE_ARRETE}\s+de\s+)?{RE_PS_PO})"
     + r")"
 )
 M_CLASS_PS_PO = re.compile(RE_CLASS_PS_PO, re.MULTILINE | re.IGNORECASE)
@@ -73,8 +77,8 @@ RE_CLASS_MS = (
     + r"\s+modificatif"
     + rf"|{RE_PROCEDURE_URGENTE}"
     + r")"
-    + rf"|(?:Objet\s*:\s+{RE_MISE_EN_SECURITE}{RE_PROCEDURE_ORDINAIRE})"
-    + rf"|(?:Objet\s*:\s+{RE_MISE_EN_SECURITE}(?!{RE_PROCEDURE_URGENTE}))"
+    + rf"|(?:{RE_OBJET}{RE_MISE_EN_SECURITE}{RE_PROCEDURE_ORDINAIRE})"
+    + rf"|(?:{RE_OBJET}{RE_MISE_EN_SECURITE}(?!{RE_PROCEDURE_URGENTE}))"
     + r")"
 )
 M_CLASS_MS = re.compile(RE_CLASS_MS, re.MULTILINE | re.IGNORECASE)
@@ -109,9 +113,9 @@ RE_CLASS_PGI = (
     # "Péril grave et imminent" (en début de ligne)
     + rf"|(?:^{RE_PGI})"
     # Objet : Péril grave et imminent
-    + rf"|(?:Objet\s*:\s+{RE_PGI})"
+    + rf"|(?:{RE_OBJET}{RE_PGI})"
     # Objet : Déclarant un péril grave et imminent (rare)
-    + rf"|(?:Objet\s*:\s+déclarant\s+un\s+{RE_PGI})"
+    + rf"|(?:{RE_OBJET}déclarant\s+un\s+{RE_PGI})"
     + r")"
 )
 M_CLASS_PGI = re.compile(RE_CLASS_PGI, re.MULTILINE | re.IGNORECASE)
@@ -153,14 +157,15 @@ RE_CLASS_ML = (
     + r"(?:\s+de)?\s+"
     + RE_ML
     + r"(?!\s+partielle)"  # sauf si la suite est "partielle" (negative lookahead)
-    + rf"(?:\s+de(?:{RE_PGI}|{RE_MISE_EN_SECURITE}|{RE_PS_PO}))?"
+    + r"(?:\s+d['’]interdiction\s+d['’]habiter\s+et)?"
+    + rf"(?:\s+de\s+(?:{RE_PGI}|{RE_MISE_EN_SECURITE}|{RE_PS_PO}))?"
     + r")"
     # ou: mainlevée de l'arrêté
-    + rf"|(?:{RE_ML}"
-    + r"\s+(?:de\s+l['’]|d['’])\s*"
-    + RE_ARRETE
-    + rf"(?:\s+de(?:{RE_PGI}|{RE_MISE_EN_SECURITE}|{RE_PS_PO}))?"
+    + rf"|(?:{RE_ML}\s+(?:de\s+l['’]|d['’])\s*{RE_ARRETE}"
+    + rf"(?:\s+de\s+(?:{RE_PGI}|{RE_MISE_EN_SECURITE}|{RE_PS_PO}))?"
     + r")"
+    # Objet : De levée de péril (ordinaire|simple|...) | mise en sécurité
+    + rf"|(?:{RE_OBJET}de\s+(?:{RE_ML}|lev[ée]e)\s+de\s+(?:{RE_PGI}|{RE_MISE_EN_SECURITE}|{RE_PS_PO}))"
     + r")"
 )
 M_CLASS_ML = re.compile(RE_CLASS_ML, re.MULTILINE | re.IGNORECASE)
@@ -170,8 +175,11 @@ M_CLASS_ML = re.compile(RE_CLASS_ML, re.MULTILINE | re.IGNORECASE)
 # à terme, quand on parviendra à détecter les extraits complets et à les écarter du traitement, ces motifs seront inutiles
 RE_ML_FP = (
     r"(?:"
+    # extraits de texte
     + r"(?:la\s+notification\s+ou\s+l['’\s]affichage\s+de\s+l['’\s]arrêté\s+de\s+mainlevée)"
     + r"|(?:la\s+notification\s+de\s+la\s+mainlevée\s+de\s+l['’\s]arrêté)"
+    # article exposant les conditions de levée
+    + rf"|(?:jusqu['’][àa]\s+la\s+{RE_ML})"
     + r")"
 )
 P_ML_FP = re.compile(RE_ML_FP, re.MULTILINE | re.IGNORECASE)
@@ -242,7 +250,7 @@ RE_INTERD_OCCUP = (
     # ou: d'habiter (et d'occuper)?
     + r"|(?:d['’\s]\s*habiter(\s+et\s+d['’\s]\s*occuper)?)"
     # ou: d'accès et d'occupation
-    + r"|(?:d['’\s]\s*acc[èe]s\s+et\s+d['’\s]\s*occupation)"
+    + r"|(?:d['’\s]\s*acc[èe]s(?:\s+et\s+d['’\s]\s*occupation)?)"
     # ou: d'occupation et d'utilisation
     + r"|(?:d['’\s]\s*occupation\s+et\s+d['’\s]\s*utilisation)"
     # ou: de pénétrer, d'habiter, d'utiliser et d'exploiter
@@ -258,7 +266,7 @@ RE_CLASS_INT = (
     + rf"{RE_ARRETE}\s+d['’\s]\s*{RE_INTERD_OCCUP}"
     # ou: arrêté portant (sur l' | l' | ) interdiction d'occuper
     + rf"|{RE_ARRETE}\s+portant\s+(?:sur\s+l['’]\s*|l['’]\s*)?{RE_INTERD_OCCUP}"
-    + rf"|Objet\s*:\s+{RE_INTERD_OCCUP}"
+    + rf"|{RE_OBJET}{RE_INTERD_OCCUP}"
     + r")"
 )
 P_CLASS_INT = re.compile(RE_CLASS_INT, re.MULTILINE | re.IGNORECASE)

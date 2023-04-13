@@ -9,9 +9,9 @@ from src.utils.text_utils import RE_NO
 
 # "République Française" et devise, dans les en-têtes de plusieurs communes
 RE_RF = r"R[ée]publique\s+Fran[çc]aise"
-RE_RF_DEVISE = r"Libert[ée]\s*[-—#Y]?\s*[EÉ]galit[ée]\s*[-—#Y]?\s*Fraternit[ée]"
+RE_RF_DEVISE = r"Libert[ée]\s*[\S]?\s*[EÉ]galit[ée]\s*[\S]?\s*Fraternit[ée]"
 # département des Bouches-du-Rhône
-RE_DEP_013 = r"(D[ée]partement\s+des\s+)?Bouches\s*[-—]?\s*du\s*[-—]?\s*Rh[ôo]ne"
+RE_DEP_013 = r"(D[ée]partement\s+(des\s+)?)?Bouches\s*[-—]?\s*du\s*[-—]?\s*Rh[ôo]ne"
 # arrondissements
 RE_ARD_013 = (
     r"Arrondissement\s+"
@@ -22,6 +22,7 @@ RE_ARD_013 = (
 # en-têtes
 RE_HEADERS = [
     ("RF", r"^" + RE_RF),
+    ("RF", RE_RF + r"$"),
     ("RF", RE_RF_DEVISE),
     # département des bouches du rhône
     ("Dep_013", r"^" + RE_DEP_013),
@@ -48,6 +49,13 @@ RE_HEADERS = [
         r"(?:^D\.G\.A\.S\s+[-]\s+Etudes\s+Juridiques,\s+Marchés\s+Publics\s+et\s+Patrimoine\s+Communal\s+Direction\s+Etudes\s+Juridiques\s+&\s+Contentieux)",
     ),  # p. 1, arrêtés
     # ("Aix-en-Provence", r"^ARRÊTÉ\n"),  # NON! trop générique, capture des spans nécessaires ailleurs
+    ("Aubagne", r"^Gérard\s+GAZAY"),
+    ("Aubagne", r"^Maire\s+d'Aubagne"),
+    (
+        "Aubagne",
+        r"^Vice-Président\s+du\s+Conseil\s+Départemental\s+des\s+Bouches-du-Rh[ôo]ne",
+    ),
+    ("Aubagne", r"^Vice-Pr[ée]sident\s+de\s+[li]a\s+Métropole$"),
     # texte extrait (image)
     (
         "Allauch",
@@ -75,11 +83,11 @@ RE_HEADERS = [
     ("La Ciotat", r"^Ville\s+de\s+La\s+Ciotat$"),  # p. 1
     # ("Berre-l'Étang", r"^République\s+Française$"),  # p. 1
     ("Gémenos", r"^Ville\s+de\s+Gémenos$"),  # p. 1
+    ("Gémenos", r"^TÉL\s*[:;]\s*04\s+42\s+32\s+89\s+00"),  # [:;] pour les erreurs d'OCR
+    ("Gémenos", r"^FAX\s*[:;]\s*04\s+42\s+32\s+71\s+41"),
     (
         "Gémenos",
-        r"TÉL\s*[:;]\s*04\s+42\s+32\s+89\s+00\n"  # [:;] pour les erreurs d'OCR
-        + r"FAX\s*[:;]\s*04\s+42\s+32\s+71\s+41\n"
-        + r"www[.-]mairie-gemenos[.-]fr",  # [.-] pour les erreurs d'OCR
+        r"www[.-]mairie-gemenos[.-]fr",  # [.-] pour les erreurs d'OCR
     ),  # p. 1
     ("Gémenos", r"^ARRÊTÉ\s+DU\s+MAIRE$"),  # p. 1 (optionnel)
     (
@@ -188,11 +196,11 @@ RE_FOOTERS = [
     # TODO Allauch footer p.2 à -1 : réf arrêté
     (
         "Aubagne",
-        r"""Hôtel\s+de\s+Ville\s+"""
-        + r"""BP\s+41465\s+13785\s+Aubagne\s+Cedex\s+"""
-        + r"""T\s*04\s*42\s*18\s*19\s*19\s+"""
-        + r"""F\s*04\s*42\s*18\s*18\s*18\s+"""
-        + r"""www[.]aubagne[.]fr$""",
+        r"Hôtel\s+de\s+Ville\s+"
+        + r"BP\s+41465\s+13785\s+Aubagne\s+Cedex\s+"
+        + r"T\s*04\s*42\s*18\s*19\s*19\s+"
+        + r"F\s*04\s*42\s*18\s*18\s*18\s+"
+        + r"www[.]aubagne[.]fr$",
     ),  # p.1
     ("Auriol", r"""Page\s+\d{1,2}\s+sur\s+\d{1,2}$"""),
     (

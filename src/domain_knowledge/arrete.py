@@ -212,8 +212,8 @@ RE_NUM_ARR = (
     + rf"Extrait\s+du\s+registre\s+des\s+arrêtés\s+{RE_NO}"
     # Gignac-la-Nerthe:
     + rf"|EXTRAIT\s+DU\s+REGISTRE\s+des\s+ARRETES\s+du\s+MAIRE\n{RE_NO}\s+"
-    #
-    + r"|Réf\s+:"
+    # La Ciotat
+    + r"|^Réf\s*:"
     # Gardanne:
     + r"|^Nos\s+Réf\s+:"
     # Martigues:

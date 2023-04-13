@@ -39,6 +39,7 @@ RE_CLASS_PS_PO = (
     + rf"(?:{RE_ARRETE}\s+de\s+{RE_PS_PO})"
     # ou: arrêté municipal ordonnant les mesures nécessaires au cas de péril ordinaire
     + rf"|(?:{RE_ARRETE}\s+ordonnant\s+les\s+mesures\s+n[ée]cessaires\s+au\s+cas\s+de\s+{RE_PS_PO})"
+    + rf"|(?:Objet\s*:\s+{RE_PS_PO})"
     + r")"
 )
 M_CLASS_PS_PO = re.compile(RE_CLASS_PS_PO, re.MULTILINE | re.IGNORECASE)
@@ -72,6 +73,8 @@ RE_CLASS_MS = (
     + r"\s+modificatif"
     + rf"|{RE_PROCEDURE_URGENTE}"
     + r")"
+    + rf"|(?:Objet\s*:\s+{RE_MISE_EN_SECURITE}{RE_PROCEDURE_ORDINAIRE})"
+    + rf"|(?:Objet\s*:\s+{RE_MISE_EN_SECURITE}(?!{RE_PROCEDURE_URGENTE}))"
     + r")"
 )
 M_CLASS_MS = re.compile(RE_CLASS_MS, re.MULTILINE | re.IGNORECASE)
@@ -103,6 +106,10 @@ RE_CLASS_PGI = (
     + rf"\s+de\s+{RE_PGI})"
     # "Péril grave et imminent" (en début de ligne)
     + rf"|(?:^{RE_PGI})"
+    # Objet : Péril grave et imminent
+    + rf"|(?:Objet\s*:\s+{RE_PGI})"
+    # Objet : Déclarant un péril grave et imminent (rare)
+    + rf"|(?:Objet\s*:\s+déclarant\s+un\s+{RE_PGI})"
     + r")"
 )
 M_CLASS_PGI = re.compile(RE_CLASS_PGI, re.MULTILINE | re.IGNORECASE)
@@ -155,6 +162,18 @@ RE_CLASS_ML = (
     + r")"
 )
 M_CLASS_ML = re.compile(RE_CLASS_ML, re.MULTILINE | re.IGNORECASE)
+
+# faux positifs de "mainlevée": occurrences dans les textes de loi
+# à date, on repère ces occurrences et on les retire du texte avant de chercher les motifs de (vraie) mainlevée
+# à terme, quand on parviendra à détecter les extraits complets et à les écarter du traitement, ces motifs seront inutiles
+RE_ML_FP = (
+    r"(?:"
+    + r"(?:la\s+notification\s+ou\s+l['’\s]affichage\s+de\s+l['’\s]arrêté\s+de\s+mainlevée)"
+    + r"|(?:la\s+notification\s+de\s+la\s+mainlevée\s+de\s+l['’\s]arrêté)"
+    + r")"
+)
+P_ML_FP = re.compile(RE_ML_FP, re.MULTILINE | re.IGNORECASE)
+
 
 # mainlevée partielle
 RE_CLASS_ML_PA = (
@@ -353,6 +372,19 @@ def get_classe(page_txt: str) -> bool:
     doc_class: str
         Classification de l'arrêté si trouvé, None sinon.
     """
+    # on commence par reconnaître et effacer les faux positifs de mainlevée:
+    # mentions de notification ou d'affichage, dans les extraits des textes
+    # réglementaires
+    # TODO remplacer ce traitement par une détection des extraits dans leur
+    # totalité (annexes, éventuellement paragraphes intégrés au corps de l'arrêté)
+    ml_fps = list(P_ML_FP.finditer(page_txt))
+    for ml_fp in ml_fps:
+        page_txt = (
+            page_txt[: ml_fp.start()]
+            + " " * (ml_fp.end() - ml_fp.start())
+            + page_txt[ml_fp.end() :]
+        )
+    #
     # NB: l'ordre d'application des règles de matching est important:
     # les mainlevées incluent généralement l'intitulé de l'arrêté (ou du type d'arrêté) précédent
     if (

@@ -11,6 +11,7 @@ Ce module utilise pikepdf.
 import argparse
 from datetime import datetime, timedelta
 from dateutil import tz
+import hashlib
 import logging
 from pathlib import Path
 from typing import Dict, List
@@ -130,11 +131,36 @@ def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose=True) -> dict:
     return infos
 
 
+def get_file_digest(fp_pdf: Path, digest: str = "sha1") -> str:
+    """Extraire le hachage d'un fichier avec la fonction `digest`.
+
+    Parameters
+    ----------
+    fp_pdf: Path
+        Chemin du fichier PDF à traiter.
+    digest: str
+        Nom de la fonction de hachage à utiliser, "sha1" par défaut.
+
+    Returns
+    -------
+    fd_hexdigest: str
+        Hachage du fichier.
+    """
+    with open(fp_pdf, mode="rb") as f:
+        # python >= 3.8
+        f_digest = hashlib.new(digest)
+        while chunk := f.read(8192):
+            f_digest.update(chunk)
+        # alternative en 1 ligne (plutôt que 3) pour python >= 3.11:
+        # f_digest = hashlib.file_digest(f, digest)
+    fd_hexdigest = f_digest.hexdigest()
+    return fd_hexdigest
+
+
 def get_pdf_info(fp_pdf: Path) -> Dict[str, str | int]:
     """Extraire les informations (dont métadonnées) d'un fichier PDF.
 
-    Utilise actuellement pikepdf et poppler en parallèle, pour vérifier
-    la cohérence et la complétude. À terme, devrait n'utiliser que pikepdf.
+    Utilise actuellement pikepdf.
 
     Parameters
     ----------
@@ -152,7 +178,7 @@ def get_pdf_info(fp_pdf: Path) -> Dict[str, str | int]:
         "pdf": fp_pdf.name,  # nom du fichier
         "fullpath": fp_pdf.resolve(),  # chemin complet
         "filesize": fp_pdf.stat().st_size,  # taille du fichier
-        # TODO hashlib.sha1 ?
+        "sha1": get_file_digest(fp_pdf, digest="sha1"),  # hash du fichier
     }
     # lire les métadonnées du PDF avec pikepdf
     meta_pike = get_pdf_info_pikepdf(fp_pdf)
@@ -178,12 +204,14 @@ def index_folder(in_dir: Path, recursive: bool = True) -> List[Dict[str, str | i
     """
     logging.info(f"Ouverture du dossier {in_dir}")
     # lister les PDFs dans le dossier à traiter
+    pat_pdf = "*.[Pp][Dd][Ff]"
     if recursive:
-        pdfs_in = sorted(in_dir.rglob("*.[Pp][Dd][Ff]"))
+        pdfs_in = sorted(in_dir.rglob(pat_pdf))
     else:
-        pdfs_in = sorted(in_dir.glob("*.[Pp][Dd][Ff]"))
+        pdfs_in = sorted(in_dir.glob(pat_pdf))
     if not pdfs_in:
         logging.warning(f"Aucun PDF trouvé dans {in_dir}")
+
     # exclure d'éventuels fichiers non pertinents
     # TODO transformer en vrai script ; utiliser des DataFrames pour accélérer le traitement si le nombre de fichiers concernés augmente trop?
     pdfs_in = [x for x in pdfs_in if x not in EXCLUDE_FILES]

@@ -22,20 +22,24 @@ from src.preprocess.extract_metadata import DTYPE_META_BASE
 
 # format des données en sortie
 DTYPE_META_PROC = DTYPE_META_BASE | {
-    "col_res": "boolean",
+    # détection des doublons
+    "dup_allinfo": "boolean",
+    "dup_createdate": "boolean",
+    "dup_hash": "boolean",
+    # actes
     "guess_tampon": "boolean",
     "guess_dernpage": "boolean",
+    # type de PDF
     "guess_pdftext": "boolean",
     "guess_badocr": "boolean",
 }
 
 
-def _guess_duplicates(
-    df: pd.DataFrame, subset: List[str], col_res: str
-) -> pd.DataFrame:
+def _guess_duplicates(df: pd.DataFrame, subset: List[str]) -> pd.Series:
     """Détecte les doublons dans un DataFrame.
 
-    Une colonne est ajoutée au DataFrame, qui marque les doublons.
+    Retourne une colonne (Series) de longueur identique à celle du DataFrame,
+    qui marque les doublons.
 
     Les groupes de doublons, plus la première occurrence de la valeur doublonnée,
     sont écrits dans le fichier de log.
@@ -46,20 +50,17 @@ def _guess_duplicates(
         DataFrame à dédoublonner
     subset: List[str]
         Sous-ensemble des colonnes à considérer pour détecter les doublons
-    col_res: str
-        Nom de la colonne résultat
 
     Returns
     -------
-    df_dup: pd.DataFrame
-        DataFrame augmenté d'une colonne identifiant les doublons.
+    s_dups: pd.Series
+        Colonne identifiant les doublons.
     """
     # détecter les doublons hormis la 1re occurrence ; les valeurs NA sont tolérées
     # sauf quand tout le subset est NA
     s_dups = df.duplicated(subset=subset, keep="first") & ~df[subset].isnull().all(
         axis="columns"
     )
-    df_dup = df.assign(col_res=s_dups)
     # s'il y a des doublons, écrire dans le log les doublons et la 1re occurrence
     nb_dups = s_dups.sum()
     if nb_dups:
@@ -71,7 +72,7 @@ def _guess_duplicates(
         logging.warning(f"WIP: {s_dups_all.sum()}")
         for k, grp in df[s_dups_all].groupby(subset, sort=False, dropna=False):
             logging.warning(f"Doublons: {grp['pdf'].values}")
-    return df_dup
+    return s_dups
 
 
 def guess_duplicates_meta(df_meta: pd.DataFrame):
@@ -85,7 +86,8 @@ def guess_duplicates_meta(df_meta: pd.DataFrame):
     Returns
     -------
     df_mmod: pd.DataFrame
-        Métadonnées des fichiers PDF, avec des colonnes booléennes "dup_*" indiquant les fichiers doublons.
+        Métadonnées des fichiers PDF, avec des colonnes booléennes "dup_*" indiquant
+        les fichiers doublons.
     """
     # détection stricte: doublons sur toutes les infos (sauf "pdf" et "fullpath")
     # (trop de faux négatifs?)
@@ -99,14 +101,21 @@ def guess_duplicates_meta(df_meta: pd.DataFrame):
         "createdate",
         "modifydate",
     ]
-    df_mmod = _guess_duplicates(df_meta, cols_dups_allinfo, "dup_allinfo")
+    s_dups_allinfo = _guess_duplicates(df_meta, cols_dups_allinfo)
+    df_mmod = df_meta.assign(dup_allinfo=s_dups_allinfo)
 
     # détection lâche: doublons sur la date de création
     # (trop de faux positifs)
     cols_dups_createdate = ["createdate"]
-    #
-    df_mmod = _guess_duplicates(df_mmod, cols_dups_createdate, "dup_createdate")
+    s_dups_createdate = _guess_duplicates(df_mmod, cols_dups_createdate)
+    df_mmod = df_mmod.assign(dup_createdate=s_dups_createdate)
 
+    # détection basée sur le hachage des fichiers
+    cols_dups_hash = ["sha1"]
+    s_dups_hash = _guess_duplicates(df_mmod, cols_dups_hash)
+    df_mmod = df_mmod.assign(dup_hash=s_dups_hash)
+
+    #
     return df_mmod
 
 

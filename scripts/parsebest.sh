@@ -5,8 +5,12 @@ DATA_PRO=data/processed
 #
 # DIR_IN=${DATA_RAW}/arretes_peril_hors_marseille_2018_2022
 # BATCH=hors_marseille_2018_2022
-DIR_IN=${DATA_RAW}/arretes_peril_compil
-BATCH=arretes_peril_compil
+#
+# DIR_IN=${DATA_RAW}/arretes_peril_compil
+# BATCH=arretes_peril_compil
+#
+DIR_IN=${DATA_RAW}/actes_2022_traites
+BATCH=actes_2022_traites
 
 # 6.(alt) analyser de façon structurée le texte natif des PDF (pages vides, tampons, accusés de réception), pour déterminer si l'OCR doit être faite (ou refaite)
 # (2 entrées: CSV de métadonnées 1 ligne par fichier + CSV de pages de texte 1 ligne par page ;

@@ -29,8 +29,8 @@ from src.utils.text_utils import RE_NO, normalize_string
 # lettres non-accentuées et accentuées, majuscules et minuscules
 RE_LETTERS = r"[A-Za-zÀ-ÿ]+"  # r"[^,;:–(\s.]+"  # r"\w+"
 # séparateur entre deux tokens ; caractères possibles dans un token
-RE_SEP = r"[\s,;:(/.–-]"
-RE_NOSEP = r"[^\s,;:(/.–-]"
+RE_SEP = r"[\s,;:({/.–-]"
+RE_NOSEP = r"[^\s,;:({/.–-]"
 
 # TODO comment gérer plusieurs numéros? ex: "10-12-14 boulevard ...""
 # pour le moment on ne garde que le premier
@@ -410,6 +410,7 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
     if not m_adresse:
         # FIXME contournement sale, quand l'adresse ne contient rien qui convienne au lookahead
         adr_ad_brute = adr_ad_brute + " - "
+        # TODO .search => .match ?
         m_adresse = P_ADRESSE_NG.search(adr_ad_brute)
     try:
         assert m_adresse
@@ -447,6 +448,7 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
     try:
         assert len(adr_lists) == 1
     except AssertionError:
+        # RESUME HERE
         raise ValueError(f"adr_lists: {adr_lists} dans {adr_ad_brute}")
     adr_list = adr_lists[0]
     # on vérifie qu'on travaille exactement au même endroit, pour se positionner au bon endroit

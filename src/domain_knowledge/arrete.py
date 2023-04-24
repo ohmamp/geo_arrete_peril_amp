@@ -111,7 +111,10 @@ def contains_considerant(page_txt: str) -> bool:
 # cas particulier: Rognes: "ARRÊTÉ" dans cette position (negative lookahead pour éviter les conflits avec le repérage d'ARRÊTÉ <num_arr>)
 RE_ARRETONS = (
     r"^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS|É"
-    + rf"(?!\s+(?:{RE_NO}|\d|de|d['’]))"  # negative lookahead pour la seule alternative "arrêté": pas "n°", ni chiffre, ni "de", ni "d'"
+    + r"(?!"  # negative lookahead pour la seule alternative "arrêté":
+    + r"(?:S)"  # pas "arrêtés" (ex: "arrêtés municipaux susvisés")
+    + rf"|(?:\s+(?:{RE_NO}|\d|de|d['’]))"  #  pas "n°", ni chiffre, ni "de", ni "d'"
+    + r")"
     + r")(?:\s*:)?)"
 )
 # RE_ARRETONS = r"^\s*(ARR[ÊE]TE|ARR[ÊE]TONS)"
@@ -137,7 +140,7 @@ def contains_arrete(page_txt: str) -> bool:
 # "Article 1(er)?", "Article 2" etc ; confusion possible OCR: "l" pour "1"
 # "Atlicle": robustesse OCR...
 RE_ARTICLE = (
-    r"^\s*(?:ARTICLE|Atlicle)(?:[-]|\s+)"  # "-": robustesse OCR
+    r"^\s*(?:ARTICLE|Atlicle|Aïticle)(?:[-]|\s+)"  # Atlicle, Aïtlicle, "-": robustesse OCR
     + r"(?:[1lI]\s*(?:er)?|\d+"  # 1, 1er et variantes robustes aux erreurs d'OCR
     + rf"|{RE_ORDINAUX}|{RE_CARDINAUX})"
 )

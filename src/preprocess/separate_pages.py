@@ -62,7 +62,9 @@ def create_pages_dataframe(
                 assert len(doc_txt) == df_row.nb_pages
             except AssertionError:
                 print(repr(df_row))
-                print(len(doc_txt))
+                print(
+                    f"{len(doc_txt)} pages de texte != {df_row.nb_pages} pages dans le fichier PDF"
+                )
                 raise
             # pour chaque page, charger le texte
             pages = [

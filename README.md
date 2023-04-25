@@ -25,13 +25,14 @@ création de l'environnement par Mamba.
 conda activate agperils-amp
 # installer ocrmypdf qui ne pouvait pas être installé en même temps que ses dépendances...
 mamba install ocrmypdf
+# depuis le dossier où se trouve le code source du projet
+pip install -e .
 ```
 
 ## Utilisation
 
 ```sh
 conda activate agperils-amp
-pip install -e .  # (à faire une seule fois)
 scripts/preprocess.sh  # FIXME redo
 scripts/parsebest.sh  # FIXME parse_doc_direct + redo
 time python src/process/parse_doc_direct.py data/raw/actes_2022_traites data/interim/txt_native data/interim/ocr_txt data/processed/actes_2022_traites_ntxt_otxt --redo

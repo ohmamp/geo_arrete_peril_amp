@@ -13,6 +13,5 @@ dependencies:
   - pytesseract >= 0.3.10
   - pip:
     - dateparser >= 1.1.1  # 1.1.2
-    - pandera[io] >= 0.13.2
     - pikepdf >= 5.1
     - pdf2image >= 1.16.0  # pdf2image

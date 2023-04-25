@@ -347,12 +347,12 @@ RE_ADR_DOC = (
     + r"situ[ée](?:\s+(?:au|du))?"
     + r"|désordres\s+(?:importants\s+)?(?:sur|affectant)\s+(?:le\s+bâtiment|l['’]immeuble)\s+sis"
     + r"|un\s+péril\s+grave\s+et\s+imminent\s+(?:à|au)"
-    + r"|immeuble\s+(?:du|numéroté|mena[çc]ant\s+ruine)"
+    + r"|(immeuble|bien)[,]?\s+(?:du|numéroté|mena[çc]ant\s+ruine|sis)"
     # + r"|sis[e]?(?:\s+à)?"
     + r"|(?:(?<!Risques, )sis(e|es)?[,]?(?:\s+(?:[àa]|au|du))?)"  # éviter un match sur l'adresse d'un service municipal
     # Objet: <classe>? - <adresse> (ex: "Objet: Péril grave et imminent - 8 rue X")
     + r"|(?:Objet\s*:"
-    + rf"(?:\s+{RE_CLASSE}(?:\s*[,:–-]|\s+au)?)?"
+    + rf"(?:\s+{RE_CLASSE}(?:\s*[,:–-]|\s+au|\s+dans\s+l['’]immeuble\s+sis)?)?"
     + r")"  # fin "Objet:(classe)?"
     + rf"|(?:{RE_CLASSE}\s*[–-])"  # <classe> - <adresse>
     + r")\s+"  # fin alternatives contexte gauche
@@ -360,7 +360,7 @@ RE_ADR_DOC = (
     + rf"(?P<adresse>{RE_ADRESSE})"  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     # contexte droit
     + r"(?=\s*"  # WIP \s+  # WIP (?=  # was: P<rcont>
-    + r"(?:[,;:–-]\s*|[(])?"  # NEW 2023-03-11: ";"  # WIP \s+
+    + r"(?:[,;:–-]\s*|[({])?"  # "{" pour être robuste aux erreurs d'OCR   # WIP \s+
     + rf"(?:{RE_ADR_RCONT})"  # WIP (?=
     + r")?"
 )
@@ -403,6 +403,7 @@ def get_adr_doc(page_txt: str) -> bool:
                 adr_brute = adr_brute[:-1]
             # - normaliser les graphies, les espaces etc
             adr_brute = normalize_string(adr_brute)
+
             # - extraire la ou les adresses précises, décomposée en champs
             # (numéro, indicateur, voie...)
             # WIP on prend le texte de la page, borné à gauche avec le début de l'adresse
@@ -412,7 +413,7 @@ def get_adr_doc(page_txt: str) -> bool:
                 adresses_proc = process_adresse_brute(adr_brute)
             except AssertionError:
                 print(
-                    f"adr_doc: {m_adr.group(0)}\n{m_adr.groups()}\n{m_adr.groupdict()}"
+                    f"get_adr_doc: process_adresse_brute({adr_brute})\nmatch complet={m_adr.group(0)}\ngroups={m_adr.groups()}\ngroupdict={m_adr.groupdict()}"
                 )
                 raise
 

@@ -200,6 +200,9 @@ def guess_badocr(df_meta: pd.DataFrame) -> pd.DataFrame:
         # "Image Capture Plus"
         df_meta["creatortool"]
         == "Image Capture Plus"
+    ) | (
+        # "Adobe PSL 1.2e for Canon" (ou 1.1e, 1.3e)
+        df_meta["producer"].str.startswith("Adobe PSL")
     )
     df_mmod = df_meta.assign(guess_badocr=has_badocr)
     return df_mmod

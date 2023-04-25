@@ -139,7 +139,11 @@ def extract_adresses_commune(
     adresses: list(dict)
         Adresses visées par l'arrêté
     """
-    adresses_visees = get_adr_doc(pg_txt_body)
+    try:
+        adresses_visees = get_adr_doc(pg_txt_body)
+    except AssertionError:
+        logging.error(f"{fn_pdf}: problème d'extraction d'adresse")
+        raise
     # if fn_pdf == "périmètre de sécurité 82 Hoche 105 Kleber 13003.pdf":
     #     print(f"{commune_maire}, {adresses_visees}")
     #     # raise ValueError("don't stop me now (too soon)")

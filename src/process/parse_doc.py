@@ -477,7 +477,18 @@ def parse_doc_postamble(txt_body: str, pream_beg: int, pream_end: int) -> list[d
                 "span_typ": "arr_date",
             }
         )
-    # TODO b. extraire l'identité et la qualité du signataire? (eg. délégation de signature)
+        # b. extraire la ville de signature
+        if ville_signat := m_signature.group("arr_ville_signat"):
+            # stocker la donnée
+            content.append(
+                {
+                    "span_beg": m_signature.start("arr_ville_signat"),
+                    "span_end": m_signature.end("arr_ville_signat"),
+                    "span_txt": m_signature.group("arr_ville_signat"),
+                    "span_typ": "adr_ville",  # TODO utiliser un autre nom pour éviter le conflit?
+                }
+            )
+    # TODO c. extraire l'identité et la qualité du signataire? (eg. délégation de signature)
     #
     return content
 

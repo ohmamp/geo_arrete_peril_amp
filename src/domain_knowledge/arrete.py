@@ -49,10 +49,12 @@ M_MAIRE_COMMUNE_CLEANUP = re.compile(
 # il peut être nécessaire de nettoyer la zone extraite pour enlever le contexte droit (reconnaissance trop étendue)
 def get_commune_maire(page_txt: str) -> bool:
     """Extrait le nom de la commune précédé de la mention du maire.
+
     Parameters
     ----------
     page_txt: str
         Texte d'une page de document
+
     Returns
     -------
     nom_commune: str | None
@@ -166,7 +168,7 @@ def contains_article(page_txt: str) -> bool:
 # date de signature de l'arrêté
 RE_DATE_SIGNAT = (
     r"(?:"
-    + r"^Fait\s+à\s+\S+[,]?\s+le"  # Roquevaire (fin), Gémenos (fin ; à vérifier après OCR)
+    + r"^Fait\s+à\s+(?P<arr_ville_signat>\S+)[,]?\s+le"  # Aubagne (fin), Roquevaire (fin), Gémenos (fin ; à vérifier après OCR)
     # Aix-en-Provence (fin)
     + r"|^Fait\s+à\s+Aix-en-Provence,\s+en\s+l['’]Hôtel\s+de\s+Ville,\nle"
     # Gardanne
@@ -190,6 +192,8 @@ P_DATE_SIGNAT = re.compile(RE_DATE_SIGNAT, re.MULTILINE | re.IGNORECASE)
 
 def get_date(page_txt: str) -> bool:
     """Récupère la date de l'arrêté.
+
+    Actuellement, correspond à la date de signature, en fin d'arrêté.
 
     Parameters
     ----------

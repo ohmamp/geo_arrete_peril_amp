@@ -160,13 +160,13 @@ if __name__ == "__main__":
         logging.info(
             f"Dossier de sortie: {out_dir} {'existe déjà' if out_dir.is_dir() else 'doit être créé'}."
         )
-        out_dir.mkdir(exist_ok=True)
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     # sortie: dossier pour PDF-A
     out_dir = Path(args.out_dir).resolve()
     out_pdf_dir = out_dir / "pdf"
     # on le crée si besoin
-    out_pdf_dir.mkdir(exist_ok=True)
+    out_pdf_dir.mkdir(parents=True, exist_ok=True)
 
     # ouvrir le fichier d'entrée
     logging.info(f"Ouverture du fichier CSV {in_file}")

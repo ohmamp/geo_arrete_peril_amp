@@ -121,7 +121,7 @@ if __name__ == "__main__":
         logging.info(
             f"Dossier de sortie: {out_dir} {'existe déjà' if out_dir.is_dir() else 'doit être créé'}."
         )
-        out_dir.mkdir(exist_ok=True)
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     # sortie: CSV de pages de texte annotées
     # on crée le dossier parent (récursivement) si besoin
@@ -138,7 +138,7 @@ if __name__ == "__main__":
         logging.info(
             f"Dossier de sortie: {out_dir} {'existe déjà' if out_dir.is_dir() else 'doit être créé'}."
         )
-        out_dir.mkdir(exist_ok=True)
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     # ouvrir le fichier de métadonnées en entrée
     logging.info(f"Ouverture du fichier CSV de métadonnées {in_file_meta}")

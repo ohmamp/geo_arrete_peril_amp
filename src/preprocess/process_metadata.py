@@ -286,7 +286,7 @@ if __name__ == "__main__":
         logging.info(
             f"Dossier de sortie: {out_dir} {'existe déjà' if out_dir.is_dir() else 'doit être créé'}."
         )
-        out_dir.mkdir(exist_ok=True)
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     # ouvrir le fichier d'entrée
     df_metas = pd.read_csv(in_file, dtype=DTYPE_META_BASE)

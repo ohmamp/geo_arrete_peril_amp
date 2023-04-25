@@ -533,6 +533,8 @@ def process_files(
 if __name__ == "__main__":
     # log
     dir_log = Path(__file__).resolve().parents[2] / "logs"
+    if not dir_log.is_dir():
+        dir_log.mkdir(exist_ok=True)
     logging.basicConfig(
         filename=f"{dir_log}/test_parse_doc_direct_{datetime.now().isoformat()}.log",
         encoding="utf-8",
@@ -597,6 +599,6 @@ if __name__ == "__main__":
         logging.info(
             f"Dossier de sortie: {out_dir} {'existe déjà' if out_dir.is_dir() else 'doit être créé'}."
         )
-        out_dir.mkdir(exist_ok=True)
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     process_files(in_dir_pdf, in_dir_ntxt, in_dir_otxt, out_dir)

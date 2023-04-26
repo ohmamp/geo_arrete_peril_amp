@@ -87,6 +87,9 @@ def get_gest(page_txt: str) -> str:
     syndic: str
         Nom de gestionnaire si détecté, None sinon.
     """
+    # NEW normalisation du texte
+    page_txt = normalize_string(page_txt, num=True, apos=True, hyph=True, spaces=True)
+    # end NEW
     match = P_GEST.search(page_txt)
     return match.group("gestio") if match is not None else None
 
@@ -155,6 +158,9 @@ def get_proprio(page_txt: str) -> bool:
     syndic: str
         Nom et adresse du propriétaire si détecté, None sinon.
     """
+    # NEW normalisation du texte
+    page_txt = normalize_string(page_txt, num=True, apos=True, hyph=True, spaces=True)
+    # end NEW
     # on essaie d'abord de détecter un mono-propriétaire (WIP)
     if match := P_PROPRIO_MONO.search(page_txt):
         logging.warning(f"mono-propriétaire: {match}\n{match.group(0)}")
@@ -306,6 +312,9 @@ def get_syndic(page_txt: str) -> bool:
     syndic: str
         Nom de syndic si détecté, None sinon.
     """
+    # NEW normalisation du texte
+    page_txt = normalize_string(page_txt, num=True, apos=True, hyph=True, spaces=True)
+    # end NEW
     if m_synd := P_NOTIFIE_AU_SYNDIC_LI.search(page_txt):
         logging.warning(
             f"Syndic: {m_synd.group(0)}\n{m_synd.group('syndic')} / {m_synd.group('syndic_post')}"
@@ -359,7 +368,7 @@ RE_ADR_DOC = (
     # adresse du document
     + rf"(?P<adresse>{RE_ADRESSE})"  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")
     # contexte droit
-    + r"(?=\s*"  # WIP \s+  # WIP (?=  # was: P<rcont>
+    + r"(?P<rcont>\s*"  # WIP \s+  # WIP (?=  # was: P<rcont>
     + r"(?:[,;:–-]\s*|[({])?"  # "{" pour être robuste aux erreurs d'OCR   # WIP \s+
     + rf"(?:{RE_ADR_RCONT})"  # WIP (?=
     + r")?"
@@ -384,6 +393,9 @@ def get_adr_doc(page_txt: str) -> bool:
         la page de texte. Pour chaque zone d'adresse brute, la ou
         les adresses extraites.
     """
+    # NEW normalisation du texte
+    page_txt = normalize_string(page_txt, num=True, apos=True, hyph=True, spaces=True)
+    # end NEW
     adresses = []
     if matches_adr := list(P_ADR_DOC.finditer(page_txt)):
         for m_adr in matches_adr:
@@ -402,7 +414,9 @@ def get_adr_doc(page_txt: str) -> bool:
             if adr_brute.endswith((".", ",")):
                 adr_brute = adr_brute[:-1]
             # - normaliser les graphies, les espaces etc
-            adr_brute = normalize_string(adr_brute)
+            adr_brute = normalize_string(
+                adr_brute, num=True, apos=True, hyph=True, spaces=True
+            )
 
             # - extraire la ou les adresses précises, décomposée en champs
             # (numéro, indicateur, voie...)

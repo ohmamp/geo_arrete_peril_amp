@@ -95,6 +95,9 @@ S_RE_COMMUNES_VARS = (
     # a
     .str.replace(r"À", r"[ÀA]", regex=True)
     .str.replace(r"à", r"[àa]", regex=True)
+    # c
+    .str.replace(r"Ç", r"[ÇC]", regex=True)
+    .str.replace(r"ç", r"[çc]", regex=True)
     # e
     # ou une seule attrape-tout pour être plus robuste (quitte à être trop tolérant)?
     # eg. r"[éèêë]", r"[éèêëe]"
@@ -163,8 +166,16 @@ def simplify_commune(com: str) -> str:
     # FIXME utiliser unicodedata.normalize
     return (
         com.lower()
+        .replace("à", "a")
+        .replace("ç", "c")
         .replace("é", "e")
         .replace("è", "e")
+        .replace("ê", "e")
+        .replace("î", "i")
+        .replace("ï", "i")
+        .replace("ô", "o")
+        .replace("û", "u")
+        .replace("ÿ", "y")
         .replace("-", "")
         .replace(" ", "")
     )

@@ -11,11 +11,11 @@ from src.utils.text_utils import RE_NO
 RE_RF = r"R[ée]publique\s+Fran[çc]aise"
 RE_RF_DEVISE = r"Libert[ée]\s*[\S]?\s*[EÉ]galit[ée]\s*[\S]?\s*Fraternit[ée]"
 # département des Bouches-du-Rhône
-RE_DEP_013 = r"(D[ée]partement\s+(des\s+)?)?Bouches\s*[-—]?\s*du\s*[-—]?\s*Rh[ôo]ne"
+RE_DEP_013 = r"(D[ée]partement\s+(des\s+)?)?Bouches\s*[-–]?\s*du\s*[-–]?\s*Rh[ôo]ne"
 # arrondissements
 RE_ARD_013 = (
     r"Arrondissement\s+"
-    + r"(d['’]\s*(Aix\s*[-—]?\s*en\s*[-—]?\s*Provence|Arles|[ÎIl]stres)"
+    + r"(d['’]\s*(Aix\s*[-–]?\s*en\s*[-–]?\s*Provence|Arles|[ÎIl]stres)"
     + r"|de\s+Marseille)"
 )
 

@@ -376,7 +376,7 @@ def create_adresse_normalisee(
     adr_norm = " ".join(
         x for x in adr_norm_parts if pd.notna(x)
     )  # TODO normaliser la graphie?
-    adr_norm = normalize_string(adr_norm)
+    adr_norm = normalize_string(adr_norm, num=True, apos=True, hyph=True, spaces=True)
     return adr_norm
 
 

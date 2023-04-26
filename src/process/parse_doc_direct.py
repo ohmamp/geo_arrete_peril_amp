@@ -195,7 +195,13 @@ def extract_adresses_commune(
         numvoie2cp = {
             (
                 y["num"],
-                normalize_string(remove_accents(y["voie"]).replace("’", "'")).lower(),
+                normalize_string(
+                    remove_accents(y["voie"]),
+                    num=True,
+                    apos=True,
+                    hyph=True,
+                    spaces=True,
+                ).lower(),
             ): y["cpostal"]
             for x in adresses_visees
             for y in x["adresses"]
@@ -207,7 +213,11 @@ def extract_adresses_commune(
                 sel_short = (
                     sel_adr["num"],
                     normalize_string(
-                        remove_accents(sel_adr["voie"]).replace("’", "'")
+                        remove_accents(sel_adr["voie"]),
+                        num=True,
+                        apos=True,
+                        hyph=True,
+                        spaces=True,
                     ).lower(),
                 )
                 # print(f">>>>>> sel_short: {sel_short}")
@@ -302,13 +312,19 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
         if x["span_typ"] == "arr_date"
     ]
     if arr_dates:
-        arretes["date"] = normalize_string(arr_dates[0])
+        arretes["date"] = normalize_string(
+            arr_dates[0], num=True, apos=True, hyph=True, spaces=True
+        )
     arr_nums = [x["span_txt"] for x in pages_cont if x["span_typ"] == "num_arr"]
     if arr_nums:
-        arretes["num_arr"] = normalize_string(arr_nums[0])
+        arretes["num_arr"] = normalize_string(
+            arr_nums[0], num=True, apos=True, hyph=True, spaces=True
+        )
     arr_noms = [x["span_txt"] for x in pages_cont if x["span_typ"] == "nom_arr"]
     if arr_noms:
-        arretes["nom_arr"] = normalize_string(arr_noms[0])
+        arretes["nom_arr"] = normalize_string(
+            arr_noms[0], num=True, apos=True, hyph=True, spaces=True
+        )
 
     # - commune extraite des mentions de l'autorité prenant l'arrêté, ou du template du document
     adrs_commune_maire = [x for x in pages_cont if x["span_typ"] == "adr_ville"]
@@ -317,7 +333,13 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
     if not adrs_commune_maire:
         adr_commune_maire = None
     else:
-        adr_commune_maire = normalize_string(adrs_commune_maire[0]["span_txt"])
+        adr_commune_maire = normalize_string(
+            adrs_commune_maire[0]["span_txt"],
+            num=True,
+            apos=True,
+            hyph=True,
+            spaces=True,
+        )
     # print(f"commune: {adr_commune_maire}")  # DEBUG
     #
     # parcelles
@@ -382,18 +404,24 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
 
             # extraire les notifiés
             if proprios := get_proprio(pg_txt_body):
-                norm_proprios = normalize_string(proprios)
+                norm_proprios = normalize_string(
+                    proprios, num=True, apos=True, hyph=True, spaces=True
+                )
                 notifies["proprios"][
                     norm_proprios
                 ] = proprios  # WIP: proprios = [] + extend()
             if syndics := get_syndic(pg_txt_body):
-                norm_syndics = normalize_string(syndics)
+                norm_syndics = normalize_string(
+                    syndics, num=True, apos=True, hyph=True, spaces=True
+                )
                 notifies["syndics"][
                     norm_syndics
                 ] = syndics  # WIP: syndics = [] + extend ?
 
             if gests := get_gest(pg_txt_body):
-                norm_gests = normalize_string(gests)
+                norm_gests = normalize_string(
+                    gests, num=True, apos=True, hyph=True, spaces=True
+                )
                 notifies["gests"][norm_gests] = gests  # WIP: gests = [] + extend ?
 
             # extraire la ou les parcelles visées par l'arrêté

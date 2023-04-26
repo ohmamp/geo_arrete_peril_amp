@@ -30,7 +30,7 @@ import re
 
 import pandas as pd
 
-from src.utils.text_utils import RE_NO
+from src.utils.text_utils import RE_NO, normalize_string
 
 
 # Marseille: préfixe = arrondissement + quartier
@@ -158,6 +158,9 @@ def get_parcelle(page_txt: str) -> str:
         Référence d'une ou plusieurs parcelles cadastrales si détectées dans le texte,
         None sinon.
     """
+    # NEW normalisation du texte
+    page_txt = normalize_string(page_txt, num=True, apos=True, hyph=True, spaces=True)
+    # end NEW
     # WIP chercher le ou les empans distincts contenant au moins une référence à une parcelle
     if matches := list(P_PARCELLE.finditer(page_txt)):
         logging.warning(

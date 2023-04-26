@@ -56,7 +56,7 @@ from src.preprocess.data_sources import EXCLUDE_FIXME_FILES, EXCLUDE_FILES
 from src.preprocess.separate_pages import load_pages_text
 from src.preprocess.filter_docs import DTYPE_META_NTXT_FILT, DTYPE_NTXT_PAGES_FILT
 from src.quality.validate_parses import examine_doc_content  # WIP
-from src.utils.text_utils import P_STRIP, P_LINE
+from src.utils.text_utils import P_STRIP, P_LINE, normalize_string
 
 
 # dtypes des champs extraits
@@ -763,6 +763,11 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
             }
             doc_content.append(page_content)
             continue
+
+        # NEW normalisation du texte
+        # spaces=False sinon on perd les retours à la ligne !
+        page = normalize_string(page, num=True, apos=True, hyph=True, spaces=False)
+        # end NEW
 
         # repérer et effacer les éléments de template, pour ne garder que le contenu de chaque page
         pg_template, pg_txt_body = parse_page_template(page)

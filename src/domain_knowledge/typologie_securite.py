@@ -15,6 +15,7 @@
 import re
 
 from src.domain_knowledge.arrete import RE_ARRETE
+from src.utils.text_utils import normalize_string
 
 # formule parfois utilisée
 RE_A_DIRE_D_EXPERT = r"[àa]\s+dire\s+d['’\s]\s*expert"
@@ -383,6 +384,9 @@ def get_classe(page_txt: str) -> bool:
     doc_class: str
         Classification de l'arrêté si trouvé, None sinon.
     """
+    # NEW normalisation du texte
+    page_txt = normalize_string(page_txt, num=True, apos=True, hyph=True, spaces=True)
+    # end NEW
     # on commence par reconnaître et effacer les faux positifs de mainlevée:
     # mentions de notification ou d'affichage, dans les extraits des textes
     # réglementaires
@@ -440,6 +444,9 @@ def get_urgence(page_txt: str) -> bool:
     doc_class: str
         Caractère d'urgence de l'arrêté si trouvé, None sinon.
     """
+    # NEW normalisation du texte
+    page_txt = normalize_string(page_txt, num=True, apos=True, hyph=True, spaces=True)
+    # end NEW
     if (
         M_CLASS_PS_PO.search(page_txt)
         or M_CLASS_PS_PO_MOD.search(page_txt)
@@ -480,6 +487,9 @@ def get_int_hab(page_txt: str) -> bool:
     doc_int_hab: str
         Interdiction d'habiter si trouvé, None sinon.
     """
+    # NEW normalisation du texte
+    page_txt = normalize_string(page_txt, num=True, apos=True, hyph=True, spaces=True)
+    # end NEW
     if page_txt is None:
         return None
     elif P_INT_HAB.search(page_txt):
@@ -499,6 +509,9 @@ def get_demo(page_txt: str) -> bool:
     doc_demol_deconst: str
         Démolition ou déconstruction si trouvé, None sinon.
     """
+    # NEW normalisation du texte
+    page_txt = normalize_string(page_txt, num=True, apos=True, hyph=True, spaces=True)
+    # end NEW
     if page_txt is None:
         return None
     elif P_DEMO.search(page_txt):
@@ -518,6 +531,9 @@ def get_equ_com(page_txt: str) -> bool:
     doc_equ_com: str
         Sécurité des équipements communs si trouvé, None sinon.
     """
+    # NEW normalisation du texte
+    page_txt = normalize_string(page_txt, num=True, apos=True, hyph=True, spaces=True)
+    # end NEW
     if page_txt is None:
         return None
     elif P_EQU_COM.search(page_txt):

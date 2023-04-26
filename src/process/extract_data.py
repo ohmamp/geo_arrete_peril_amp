@@ -134,37 +134,75 @@ def create_docs_dataframe(
                 else None
             ),
             "arr_num_arr": (
-                normalize_string(getattr(df_row, "num_arr"))
+                normalize_string(
+                    getattr(df_row, "num_arr"),
+                    num=True,
+                    apos=True,
+                    hyph=True,
+                    spaces=True,
+                )
                 if pd.notna(getattr(df_row, "num_arr"))
                 else None
             ),
             "arr_nom_arr": (
-                normalize_string(getattr(df_row, "nom_arr"))
+                normalize_string(
+                    getattr(df_row, "nom_arr"),
+                    num=True,
+                    apos=True,
+                    hyph=True,
+                    spaces=True,
+                )
                 if pd.notna(getattr(df_row, "nom_arr"))
                 else None
             ),
             "arr_classe": (
-                normalize_string(getattr(df_row, "classe"))
+                normalize_string(
+                    getattr(df_row, "classe"),
+                    num=True,
+                    apos=True,
+                    hyph=True,
+                    spaces=True,
+                )
                 if pd.notna(getattr(df_row, "classe"))
                 else None
             ),
             "arr_urgence": (
-                normalize_string(getattr(df_row, "urgence"))
+                normalize_string(
+                    getattr(df_row, "urgence"),
+                    num=True,
+                    apos=True,
+                    hyph=True,
+                    spaces=True,
+                )
                 if pd.notna(getattr(df_row, "urgence"))
                 else None
             ),
             "arr_demo": (
-                normalize_string(getattr(df_row, "demo"))
+                normalize_string(
+                    getattr(df_row, "demo"), num=True, apos=True, hyph=True, spaces=True
+                )
                 if pd.notna(getattr(df_row, "demo"))
                 else None
             ),  # TODO affiner
             "arr_int_hab": (
-                normalize_string(getattr(df_row, "int_hab"))
+                normalize_string(
+                    getattr(df_row, "int_hab"),
+                    num=True,
+                    apos=True,
+                    hyph=True,
+                    spaces=True,
+                )
                 if pd.notna(getattr(df_row, "int_hab"))
                 else None
             ),  # TODO affiner
             "arr_equ_com": (
-                normalize_string(getattr(df_row, "equ_com"))
+                normalize_string(
+                    getattr(df_row, "equ_com"),
+                    num=True,
+                    apos=True,
+                    hyph=True,
+                    spaces=True,
+                )
                 if pd.notna(getattr(df_row, "equ_com"))
                 else None
             ),  # TODO affiner
@@ -177,7 +215,13 @@ def create_docs_dataframe(
         # adresse
         # - nettoyer a minima de l'adresse brute
         adr_ad_brute = (
-            normalize_string(getattr(df_row, "adresse_brute"))
+            normalize_string(
+                getattr(df_row, "adresse_brute"),
+                num=True,
+                apos=True,
+                hyph=True,
+                spaces=True,
+            )
             if pd.notna(getattr(df_row, "adresse_brute"))
             else None
         )
@@ -193,7 +237,13 @@ def create_docs_dataframe(
 
         # - nettoyer a minima la commune extraite des en-tête ou pied-de-page ou de la mention du maire signataire
         adr_commune_maire = (
-            normalize_string(getattr(df_row, "commune_maire"))
+            normalize_string(
+                getattr(df_row, "commune_maire"),
+                num=True,
+                apos=True,
+                hyph=True,
+                spaces=True,
+            )
             if pd.notna(getattr(df_row, "commune_maire"))
             else None
         )
@@ -233,7 +283,9 @@ def create_docs_dataframe(
         }
         # parcelle cadastrale
         ref_cad = (
-            normalize_string(getattr(df_row, "parcelle"))
+            normalize_string(
+                getattr(df_row, "parcelle"), num=True, apos=True, hyph=True, spaces=True
+            )
             if pd.notna(getattr(df_row, "parcelle"))
             else None
         )
@@ -243,19 +295,33 @@ def create_docs_dataframe(
         # notifiés
         doc_not = {
             "not_id_proprio": (
-                normalize_string(getattr(df_row, "proprio"))
+                normalize_string(
+                    getattr(df_row, "proprio"),
+                    num=True,
+                    apos=True,
+                    hyph=True,
+                    spaces=True,
+                )
                 if pd.notna(getattr(df_row, "proprio"))
                 else None
             ),  # identification des propriétaires
             "not_proprio": "TODO_proprio",  # TODO liste des noms des propriétaires
             "not_id_syndic": (
-                normalize_string(getattr(df_row, "syndic"))
+                normalize_string(
+                    getattr(df_row, "syndic"),
+                    num=True,
+                    apos=True,
+                    hyph=True,
+                    spaces=True,
+                )
                 if pd.notna(getattr(df_row, "syndic"))
                 else None
             ),  # identification du syndic
             "not_syndic": "TODO_syndic",  # nom du syndic
             "not_id_gest": (
-                normalize_string(getattr(df_row, "gest"))
+                normalize_string(
+                    getattr(df_row, "gest"), num=True, apos=True, hyph=True, spaces=True
+                )
                 if pd.notna(getattr(df_row, "gest"))
                 else None
             ),  # identification du gestionnaire

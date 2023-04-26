@@ -168,7 +168,7 @@ def contains_article(page_txt: str) -> bool:
 # date de signature de l'arrêté
 RE_DATE_SIGNAT = (
     r"(?:"
-    + r"^Fait\s+à\s+(?P<arr_ville_signat>\S+)[,]?\s+le"  # Aubagne (fin), Roquevaire (fin), Gémenos (fin ; à vérifier après OCR)
+    + r"^Fait\s+à\s+(?P<arr_ville_signat>[^\s,]+)[,]?\s+le"  # Aubagne (fin), Roquevaire (fin), Gémenos (fin ; à vérifier après OCR)
     # Aix-en-Provence (fin)
     + r"|^Fait\s+à\s+Aix-en-Provence,\s+en\s+l['’]Hôtel\s+de\s+Ville,\nle"
     # Gardanne

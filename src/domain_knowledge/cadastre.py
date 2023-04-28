@@ -52,9 +52,15 @@ RE_CAD_NUM = r"\d{1,4}"
 RE_CAD_MARSEILLE = (
     r"(?:"
     + rf"(?:{RE_NO}\s*)?"
-    + rf"(?:{RE_CAD_ARRT}\s*)"  # 3 derniers chiffres du code INSEE de l'arrondissement
-    + RE_CAD_QUAR  # code quartier
+    # code arrondissement et code quartier, ou juste code quartier
+    + rf"(?:(?:{RE_CAD_ARRT})\s*)?"  # 3 derniers chiffres du code INSEE de l'arrondissement
+    # TODO accepter le nom du quartier ici, ou en fin de référence, puis le mapper vers un code (req: référentiel des codes quartiers INSEE)
+    + r"(?!557\s+du\s+10\s+juillet\s+1965)"  # negative lookahead: éviter de matcher "loi n°65-557 du 10 juillet 1965"
+    + rf"(?<![\s/-]\d){RE_CAD_QUAR}"  # code quartier  # 2023-04-28: negative lookbehind pour éviter les matches involontaires (date, liasse, article de loi etc.)
     + r"\s*"
+    # FIXME ne pas capturer "du", "au", "et" (désactiver ignorecase au moins pour ce bout de regex?)
+    # FIXME ne pas capturer les "P" qui deviennent des "0P..." (liasse encore?)
+    # RESUME HERE
     + RE_CAD_SEC
     + rf"(?:\s*(?:(?:,\s*)?{RE_NO}\s*)?)?"
     + RE_CAD_NUM
@@ -65,8 +71,10 @@ P_CAD_MARSEILLE = re.compile(RE_CAD_MARSEILLE, re.MULTILINE | re.IGNORECASE)
 RE_CAD_MARSEILLE_NG = (
     r"(?:"
     + rf"(?:{RE_NO}\s*)?"
-    + rf"(?P<arrt>{RE_CAD_ARRT}\s*)"  # 3 derniers chiffres du code INSEE de l'arrondissement
-    + rf"(?P<quar>{RE_CAD_QUAR})"  # code quartier
+    + rf"(?:(?P<arrt>{RE_CAD_ARRT})\s*)?"  # 3 derniers chiffres du code INSEE de l'arrondissement
+    # TODO accepter le nom du quartier ici, ou en fin de référence, puis le mapper vers un code (req: référentiel des codes quartiers INSEE)
+    + r"(?!557\s+du\s+10\s+juillet\s+1965)"  # negative lookahead: éviter de matcher "loi n°65-557 du 10 juillet 1965"
+    + rf"(?<![\s/-]\d)(?P<quar>{RE_CAD_QUAR})"  # code quartier  # 2023-04-28: negative lookbehind pour éviter les matches involontaires (date, liasse, article de loi etc.)
     + r"\s*"
     + rf"(?P<sec>{RE_CAD_SEC})"
     + rf"(?:\s*(?:(?:,\s*)?{RE_NO}\s*)?)?"
@@ -126,6 +134,7 @@ RE_PARCELLE = (
     + r"|(?:r[ée]f[ée]rence(?:s)?\s+cadastrale(?:s)?)"
     + r"|(?:r[ée]f[ée]renc[ée](?:e|es|s)?\s+au\s+cadastre\s+sous\s+le)"  # référence au cadastre sous le (n°)
     + r"|(?:parcelle(?:s)?)"
+    + r"|(?:\s+section)"  # capture notamment les mentions dans une liste: ", section ...", "et section ..."
     + r")\s+"  # fin contexte gauche
     + r"(?P<cadastre_id>"  # named group pour la ou les références cadastrales
     + RE_CAD_SECNUM  # 1re référence cadastrale

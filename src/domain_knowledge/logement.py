@@ -353,7 +353,7 @@ RE_ADR_CLEANUP = (
 RE_ADR_DOC = (
     # contexte gauche (pas de lookbehind car pas de longueur fixe et unique)
     r"(?:"
-    + r"situ[ée](?:\s+(?:au|du))?"
+    + r"situ[ée](?:e|s|es)?(?:\s+(?:au|du))?"
     + r"|désordres\s+(?:importants\s+)?(?:sur|affectant)\s+(?:le\s+bâtiment|l['’]immeuble)\s+sis"
     + r"|un\s+péril\s+grave\s+et\s+imminent\s+(?:à|au)"
     + r"|(immeuble|bien)[,]?\s+(?:du|numéroté|mena[çc]ant\s+ruine|sis)"

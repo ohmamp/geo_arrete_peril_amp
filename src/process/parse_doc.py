@@ -24,7 +24,7 @@ from src.domain_knowledge.arrete import (
     P_NUM_ARR_FALLBACK,
     P_VU,
 )
-from src.domain_knowledge.cadastre import get_parcelle
+from src.domain_knowledge.cadastre import get_parcelles
 from src.domain_knowledge.cadre_reglementaire import (
     contains_cc,
     contains_cc_art,
@@ -1076,8 +1076,8 @@ def process_files(
                         "adr_ville": None,  # ville
                     }
                 # parcelle(s) visée(s) par l'arrêté
-                if pg_parcelle := get_parcelle(pg_txt_body):
-                    pg_parcelle = pg_parcelle  # TODO [0] quand get_parcelle:list[str]
+                if pg_parcelle := get_parcelles(pg_txt_body):
+                    pg_parcelle = pg_parcelle[0]  # get_parcelles:list[str]
                 else:
                     pg_parcelle = None
             else:

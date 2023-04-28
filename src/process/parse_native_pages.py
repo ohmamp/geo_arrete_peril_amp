@@ -33,7 +33,7 @@ from src.domain_knowledge.arrete import (
     get_nom,
     get_num,
 )
-from src.domain_knowledge.cadastre import get_parcelle  # , P_CAD_AUTRES_NG
+from src.domain_knowledge.cadastre import get_parcelles  # , P_CAD_AUTRES_NG
 from src.domain_knowledge.cadre_reglementaire import (
     contains_cc,
     contains_cc_art,
@@ -156,7 +156,9 @@ def spot_text_structure(
                 "adr_cpostal": None,  # code postal
                 "adr_ville": None,  # ville
             }
-
+        # parcelle(s) visées par l'arrêté
+        parcelles = get_parcelles(df_row.pagetxt)
+        #
         rec_struct = {
             # @ctes
             "has_stamp": is_stamped_page(df_row.pagetxt),
@@ -189,7 +191,9 @@ def spot_text_structure(
             "adr_cpostal": adr_fields["adr_cpostal"],  # code postal
             "adr_ville": adr_fields["adr_ville"],  # ville
             # end refactor 2023-03-31
-            "parcelle": get_parcelle(df_row.pagetxt),
+            "parcelle": parcelles[0]
+            if parcelles
+            else None,  # TODO si la page contient plusieurs empans désignant une ou plusieurs parcelles
             "proprio": get_proprio(df_row.pagetxt),  # WIP
             "syndic": get_syndic(df_row.pagetxt),
             "gest": get_gest(df_row.pagetxt),

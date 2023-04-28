@@ -17,7 +17,7 @@ from src.domain_knowledge.actes import P_ACCUSE
 from src.domain_knowledge.adresse import (
     create_adresse_normalisee,
 )
-from src.domain_knowledge.cadastre import generate_refcadastrale_norm, get_parcelle
+from src.domain_knowledge.cadastre import generate_refcadastrale_norm, get_parcelles
 from src.domain_knowledge.codes_geo import get_codeinsee, get_codepostal
 from src.domain_knowledge.logement import get_adr_doc, get_gest, get_proprio, get_syndic
 from src.domain_knowledge.typologie_securite import (
@@ -425,15 +425,16 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                 notifies["gests"][norm_gests] = gests  # WIP: gests = [] + extend ?
 
             # extraire la ou les parcelles visées par l'arrêté
-            if pg_parcelles_str := get_parcelle(pg_txt_body):
+            if pg_parcelles_str_list := get_parcelles(pg_txt_body):
                 refcads_norm = [
                     generate_refcadastrale_norm(
                         codeinsee, pg_parcelles_str, fn_pdf, cpostal
                     )
+                    for pg_parcelles_str in pg_parcelles_str_list
                 ]
                 parcelles = parcelles | OrderedDict(
-                    [(x, pg_parcelles_str) for x in refcads_norm]
-                )  # FIXME get_parcelle:list()
+                    zip(refcads_norm, pg_parcelles_str_list)
+                )  # WIP get_parcelles:list()
     if False:
         # WIP hypothèses sur les notifiés
         try:

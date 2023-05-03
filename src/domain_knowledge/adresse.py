@@ -7,6 +7,7 @@ import re
 from typing import Dict, List
 
 import pandas as pd
+from src.domain_knowledge.cadastre import RE_CAD_SECNUM
 
 # from src.domain_knowledge.arrete import RE_ARRETE
 
@@ -300,7 +301,12 @@ RE_ADRESSE = (
     + rf"((?:{RE_ADR_COMPL})(?:\s*[,–-])?\s*)?"  # WIP (optionnel) complément d'adresse (pré)
     + RE_NUM_IND_VOIE_LIST
     + rf"((?:\s*[,–-])?\s*(?:{RE_ADR_COMPL}))?"  # WIP (optionnel) complément d'adresse (post)
-    + r"(?:\s*[({]cadastré[^)}]+?[)}])?"  # (optionnel; non capturé) (cadastré <ref_cad>)
+    + r"(?:\s*"  # (optionnel; non capturé) référence cadastrale (préfixe)
+    + r"(?:"  # référence cadastrale: alternatives
+    + r"(?:[({]cadastré[^)}]+?[)}])"  # (cadastré <ref_cad>)
+    + rf"|(?:[–-]\s+parcelle\s+{RE_NO}\s*{RE_CAD_SECNUM})"  # - parcelle n°<ref_cad> -
+    + r")"
+    + r")?"
     + r"("  # (optionnel) code postal et/ou commune
     + r"(?:(?:(?:\s*[,;.–-])+|(?:\s+[àa](?=\s))))?"  # ex: 2 rue xxx[,] 13420 GEMENOS
     + rf"(?:\s*({RE_CP}))?"  # \s+  # sinon: \s*–\s+ | ...  # optionnel code postal
@@ -321,7 +327,12 @@ RE_ADRESSE_NG = (
     + rf"(?:(?P<compl_ini>{RE_ADR_COMPL})(?:\s*[,–-])?\s*)?"  # WIP (optionnel complément d'adresse (pré)
     + rf"(?P<num_ind_voie_list>{RE_NUM_IND_VOIE_LIST})"  # 1 à N adresses courtes (numéro, indicateur, voie)
     + rf"(?:(?:\s*[,–-])?\s*(?P<compl_fin>{RE_ADR_COMPL}))?"  # WIP (optionnel) complément d'adresse (post)
-    + r"(?P<cad>\s*[({]cadastré[^)}]+?[)}])?"  # (optionnel; non capturé) (cadastré <ref_cad>)
+    + r"(?:\s*"  # (optionnel; non capturé) référence cadastrale (préfixe)
+    + r"(?P<cad>"  # référence cadastrale: alternatives
+    + r"(?:[({]cadastré[^)}]+?[)}])"  # (cadastré <ref_cad>)
+    + rf"|(?:[–-]\s+parcelle\s+{RE_NO}\s*{RE_CAD_SECNUM})"  # - parcelle n°... -
+    + r")"
+    + r")?"  #
     + r"(?:"  # (optionnel) code postal et/ou commune
     + r"(?P<sep>(?:(?:\s*[,;.–-])+|(?:\s+[àa](?=\s))))?"  # ex: 2 rue xxx[,] 13420 GEMENOS
     + rf"(?:\s*(?P<code_postal>{RE_CP}))?"  # \s+  # sinon: \s*–\s+ | ...  # optionnel code postal
@@ -548,7 +559,7 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
 # contexte droit (lookahead) possible pour une adresse de document
 RE_ADR_RCONT = (
     r"(?:"
-    + r"parcelle|section|référence|cadastré|(?<!figurant\sau)cadastre|situé"
+    + r"section|référence|cadastré|(?<!figurant\sau)cadastre|situé"  # was: "parcelle|"...
     + r"|concernant|concerné"
     + r"|à\s+l[’']exception"
     + r"|à\s+leur\s+jonction"

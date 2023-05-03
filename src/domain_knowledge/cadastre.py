@@ -3,6 +3,7 @@
 """
 
 # TODO récupérer dans data/externe la liste des codes INSEE des quartiers (Marseille, voire Aix et Martigues?) pour vérif et complétion
+# TODO récupérer dans data/externe la liste des codes DGFIP des communes (et arrondissements de Marseille), eg. <https://deliberations.ampmetropole.fr/documents/metropole/deliberations/2018/10/18/RAPPORTDELACOMMISSION/C06HH.pdf>
 
 # TODO améliorer la couverture:
 # data_enr_struct.csv: 827 arrêtés sans référence cadastrale sur 2452 (33.73%) (2023-03-06)
@@ -32,6 +33,7 @@ import re
 from typing import List
 
 import pandas as pd
+from src.utils.str_date import RE_DATE
 
 from src.utils.text_utils import RE_NO as RE_NO_BASE, normalize_string
 
@@ -53,11 +55,14 @@ RE_CAD_MARSEILLE = (
     r"(?:"
     + rf"(?:{RE_NO}\s*)?"
     # code arrondissement et code quartier, ou juste code quartier
-    + rf"(?:(?:{RE_CAD_ARRT})\s*)?"  # 3 derniers chiffres du code INSEE de l'arrondissement
+    + r"(?:"
+    + r"(?:131)?"  # préfixe éventuel, si la forme utilisée commence par le code DGFIP: 131201 à 1312016 pour les arrondissements de Marseille
+    + rf"(?:{RE_CAD_ARRT})"  # 3 derniers chiffres du code INSEE de l'arrondissement
+    + r"\s*)?"
     # TODO accepter le nom du quartier ici, ou en fin de référence, puis le mapper vers un code (req: référentiel des codes quartiers INSEE)
-    + r"(?!557\s+du\s+10\s+juillet\s+1965)"  # negative lookahead: éviter de matcher "loi n°65-557 du 10 juillet 1965"
     + rf"(?<![\s/-]\d){RE_CAD_QUAR}"  # code quartier  # 2023-04-28: negative lookbehind pour éviter les matches involontaires (date, liasse, article de loi etc.)
     + r"\s*"
+    + rf"(?!du\s+{RE_DATE})"  # negative lookahead: éviter de matcher eg. "loi n°65-557 du 10 juillet 1965", "arrêté n° ... du 3 mars 2020" etc
     # FIXME ne pas capturer "du", "au", "et" (désactiver ignorecase au moins pour ce bout de regex?)
     # FIXME ne pas capturer les "P" qui deviennent des "0P..." (liasse encore?)
     # RESUME HERE
@@ -71,11 +76,14 @@ P_CAD_MARSEILLE = re.compile(RE_CAD_MARSEILLE, re.MULTILINE | re.IGNORECASE)
 RE_CAD_MARSEILLE_NG = (
     r"(?:"
     + rf"(?:{RE_NO}\s*)?"
-    + rf"(?:(?P<arrt>{RE_CAD_ARRT})\s*)?"  # 3 derniers chiffres du code INSEE de l'arrondissement
+    + r"(?:"
+    + r"(?:131)?"  # préfixe éventuel, si la forme utilisée commence par le code DGFIP: 131201 à 1312016 pour les arrondissements de Marseille
+    + rf"(?P<arrt>{RE_CAD_ARRT})"  # 3 derniers chiffres du code INSEE de l'arrondissement
+    + r"\s*)?"
     # TODO accepter le nom du quartier ici, ou en fin de référence, puis le mapper vers un code (req: référentiel des codes quartiers INSEE)
-    + r"(?!557\s+du\s+10\s+juillet\s+1965)"  # negative lookahead: éviter de matcher "loi n°65-557 du 10 juillet 1965"
     + rf"(?<![\s/-]\d)(?P<quar>{RE_CAD_QUAR})"  # code quartier  # 2023-04-28: negative lookbehind pour éviter les matches involontaires (date, liasse, article de loi etc.)
     + r"\s*"
+    + rf"(?!du\s+{RE_DATE})"  # negative lookahead: éviter de matcher eg. "loi n°65-557 du 10 juillet 1965", "arrêté n° ... du 3 mars 2020" etc
     + rf"(?P<sec>{RE_CAD_SEC})"
     + rf"(?:\s*(?:(?:,\s*)?{RE_NO}\s*)?)?"
     + rf"(?P<num>{RE_CAD_NUM})"
@@ -107,7 +115,10 @@ RE_CAD_AUTRES = (
     r"(?:"
     + rf"(?:{RE_NO}\s*)?"
     + RE_CAD_SEC  # section cadastrale
-    + rf"(?:\s*(?:(?:,\s*)?{RE_NO}\s*)?)?"
+    + r"(?:"  # séparateur éventuel
+    + r"(?:-)"  # ex: "[...] cadastrée BK-80 sise [...]"
+    + rf"|(?:\s*(?:(?:,\s*)?{RE_NO}\s*)?)"
+    + r")?"  # fin séparateur éventuel
     + RE_CAD_NUM  # numéro de parcelle
     + r")"
 )
@@ -117,7 +128,10 @@ RE_CAD_AUTRES_NG = (
     r"(?:"
     + rf"(?:{RE_NO}\s*)?"
     + rf"(?P<sec>{RE_CAD_SEC})"
-    + rf"(?:\s*(?:(?:,\s*)?{RE_NO}\s*)?)?"
+    + r"(?:"  # séparateur éventuel
+    + r"(?:-)"  # ex: "[...] cadastrée BK-80 sise [...]"
+    + rf"|(?:\s*(?:(?:,\s*)?{RE_NO}\s*)?)"
+    + r")?"  # fin séparateur éventuel
     + rf"(?P<num>{RE_CAD_NUM})"
     + r")"
 )
@@ -133,7 +147,8 @@ RE_PARCELLE = (
     + r"(?:cadastr[ée](?:e|es|s)?(?:\s+section)?)"
     + r"|(?:r[ée]f[ée]rence(?:s)?\s+cadastrale(?:s)?)"
     + r"|(?:r[ée]f[ée]renc[ée](?:e|es|s)?\s+au\s+cadastre\s+sous\s+le)"  # référence au cadastre sous le (n°)
-    + r"|(?:parcelle(?:s)?)"
+    + rf"|(?:parcelles(?!\s+{RE_CAD_NUM}\s+et\s+{RE_CAD_NUM}))"  # negative lookahead: éviter de capturer les seuls numéros eg. "parcelles 132 et 201"
+    + r"|(?:parcelle)"  # TODO negative lookahead idem "parcelles" ?
     + r"|(?:\s+section)"  # capture notamment les mentions dans une liste: ", section ...", "et section ..."
     + r")\s+"  # fin contexte gauche
     + r"(?P<cadastre_id>"  # named group pour la ou les références cadastrales
@@ -206,7 +221,9 @@ def get_parcelles(page_txt: str) -> List[str]:
             # end WIP
             # RESUME HERE ! 2023-04-28
             id_parcelles.append(m_cad_str)
-    elif matches := list(P_PARCELLE_MARSEILLE_NOCONTEXT.finditer(page_txt)):
+    elif (
+        False
+    ):  # matches := list(P_PARCELLE_MARSEILLE_NOCONTEXT.finditer(page_txt)):  # WIP
         logging.warning(
             f"{len(matches)} empans PARC_MRS: {[x.group(0) for x in matches]}"
         )
@@ -261,22 +278,37 @@ def generate_refcadastrale_norm(
     if pd.isna(refcad):
         refcad = None
     elif m_mars := P_CAD_MARSEILLE_NG.search(refcad):
-        # match(): on ne garde que le 1er match
+        # on ne garde que le 1er match
         # TODO gérer 2 ou plusieurs références cadastrales
-        arrt = m_mars["arrt"]
-        if codeinsee and codeinsee != "13055":
-            try:
-                assert codeinsee[-3:] == arrt
-            except AssertionError:
-                # FIXME améliorer le warning ; écrire une expectation sur le dataset final
-                # 2023-03-06: 16 conflits
-                logging.warning(
-                    f"{arr_pdf}: conflit entre code INSEE ({codeinsee}, via code postal {adr_cpostal}) et référence cadastrale {arrt}"
-                )
-        else:
-            codeinsee = f"13{arrt}"
+        #
         # Marseille: code insee arrondissement + code quartier (3 chiffres) + section + parcelle
-        refcad = f"{codeinsee}{m_mars['quar']}{m_mars['sec']:>02}{m_mars['num']:>04}"
+        arrt = m_mars["arrt"]
+        if not arrt and not codeinsee:
+            # ni arrondissement ni code insee
+            refcad = f"{m_mars['quar']}{m_mars['sec']:>02}{m_mars['num']:>04}"
+            logging.error(
+                f"{arr_pdf}: numéro d'arrondissement manquant pour une référence cadastrale à Marseille {refcad}"
+            )
+        else:
+            if codeinsee and codeinsee != "13055":
+                # on a bien un code INSEE
+                if arrt:
+                    # si on a aussi un numéro d'arrondissement, on vérifie que les deux sont cohérents
+                    try:
+                        assert codeinsee[-3:] == arrt
+                    except AssertionError:
+                        # FIXME améliorer le warning ; écrire une expectation sur le dataset final
+                        # 2023-03-06: 16 conflits
+                        logging.warning(
+                            f"{arr_pdf}: conflit entre code INSEE ({codeinsee}, via code postal {adr_cpostal}) et référence cadastrale {arrt}"
+                        )
+            else:
+                # on a un arrondissement: reconstruire un code INSEE
+                codeinsee = f"13{arrt}"
+            # référence cadastrale complète
+            refcad = (
+                f"{codeinsee}{m_mars['quar']}{m_mars['sec']:>02}{m_mars['num']:>04}"
+            )
     elif m_autr := P_CAD_AUTRES_NG.search(refcad):
         # hors Marseille: code insee commune + 000 + section + parcelle
         codequartier = "000"

@@ -6,6 +6,7 @@
 
 import re
 
+from src.domain_knowledge.codes_geo import RE_COMMUNES_AMP_ALLFORMS
 from src.domain_knowledge.adresse import RE_COMMUNE
 from src.utils.text_utils import RE_CARDINAUX, RE_NO, RE_ORDINAUX
 from src.utils.str_date import RE_DATE, RE_MM
@@ -168,19 +169,21 @@ def contains_article(page_txt: str) -> bool:
 # date de signature de l'arrêté
 RE_DATE_SIGNAT = (
     r"(?:"
-    + r"^Fait\s+à\s+(?P<arr_ville_signat>[^\s,]+)[,]?\s+le"  # Aubagne (fin), Roquevaire (fin), Gémenos (fin ; à vérifier après OCR)
-    # Aix-en-Provence (fin)
-    + r"|^Fait\s+à\s+Aix-en-Provence,\s+en\s+l['’]Hôtel\s+de\s+Ville,\nle"
-    # Gardanne
-    + r"|^Gardanne,\s+le"
+    # "^Fait à <ville>, le"
+    # Aix-en-Provence, Aubagne, Gémenos, La Ciotat, Roquevaire, Gémenos (fin)
+    + r"^Fait\s+à\s+"
+    + rf"(?P<arr_ville_signat>{RE_COMMUNES_AMP_ALLFORMS}|[^\s,]+)"  # fallback: [^\s,]+ ou RE_COMMUNES ?
+    + r"(?:(?:\s*,)?\s+en\s+l['’]H[ôo]tel\s+de\s+Ville)?"
+    + r"(?:\s*,)?\s+le"
+    # "^<ville>, le"
+    # Gardanne, Peyrolles-en-Provence
+    + r"|^(?:Gardanne|Peyrolles-en-Provence),\s+le"
     # Marseille
     + r"|^Signé\s+le\s*:\s+"
     # Meyrargues
     + rf"|^ARRÊTÉ\s+DU\s+MAIRE\s+{RE_NO}[^\n]+\nen\s+date\s+du\s+"
     # Peyrolles-en-Provence (en-tête), Martigues (fin)
     + rf"|^Arrêté\s+{RE_NO}[\s\S]+?\s+du"
-    # Peyrolles-en-Provence (fin)
-    + r"|^Peyrolles-en-Provence,\s+le"
     # + r"|^Affiché[e]\s+le\s+:"  # TODO garder la date de signature ou d'affichage?
     + r")"
     + r"\s+(?P<arr_date>"
@@ -216,32 +219,39 @@ def get_date(page_txt: str) -> bool:
 RE_NUM_ARR = (
     r"(?:"
     #
-    + rf"Extrait\s+du\s+registre\s+des\s+arrêtés\s+{RE_NO}"
+    + rf"Extrait\s+du\s+registre\s+des\s+arrêtés\s+{RE_NO}\s*"
     # Gignac-la-Nerthe:
-    + rf"|EXTRAIT\s+DU\s+REGISTRE\s+des\s+ARRETES\s+du\s+MAIRE\n{RE_NO}\s+"
+    + rf"|EXTRAIT\s+DU\s+REGISTRE\s+des\s+ARRETES\s+du\s+MAIRE\n{RE_NO}\s*"
     # La Ciotat
-    + r"|^Réf\s*:"
+    + r"|^Réf\s*:\s*"
     # Gardanne:
-    + r"|^Nos\s+Réf\s+:"
+    + r"|^Nos\s+Réf\s+:\s*"
     # Istres
-    + rf"|^{RE_NO}(?=[^\n]+\s+Mati[èe]re\s+de\s+l['’]acte)"  # N° ...\n\nMatière de l'acte 6.4 (positive lookahead)
+    + rf"|^{RE_NO}(?=[^\n]+\s+Mati[èe]re\s+de\s+l['’]acte)\s*"  # N° ...\n\nMatière de l'acte 6.4 (positive lookahead)
     # Martigues:
-    + rf"|^A\.M\s+{RE_NO}"
+    + rf"|^A\.M\s+{RE_NO}\s*"
     # Marseille (1)
-    + rf"|^Décision\s+{RE_NO}"
+    + rf"|^Décision\s+{RE_NO}\s*"
     # Meyrargues ;
     # (+ Septèmes, quand le layout sera bien lu)
-    + rf"|^ARRÊTÉ\s+DU\s+MAIRE\s+{RE_NO}"
+    + rf"|^ARRÊTÉ\s+DU\s+MAIRE\s+{RE_NO}\s*"
     # en-tête Peyrolles-en-Provence
-    + rf"|Arrêté\s+{RE_NO}"
-    + rf"|ARRETE\s+{RE_NO}"
+    + rf"|Arrêté\s+{RE_NO}\s*"
+    + rf"|ARRETE\s+{RE_NO}\s*"
     # abrégé Peyrolles, ex: A 2020-02-117
     + r"|(?:A\s(?=\d{4}-"
     + RE_MM
-    + r"-\d{3}))"  # fin abrégé
+    + r"-\d{3})\s*)"  # fin abrégé
+    # Pennes-Mirabeau: pur lookahead (fonctionne car on ne prend que la 1re occurrence dans get_num_arr)
+    + r"|(?=(?:AG\d{2}|URB\d{3})X\d{2}(?:\d{2})?\s*$)"
     # + rf"|^{RE_NO}"  # motif trop peu spécifique, capture par exemple un numéro de parcelle
     + r")"
-    + r"\s*(?P<num_arr>[^,;\n(]+)"
+    + r"(?P<num_arr>"
+    # Pennes Mirabeau: URBdddXdd ou URBddXdddd
+    + r"(?:(?:AG\d{2}|URB\d{3})X\d{2}(?:\d{2})?\s*$)"
+    # expression générique
+    + r"|(?:[^,;\n(]+)"
+    + r")"
 )
 P_NUM_ARR = re.compile(RE_NUM_ARR, re.MULTILINE | re.IGNORECASE)
 # 2e motif pour reconnaître le numéro d'arrêté, très générique donc à n'utiliser qu'en 2e lame (ou dernier recours)

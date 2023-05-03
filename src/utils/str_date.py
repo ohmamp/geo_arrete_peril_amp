@@ -48,9 +48,9 @@ RE_DATE = (
     r"(?:"
     + r"\d{2}[.]\d{2}[.]\d{4}"  # Peyrolles-en-Provence (en-tête)
     + r"|\d{2}/\d{2}/\d{4}"  # ?
-    + r"|(?:\d{1,2}|1er) "  # cas particulier: 1er
+    + r"|(?:\d{1,2}|1er)\s+"  # cas particulier: 1er
     + RE_MOIS
-    + r" \d{4}"  # Gardanne (fin), Roquevaire (fin), Martigues (fin)
+    + r"\s+\d{4}"  # Gardanne (fin), Roquevaire (fin), Martigues (fin)
     + r")"
 )
 
@@ -85,6 +85,7 @@ def process_date_brute(arr_date: str) -> Dict:
         mm_norm = MAP_MOIS.get(
             m_dict["mm"].lower().replace("é", "e").replace("û", "u"), m_dict["mm"]
         )
+        # TODO ajouter au log une erreur si la date est incorrecte
         return f"{m_dict['dd']:>02}/{mm_norm:>02}/{m_dict['yyyy']}"
     else:
         return None

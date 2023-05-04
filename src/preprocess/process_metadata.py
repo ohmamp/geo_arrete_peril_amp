@@ -197,12 +197,22 @@ def guess_badocr(df_meta: pd.DataFrame) -> pd.DataFrame:
         Métadonnées enrichies d'une nouvelle colonne "guess_badocr"
     """
     has_badocr = (
-        # "Image Capture Plus"
-        df_meta["creatortool"]
-        == "Image Capture Plus"
-    ) | (
-        # "Adobe PSL 1.2e for Canon" (ou 1.1e, 1.3e)
-        df_meta["producer"].str.startswith("Adobe PSL")
+        (
+            # "Image Capture Plus"
+            df_meta["creatortool"].str.strip()
+            == "Image Capture Plus"
+        )
+        | (
+            # "Adobe PSL 1.2e for Canon" (ou 1.1e, 1.3e)
+            df_meta["producer"]
+            .str.strip()
+            .str.startswith("Adobe PSL")
+        )
+        | (
+            # "Canon"
+            (df_meta["producer"].str.strip() == "")
+            & (df_meta["creatortool"].str.strip() == "Canon")
+        )
     )
     df_mmod = df_meta.assign(guess_badocr=has_badocr)
     return df_mmod

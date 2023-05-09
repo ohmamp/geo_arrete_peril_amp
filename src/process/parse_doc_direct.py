@@ -330,6 +330,9 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
     adrs_commune_maire = [x for x in pages_cont if x["span_typ"] == "adr_ville"]
     # - prendre arbitrairement la 1re mention et la nettoyer a minima
     # TODO regarder les erreurs et vérifier si un autre choix donnerait de meilleurs résultats
+    # TODO tester: si > 1, tester de matcher avec la liste des communes de la métropole
+    # (et éventuellement calculer la distance de Levenshtein pour vérifier s'il est vraisemblable
+    # que ce soient des variantes de graphie ou erreurs)
     if not adrs_commune_maire:
         adr_commune_maire = None
     else:
@@ -340,7 +343,8 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
             hyph=True,
             spaces=True,
         )
-    # print(f"commune: {adr_commune_maire}")  # DEBUG
+    logging.warning(f"adrs_commune_maire: {adrs_commune_maire}")  # DEBUG
+    logging.warning(f"adr_commune_maire: {adr_commune_maire}")  # DEBUG
     #
     # parcelles
     codeinsee = None  # valeur par défaut

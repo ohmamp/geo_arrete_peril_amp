@@ -259,15 +259,16 @@ def parse_doc_preamble(
                 "span_typ": "par_autorite",
             }
         )
-        # * stocker la donnée de la commune
-        content.append(
-            {
-                "span_beg": match.start("commune"),
-                "span_end": match.end("commune"),
-                "span_txt": match.group("commune"),
-                "span_typ": "adr_ville",  # TODO utiliser un autre nom pour éviter le conflit?
-            }
-        )
+        if match.group("commune"):
+            # * stocker la donnée de la commune
+            content.append(
+                {
+                    "span_beg": match.start("commune"),
+                    "span_end": match.end("commune"),
+                    "span_txt": match.group("commune"),
+                    "span_typ": "adr_ville",  # TODO utiliser un autre nom pour éviter le conflit?
+                }
+            )
         # * effacer l'empan reconnu
         txt_copy = (
             txt_copy[:span_beg] + " " * (span_end - span_beg) + txt_copy[span_end:]
@@ -289,15 +290,16 @@ def parse_doc_preamble(
                         "span_typ": "par_autorite_dup",
                     }
                 )
-                # stocker la donnée de la commune
-                content.append(
-                    {
-                        "span_beg": match_dup.start("commune"),
-                        "span_end": match_dup.end("commune"),
-                        "span_txt": match_dup.group("commune"),
-                        "span_typ": "adr_ville_dup",  # TODO utiliser un autre nom pour éviter le conflit?
-                    }
-                )
+                if match.group("commune"):
+                    # stocker la donnée de la commune
+                    content.append(
+                        {
+                            "span_beg": match_dup.start("commune"),
+                            "span_end": match_dup.end("commune"),
+                            "span_txt": match_dup.group("commune"),
+                            "span_typ": "adr_ville_dup",  # TODO utiliser un autre nom pour éviter le conflit?
+                        }
+                    )
                 # effacer l'empan reconnu
                 txt_copy = (
                     txt_copy[:span_dup_beg]
@@ -459,6 +461,7 @@ def parse_doc_postamble(txt_body: str, pream_beg: int, pream_end: int) -> list[d
     content = []
     # a. extraire la date de signature
     if m_signature := P_DATE_SIGNAT.search(txt_body, pream_beg, pream_end):
+        logging.warning(f"parse_doc_postamble: signature: {m_signature}")
         # stocker la zone reconnue
         content.append(
             {
@@ -478,7 +481,7 @@ def parse_doc_postamble(txt_body: str, pream_beg: int, pream_end: int) -> list[d
             }
         )
         # b. extraire la ville de signature
-        if ville_signat := m_signature.group("arr_ville_signat"):
+        if m_signature.group("arr_ville_signat"):
             # stocker la donnée
             content.append(
                 {
@@ -490,6 +493,10 @@ def parse_doc_postamble(txt_body: str, pream_beg: int, pream_end: int) -> list[d
             )
     # TODO c. extraire l'identité et la qualité du signataire? (eg. délégation de signature)
     #
+    else:
+        logging.warning(
+            f"parse_doc_postamble: aucune signature ? {txt_body[pream_beg:pream_end]}"
+        )
     return content
 
 
@@ -867,8 +874,13 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
                     main_beg = span_arrete["span_end"]
                     latest_span = None  # le dernier empan de la page précédente n'est plus disponible
                     cur_state = "avant_signature"
+                # WIP 2023-05-09
+                else:
+                    logging.warning(f"{fn_pdf} / {i}: parse_doc: pas de 'par_arrete'")
+                # end WIP 2023-05-09
         # TODO si tout le texte a déjà été reconnu, ajouter le contenu de la page au doc et passer à la page suivante
 
+        # TODO détecter la signature même si "Arrête" n'a pas été détecté (simplification code + amélioration robustesse?)
         # 3. les "article" et le postambule
         if cur_state == "avant_signature":
             # le corps du document s'arrête à la signature ou la date de prise de l'arrêté
@@ -905,6 +917,7 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
                 if posta_content:
                     latest_span = None  # le dernier empan de la page précédente n'est plus disponible
                 cur_state = "apres_signature"
+            logging.warning(f"{fn_pdf}: parse_doc: après m_date_sign")  # DEBUG
         # TODO si tout le texte a déjà été reconnu, ajouter le contenu de la page au doc et passer à la page suivante
 
         if cur_state == "apres_signature":

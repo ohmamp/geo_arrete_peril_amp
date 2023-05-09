@@ -161,11 +161,11 @@ RE_COMMUNE = (
     + RE_COMMUNES_AMP_ALLFORMS
     # générique, pour communes hors métropole AMP
     + r"|(?:"
-    + r"(?!\s*(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle|cadastr[ée]|effectué))"  # negative lookahead: éviter de capturer n'importe quoi
+    + r"(?!\s*(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle|cadastr[ée]|effectué|figurant))"  # negative lookahead: éviter de capturer n'importe quoi
     + rf"[A-ZÀ-Ý]{RE_LETTERS}"  # au moins 1 token qui commence par une majuscule
     + r"(?:"
     + r"['’\s-]"  # séparateur: tiret, apostrophe, espace
-    + r"(?!\s*(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle|cadastr[ée]|effectué))"  # negative lookahead: éviter de capturer n'importe quoi
+    + r"(?!\s*(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle|cadastr[ée]|effectué|figurant))"  # negative lookahead: éviter de capturer n'importe quoi
     + rf"{RE_LETTERS}"
     + r"){0,4}"  # + 0 à 3 tokens après séparateur
     + r")"

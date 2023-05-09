@@ -21,4 +21,5 @@ rm ${DATA_INT}/${BATCH}_meta_ntxt_pdftype.csv
 rm ${DATA_INT}/${BATCH}_ntxt_pages.csv
 rm ${DATA_INT}/${BATCH}_meta_ntxt_filt.csv ${DATA_INT}/${BATCH}_ntxt_pages_filt.csv
 rm ${DATA_INT}/${BATCH}_meta_ntxt_pdfa.csv
+rm ${DATA_INT}/${BATCH}_meta_otxt.csv
 # rm -Rf data/interim/pdf/*.pdf  # chronophage, on garde par défaut

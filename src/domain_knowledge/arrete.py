@@ -23,16 +23,22 @@ RE_MAIRE_COMM_DE = (
 # "Nous[,.]": gestion d'erreur d'OCR ("." reconnu au lieu de ",")
 RE_MAIRE_COMMUNE = (
     r"(?P<autorite>"
-    + r"(?:"  # le maire de X
-    + r"^Le\s+"
-    + RE_MAIRE_COMM_DE
-    + r")"
-    + r"|(?:"  # Nous, (...,)? maire de X
+    # sans mention de la commune: "Le Maire,"  # Aubagne
+    + r"(?:^Le\s+Maire\s*(?=,\s*$))"
+    # avec mention de la commune
+    + r"|(?:"
+    + r"(?:"  # alternatives
+    # le maire de X
+    + rf"(?:^Le\s+{RE_MAIRE_COMM_DE})"
+    # Nous, (...,)? maire de X
+    + r"|(?:"
     + r"Nous[,.]\s+(?P<autorite_nom>[^,]+,\s+)?"  # pas de "^" pour augmenter la robustesse (eg. séparateur "-" en fin de ligne précédente interprété comme un tiret de coupure de mot)
     + RE_MAIRE_COMM_DE
     + r")"
+    + r")"  # fin alternatives
+    + rf"(?P<commune>{RE_COMMUNE})"  # nom commune
+    + r")"  # fin avec mention de la commune
     + r")"  # fin named group "autorite"
-    + rf"(?P<commune>{RE_COMMUNE})"
     + r"(?:[,])?"
 )
 P_MAIRE_COMMUNE = re.compile(RE_MAIRE_COMMUNE, re.MULTILINE | re.IGNORECASE)
@@ -45,6 +51,7 @@ RE_MAIRE_COMMUNE_CLEANUP = (
 M_MAIRE_COMMUNE_CLEANUP = re.compile(
     RE_MAIRE_COMMUNE_CLEANUP, re.MULTILINE | re.IGNORECASE
 )
+
 
 # - extraction de la commune prenant l'arrêté, à partir de la mention du maire
 # il peut être nécessaire de nettoyer la zone extraite pour enlever le contexte droit (reconnaissance trop étendue)
@@ -113,7 +120,7 @@ def contains_considerant(page_txt: str) -> bool:
 # normalement "Arrête" ou "Arrêtons"
 # cas particulier: Rognes: "ARRÊTÉ" dans cette position (negative lookahead pour éviter les conflits avec le repérage d'ARRÊTÉ <num_arr>)
 RE_ARRETONS = (
-    r"^\s*(?P<par_arrete>ARR[ÊE]T(?:E|ONS|É"
+    r"^\s*(?P<par_arrete>ARR[ÊÈE]{1,2}T(?:E|ONS|É"  # {1,2}: robustesse OCR
     + r"(?!"  # negative lookahead pour la seule alternative "arrêté":
     + r"(?:S)"  # pas "arrêtés" (ex: "arrêtés municipaux susvisés")
     + rf"|(?:\s+(?:{RE_NO}|\d|de|d['’]))"  #  pas "n°", ni chiffre, ni "de", ni "d'"

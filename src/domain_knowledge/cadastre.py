@@ -56,7 +56,7 @@ RE_CAD_MARSEILLE = (
     + rf"(?:{RE_NO}\s*)?"
     # code arrondissement et code quartier, ou juste code quartier
     + r"(?:"
-    + r"(?:131)?"  # préfixe éventuel, si la forme utilisée commence par le code DGFIP: 131201 à 1312016 pour les arrondissements de Marseille
+    + r"(?:131)?"  # optionnel: forme longue commençant par le code DGFIP (131201 à 131216 pour Marseille)
     + rf"(?:{RE_CAD_ARRT})"  # 3 derniers chiffres du code INSEE de l'arrondissement
     + r"\s*)?"
     # TODO accepter le nom du quartier ici, ou en fin de référence, puis le mapper vers un code (req: référentiel des codes quartiers INSEE)
@@ -144,13 +144,14 @@ P_CAD_SECNUM = re.compile(RE_CAD_SECNUM, re.IGNORECASE | re.MULTILINE)
 # avec le contexte gauche
 RE_PARCELLE = (
     r"(?:"  # contexte gauche
-    + r"(?:cadastr[ée](?:e|es|s)?(?:\s+section)?)"
-    + r"|(?:r[ée]f[ée]rence(?:s)?\s+cadastrale(?:s)?)"
-    + r"|(?:r[ée]f[ée]renc[ée](?:e|es|s)?\s+au\s+cadastre\s+sous\s+le)"  # référence au cadastre sous le (n°)
-    + rf"|(?:parcelles(?!\s+{RE_CAD_NUM}\s+et\s+{RE_CAD_NUM}))"  # negative lookahead: éviter de capturer les seuls numéros eg. "parcelles 132 et 201"
-    + r"|(?:parcelle)"  # TODO negative lookahead idem "parcelles" ?
-    + r"|(?:\s+section)"  # capture notamment les mentions dans une liste: ", section ...", "et section ..."
-    + r")\s+"  # fin contexte gauche
+    + r"(?:cadastr[ée](?:e|es|s)?(?:\s+section)?)\s+"
+    + r"|(?:r[ée]f[ée]rence(?:s)?\s+cadastrale(?:s)?)\s+"
+    + r"|(?:r[ée]f[ée]renc[ée](?:e|es|s)?\s+au\s+cadastre\s+sous\s+le\s+)"  # référence au cadastre sous le (n°)
+    + rf"|(?:parcelle(?:s)?(?:\s+sise(?:s)?)?(?!\s+{RE_CAD_NUM}\s+et\s+{RE_CAD_NUM}))\s+"  # negative lookahead: éviter de capturer les seuls numéros eg. "parcelles 132 et 201"
+    + r"|(?:\s+section\s+)"  # capture notamment les mentions dans une liste: ", section ...", "et section ..."
+    # lookahead pur pour les références longues (Marseille), reconnaissables sans contexte gauche: (DGFIP ou arrt +) quartier + section + num
+    + rf"|(?=(?:{RE_NO}\s*)?(?:(?:131)?(?:{RE_CAD_ARRT})\s*(?<![\s/-]\d){RE_CAD_QUAR}\s*(?!du\s+{RE_DATE}){RE_CAD_SEC}(?:\s*(?:(?:,\s*)?{RE_NO}\s*)?)?){RE_CAD_NUM})"
+    + r")"  # fin contexte gauche
     + r"(?P<cadastre_id>"  # named group pour la ou les références cadastrales
     + RE_CAD_SECNUM  # 1re référence cadastrale
     + r"("  # 1 ou plusieurs références supplémentaires

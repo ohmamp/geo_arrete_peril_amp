@@ -62,8 +62,12 @@ RE_CAD_MARSEILLE = (
     # TODO accepter le nom du quartier ici, ou en fin de référence, puis le mapper vers un code (req: référentiel des codes quartiers INSEE)
     + rf"(?<![\s/-]\d){RE_CAD_QUAR}"  # code quartier  # 2023-04-28: negative lookbehind pour éviter les matches involontaires (date, liasse, article de loi etc.)
     + r"\s*"
-    + rf"(?!du\s+{RE_DATE})"  # negative lookahead: éviter de matcher eg. "loi n°65-557 du 10 juillet 1965", "arrêté n° ... du 3 mars 2020" etc
-    # FIXME ne pas capturer "du", "au", "et" (désactiver ignorecase au moins pour ce bout de regex?)
+    # negative lookahead: ne pas capturer "du", "au", "et" (désactiver ignorecase au moins pour ce bout de regex?)
+    + r"(?!"
+    + rf"(?:du\s+{RE_DATE})"  #  éviter match eg. "loi n°65-557 du 10 juillet 1965", "arrêté n° ... du 3 mars 2020" etc
+    + rf"|(?:au\s+\d{{1,4}})"  # éviter match eg. "[parcelle n°123 au 6 rue Xxx]" etc
+    # TODO ne pas capturer "et"
+    + r")"
     # FIXME ne pas capturer les "P" qui deviennent des "0P..." (liasse encore?)
     # RESUME HERE
     + RE_CAD_SEC
@@ -83,7 +87,14 @@ RE_CAD_MARSEILLE_NG = (
     # TODO accepter le nom du quartier ici, ou en fin de référence, puis le mapper vers un code (req: référentiel des codes quartiers INSEE)
     + rf"(?<![\s/-]\d)(?P<quar>{RE_CAD_QUAR})"  # code quartier  # 2023-04-28: negative lookbehind pour éviter les matches involontaires (date, liasse, article de loi etc.)
     + r"\s*"
-    + rf"(?!du\s+{RE_DATE})"  # negative lookahead: éviter de matcher eg. "loi n°65-557 du 10 juillet 1965", "arrêté n° ... du 3 mars 2020" etc
+    # negative lookahead: ne pas capturer "du", "au", "et" (désactiver ignorecase au moins pour ce bout de regex?)
+    + r"(?!"
+    + rf"(?:du\s+{RE_DATE})"  #  éviter match eg. "loi n°65-557 du 10 juillet 1965", "arrêté n° ... du 3 mars 2020" etc
+    + rf"|(?:au\s+\d{{1,4}})"  # éviter match eg. "[parcelle n°123 au 6 rue Xxx]" etc
+    # TODO ne pas capturer "et"
+    + r")"
+    # FIXME ne pas capturer les "P" qui deviennent des "0P..." (liasse encore?)
+    # RESUME HERE
     + rf"(?P<sec>{RE_CAD_SEC})"
     + rf"(?:\s*(?:(?:,\s*)?{RE_NO}\s*)?)?"
     + rf"(?P<num>{RE_CAD_NUM})"
@@ -144,10 +155,18 @@ P_CAD_SECNUM = re.compile(RE_CAD_SECNUM, re.IGNORECASE | re.MULTILINE)
 # avec le contexte gauche
 RE_PARCELLE = (
     r"(?:"  # contexte gauche
-    + r"(?:cadastr[ée](?:e|es|s)?(?:\s+section)?)\s+"
-    + r"|(?:r[ée]f[ée]rence(?:s)?\s+cadastrale(?:s)?)\s+"
+    + r"(?:cadastr[ée](?:e|es|s)?(?:\s+section)?\s+)"
+    + r"|(?:r[ée]f[ée]rence(?:s)?\s+cadastrale(?:s)?\s+)"
     + r"|(?:r[ée]f[ée]renc[ée](?:e|es|s)?\s+au\s+cadastre\s+sous\s+le\s+)"  # référence au cadastre sous le (n°)
-    + rf"|(?:parcelle(?:s)?(?:\s+sise(?:s)?)?(?!\s+{RE_CAD_NUM}\s+et\s+{RE_CAD_NUM}))\s+"  # negative lookahead: éviter de capturer les seuls numéros eg. "parcelles 132 et 201"
+    + r"|(?:parcelle(?:s)?\s+(?:sise(?:s)?\s+)?"
+    # negative lookahead: éviter de capturer des faux positifs
+    + rf"(?!"
+    # les seuls numéros eg. "parcelles 132 et 201"
+    + rf"(?:{RE_CAD_NUM}\s+et\s+{RE_CAD_NUM})"
+    # "du" n'est pas (jamais?) un code de section eg. "[parcelle ]du 12"
+    + rf"|(?:du\s+{RE_CAD_NUM})"
+    + r")"  # fin negative lookahead
+    + r")"  # fin "parcelle(s)?( sise(s)?) "
     + r"|(?:\s+section\s+)"  # capture notamment les mentions dans une liste: ", section ...", "et section ..."
     # lookahead pur pour les références longues (Marseille), reconnaissables sans contexte gauche: (DGFIP ou arrt +) quartier + section + num
     + rf"|(?=(?:{RE_NO}\s*)?(?:(?:131)?(?:{RE_CAD_ARRT})\s*(?<![\s/-]\d){RE_CAD_QUAR}\s*(?!du\s+{RE_DATE}){RE_CAD_SEC}(?:\s*(?:(?:,\s*)?{RE_NO}\s*)?)?){RE_CAD_NUM})"

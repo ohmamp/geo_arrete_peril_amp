@@ -300,7 +300,12 @@ def generate_refcadastrale_norm(
     elif m_mars := P_CAD_MARSEILLE_NG.search(refcad):
         # on ne garde que le 1er match
         # TODO gérer 2 ou plusieurs références cadastrales
-        #
+        # le code de section devrait être en majuscules ; émettre un warning sinon
+        # TODO ajouter au rapport d'erreur
+        if not m_mars["sec"].isupper():
+            logging.warning(
+                f"{arr_pdf}: référence cadastrale suspicieuse (code de section): {refcad}"
+            )
         # Marseille: code insee arrondissement + code quartier (3 chiffres) + section + parcelle
         arrt = m_mars["arrt"]
         if not arrt and not (codeinsee and codeinsee != "13055"):
@@ -332,6 +337,12 @@ def generate_refcadastrale_norm(
             )
     elif m_autr := P_CAD_AUTRES_NG.search(refcad):
         # hors Marseille: code insee commune + 000 + section + parcelle
+        # le code de section devrait être en majuscules ; émettre un warning sinon
+        # TODO ajouter au rapport d'erreur
+        if not m_autr["sec"].isupper():
+            logging.warning(
+                f"{arr_pdf}: référence cadastrale suspicieuse (code de section): {refcad}"
+            )
         codequartier = "000"
         refcad = f"{codeinsee}{codequartier}{m_autr['sec']:>02}{m_autr['num']:>04}"
     else:

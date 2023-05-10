@@ -303,15 +303,16 @@ def generate_refcadastrale_norm(
         #
         # Marseille: code insee arrondissement + code quartier (3 chiffres) + section + parcelle
         arrt = m_mars["arrt"]
-        if not arrt and not codeinsee:
-            # ni arrondissement ni code insee
+        if not arrt and not (codeinsee and codeinsee != "13055"):
+            # ni arrondissement ni code INSEE (différent de celui de tout Marseille)=> générer une référence cadastrale courte
             refcad = f"{m_mars['quar']}{m_mars['sec']:>02}{m_mars['num']:>04}"
             logging.error(
                 f"{arr_pdf}: numéro d'arrondissement manquant pour une référence cadastrale à Marseille {refcad}"
             )
         else:
+            # arrondissement ou code INSEE
             if codeinsee and codeinsee != "13055":
-                # on a bien un code INSEE
+                # on a bien un code INSEE (différent du code INSEE pour tout Marseille), on peut donc l'utiliser
                 if arrt:
                     # si on a aussi un numéro d'arrondissement, on vérifie que les deux sont cohérents
                     try:
@@ -323,9 +324,9 @@ def generate_refcadastrale_norm(
                             f"{arr_pdf}: conflit entre code INSEE ({codeinsee}, via code postal {adr_cpostal}) et référence cadastrale {arrt}"
                         )
             else:
-                # on a un arrondissement: reconstruire un code INSEE
+                # on n'a un code d'arrondissement: reconstruire un code INSEE
                 codeinsee = f"13{arrt}"
-            # référence cadastrale complète
+            # générer une référence cadastrale complète
             refcad = (
                 f"{codeinsee}{m_mars['quar']}{m_mars['sec']:>02}{m_mars['num']:>04}"
             )

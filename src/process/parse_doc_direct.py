@@ -192,40 +192,48 @@ def extract_adresses_commune(
 
     if len(adresses_visees) > 1:
         # si la 1re adresse n'a pas de code postal, tenter de récupérer le code postal des adresses suivantes
+        # on construit 2 mappings:
+        # - (num, voie) => cp
         numvoie2cp = dict()
-        voie2cp = (
-            dict()
-        )  # fallback, quand la mention de l'adresse extraite ne contient pas de numéro (mais une mention ultérieure, oui)
+        # - voie => cp  # fallback, quand la mention d'adresse extraite ne contient pas de numéro (mais une mention ultérieure, oui)
+        voie2cp = dict()
+        # on itère sur l'ensemble des adresses extraites du document pour créer une table d'association vers les codes postaux
         for x in adresses_visees:
             for y in x["adresses"]:
-                norm_voie = normalize_string(
-                    remove_accents(y["voie"]),
-                    num=True,
-                    apos=True,
-                    hyph=True,
-                    spaces=True,
-                ).lower()
                 if y["cpostal"]:
+                    norm_voie = normalize_string(
+                        remove_accents(y["voie"]),
+                        num=True,
+                        apos=True,
+                        hyph=True,
+                        spaces=True,
+                    ).lower()
                     # (numéro, voie) -> cp
                     numvoie2cp[(y["num"], norm_voie)] = y["cpostal"]
                     # fallback: voie -> cp
                     voie2cp[norm_voie] = y["cpostal"]  # WIP 2023-05-09
         # print(numvoie2cp)
+
         for sel_adr in adresses:
-            norm_voie = normalize_string(
-                remove_accents(sel_adr["voie"]),
-                num=True,
-                apos=True,
-                hyph=True,
-                spaces=True,
-            ).lower()
-            if sel_adr["num"] and sel_adr["voie"] and not sel_adr["cpostal"]:
-                sel_short = (sel_adr["num"], norm_voie)
-                # print(f">>>>>> sel_short: {sel_short}")
-                sel_adr["cpostal"] = numvoie2cp.get(sel_short, None)
-            elif sel_adr["voie"] and not sel_adr["cpostal"]:
-                # fallback sans numéro
-                sel_adr["cpostal"] = voie2cp.get(norm_voie, None)  # WIP 2023-05-09
+            # pour chaque adresse considérée comme étant visée par l'arrêté
+            if sel_adr["voie"] and not sel_adr["cpostal"]:
+                # si on a une voie mais pas de code postal, on essaie de renseigner
+                # le code postal par propagation à partir des autres adresses
+                norm_voie = normalize_string(
+                    remove_accents(sel_adr["voie"]),
+                    num=True,
+                    apos=True,
+                    hyph=True,
+                    spaces=True,
+                ).lower()
+                if sel_adr["num"]:
+                    # si on a un numéro de voie (c'est l'idéal, car le code postal est normalement unique)
+                    sel_short = (sel_adr["num"], norm_voie)
+                    # print(f">>>>>> sel_short: {sel_short}")
+                    sel_adr["cpostal"] = numvoie2cp.get(sel_short, None)
+                else:
+                    # sans numéro de voie, on recourt au tableau associatif sans numéro
+                    sel_adr["cpostal"] = voie2cp.get(norm_voie, None)  # WIP 2023-05-09
 
     # if fn_pdf == "90 cours Sextius - ML.pdf":
     #     print(f"{adresses_visees}\n{numvoie2cp}\n{adresses}")

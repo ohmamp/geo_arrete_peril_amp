@@ -347,6 +347,36 @@ RE_ADR_CLEANUP = (
 # M_ADR_CLEANUP = re.compile(RE_ADR_CLEANUP, re.MULTILINE | re.IGNORECASE)
 
 
+# adresses des services municipaux, à neutraliser avant de chercher les adresses visées par un arrêté
+RE_ADR_SERVICES_MUNI = (
+    r"(?:"
+    # Marseille
+    + r"(?:"
+    + r"Direction\s+du\s+logement\s+et\s+de\s+la\s+lutte\s+contre\s+l['’]habitat\s+indigne,\s+"
+    + r"sis(?:e)?\s+"
+    + r"13[,]?\s+Boulevard\s+de\s+Dunkerque\s+13002\s+MARSEILLE\s+"
+    + r"\(\s*téléphone\s*:\s+04[\s]91[\s]55[\s]40[\s]79,\s+"
+    + r"courriel\s*:\s+suivi-hebergement@marseille\.fr\s*\)"
+    + r")"
+    + r"|(?:"
+    + r"Direction\s+de\s+la\s+Prévention\s+et\s+(?:de\s+la\s+)?Gestion\s+des\s+Risques,\s+"
+    + r"(?:Division\s+Hébergement\s+et\s+accompagnement,\s+)?"
+    + r"sis(?:e)?\s+"
+    + r"40\s+avenue\s+Roger\s+Salengro\s*[-–.,]\s+13233\s+MARSEILLE\s+CEDEX\s+20\s+"
+    + r"\(\s*téléphone\s*:\s+04[\s]91[\s]55[\s]40[\s]79,\s+"
+    + r"courriel\s*:\s+suivi-hebergement@marseille\.fr\s*\)"
+    + r")"
+    # Gémenos
+    + r"|(?:"
+    + r"Direction\s+des\s+Services\s+Techniques,\s+"
+    + r"Place\s+du\s+Général\s+de\s+Gaulle\s+13420\s+GEMENOS\s+"
+    + r"au\s+04[\s]42[\s]32[\s]89[\s]00"
+    + r")"
+    + r")"  # fin global
+)
+P_ADR_SERVICES_MUNI = re.compile(RE_ADR_SERVICES_MUNI, re.IGNORECASE | re.MULTILINE)
+
+
 # adresse du bâtiment visé par l'arrêté
 # TODO choisir la ou les bonnes adresses quand il y a risque de confusion
 # (ex compliqué: "59, rue Peysonnel 13003 - PGI 18.06.20.pdf")
@@ -395,7 +425,11 @@ def get_adr_doc(page_txt: str) -> bool:
     """
     # NEW normalisation du texte
     page_txt = normalize_string(page_txt, num=True, apos=True, hyph=True, spaces=True)
-    # end NEW
+    # WIP au préalable, neutraliser les adresses des services municipaux
+    if serv_mun := P_ADR_SERVICES_MUNI.search(page_txt):
+        logging.warning(f"service municipal remplacé: {serv_mun}")
+        page_txt = re.sub(P_ADR_SERVICES_MUNI, "SERVICE_MUNICIPAL", page_txt)
+
     adresses = []
     if matches_adr := list(P_ADR_DOC.finditer(page_txt)):
         for m_adr in matches_adr:

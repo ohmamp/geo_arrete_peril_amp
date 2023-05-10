@@ -300,19 +300,13 @@ def generate_refcadastrale_norm(
     elif m_mars := P_CAD_MARSEILLE_NG.search(refcad):
         # on ne garde que le 1er match
         # TODO gérer 2 ou plusieurs références cadastrales
-        # le code de section devrait être en majuscules ; émettre un warning sinon
-        # TODO ajouter au rapport d'erreur
-        if not m_mars["sec"].isupper():
-            logging.warning(
-                f"{arr_pdf}: référence cadastrale suspicieuse (code de section): {refcad}"
-            )
         # Marseille: code insee arrondissement + code quartier (3 chiffres) + section + parcelle
         arrt = m_mars["arrt"]
         if not arrt and not (codeinsee and codeinsee != "13055"):
             # ni arrondissement ni code INSEE (différent de celui de tout Marseille)=> générer une référence cadastrale courte
             refcad = f"{m_mars['quar']}{m_mars['sec']:>02}{m_mars['num']:>04}"
             logging.error(
-                f"{arr_pdf}: numéro d'arrondissement manquant pour une référence cadastrale à Marseille {refcad}"
+                f"{arr_pdf}: référence cadastrale incomplète (numéro d'arrondissement manquant à Marseille): {refcad}"
             )
         else:
             # arrondissement ou code INSEE
@@ -335,16 +329,31 @@ def generate_refcadastrale_norm(
             refcad = (
                 f"{codeinsee}{m_mars['quar']}{m_mars['sec']:>02}{m_mars['num']:>04}"
             )
+        # le code de section devrait être en majuscules ; émettre un warning sinon
+        # TODO ajouter au rapport d'erreur (réf normalisée produite + str en entrée)
+        if not m_mars["sec"].isupper():
+            logging.warning(
+                f"{arr_pdf}: référence cadastrale suspecte (code de section): {refcad}"
+            )
     elif m_autr := P_CAD_AUTRES_NG.search(refcad):
         # hors Marseille: code insee commune + 000 + section + parcelle
-        # le code de section devrait être en majuscules ; émettre un warning sinon
-        # TODO ajouter au rapport d'erreur
-        if not m_autr["sec"].isupper():
-            logging.warning(
-                f"{arr_pdf}: référence cadastrale suspicieuse (code de section): {refcad}"
-            )
         codequartier = "000"
         refcad = f"{codeinsee}{codequartier}{m_autr['sec']:>02}{m_autr['num']:>04}"
+        # 2 vérifications:
+        # - le code de section devrait être en majuscules ; émettre un warning sinon
+        # TODO ajouter au rapport d'erreur (réf normalisée produite + str en entrée)
+        if not m_autr["sec"].isupper():
+            logging.warning(
+                f"{arr_pdf}: référence cadastrale suspecte (code de section): {refcad}"
+            )
+        # - si le code INSEE est en fait un code INSEE d'un arrondissement de Marseille,
+        # mais aucun code quartier n'a été repéré donc la référence cadastrale lue est
+        # une référence courte, comme dans d'autres communes
+        # TODO ajouter au rapport d'erreur (réf normalisée produite + str en entrée)
+        if codeinsee and (int(codeinsee) in range(13201, 13216)):
+            logging.warning(
+                f"{arr_pdf}: référence cadastrale suspecte (Marseille sans code quartier): {refcad}"
+            )
     else:
         refcad = None
     return refcad

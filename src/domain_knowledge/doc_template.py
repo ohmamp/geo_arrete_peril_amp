@@ -80,16 +80,19 @@ RE_HEADERS = [
         r"Arrêté\s+" + RE_NO + r"\d{4}-\d{2}-ARR-SIHI\s+" + r"Page\s+\d{1,2}/\d{1,2}",
     ),  # p.2 et suiv
     # TODO vérifier après OCR
-    ("La Ciotat", r"^Ville\s+de\s+La\s+Ciotat$"),  # p. 1
+    ("La Ciotat", r"^Ville\s+de\s+La\s+Ciotat(?:\s*[-–]\s*)?$"),  # p. 1
     # ("Berre-l'Étang", r"^République\s+Française$"),  # p. 1
-    ("Gémenos", r"^Ville\s+de\s+Gémenos$"),  # p. 1
-    ("Gémenos", r"^TÉL\s*[:;]\s*04\s+42\s+32\s+89\s+00"),  # [:;] pour les erreurs d'OCR
+    ("Gémenos", r"^Ville\s+de\s+G[ée]menos$"),  # p. 1
+    (
+        "Gémenos",
+        r"^T[ÉE]L\s*[:;]\s*04\s+42\s+32\s+89\s+00",
+    ),  # [:;] pour les erreurs d'OCR
     ("Gémenos", r"^FAX\s*[:;]\s*04\s+42\s+32\s+71\s+41"),
     (
         "Gémenos",
         r"www[.-]mairie-gemenos[.-]fr",  # [.-] pour les erreurs d'OCR
     ),  # p. 1
-    ("Gémenos", r"^ARRÊTÉ\s+DU\s+MAIRE$"),  # p. 1 (optionnel)
+    ("Gémenos", r"^ARR[ÊE]T[ÉE]\s+DU\s+MAIRE$"),  # p. 1 (optionnel)
     (
         "Jouques",
         # r"^REPUBLIQUE\s+FRANCAISE\n"
@@ -97,7 +100,7 @@ RE_HEADERS = [
     ),  # p. 1 (en haut)
     (
         "La Ciotat",
-        r"^HÔTEL\s+DE\s+VILLE\s+[-]\s+Rond[-]point\s+des\s+Messageries\s+maritimes\s+B\.P\s+161\s+[-]\s+13708\s+[-]\s+La\s+Ciotat\s+Cedex",
+        r"^H[ÔO]TEL\s+DE\s+VILLE\s+[-]\s+Rond[-]point\s+des\s+Messageries\s+maritimes\s+B\.P\s+161\s+[-]\s+13708\s+[-]\s+La\s+Ciotat\s+Cedex",
     ),
     (
         "La Ciotat",
@@ -121,13 +124,34 @@ RE_HEADERS = [
         + r"\n"
         + r"COMMUNE\s+DE\s+MEYRARGUES\n",
     ),  # p. 1 (en haut à gauche)
-    ("Peyrolles-en-Provence", r"^Mairie\s+de\s+Peyrolles-en-Provence$"),  # p. 1
+    (
+        "Pennes Mirabeau",
+        r"^CANTON\s+GARDANNE$",
+    ),  # p. 1 (en haut à gauche)
+    (
+        "Pennes Mirabeau",
+        r"^COMMUNE\s+(?:LES\s+)?PENNES\s+M[I]?RABEAU",  # I optionnel: robustesse OCR
+    ),  # p. 1 (en haut à gauche)
+    (
+        "Pennes Mirabeau",
+        r"^LIBERT[EÉ]S\s+PUBLIQUES\s+ET\s+POUVOIRS\s+DE\s+POLICE",
+    ),  # p. 1 (en haut)
+    (
+        "Peyrolles-en-Provence",
+        r"^Mairie\s+de\s+Peyrolles-en-Provence$",
+    ),  # p. 1
     (
         "Peyrolles-en-Provence",
         r"^Affaire\s+suivie\s+par\s+:\s+[^\n]+\n(?:[^\n]+\n)?",
     ),  # p. 1
-    ("Peyrolles-en-Provence", r"^Service\s+:\s+[^\n]+\n(?:[^\n]+\n)?"),  # p. 1
-    ("Peyrolles-en-Provence", r"^Tél\s+:\s+\d{2}\.\d{2}\.\d{2}\.\d{2}\.\d{2}$"),  # p. 1
+    (
+        "Peyrolles-en-Provence",
+        r"^Service\s+:\s+[^\n]+\n(?:[^\n]+\n)?",
+    ),  # p. 1
+    (
+        "Peyrolles-en-Provence",
+        r"^Tél\s+:\s+\d{2}\.\d{2}\.\d{2}\.\d{2}\.\d{2}$",
+    ),  # p. 1
     (
         "Roquevaire",
         r"^COMMUNE\s+DE\s+ROQUEVAIRE\n+"

@@ -101,6 +101,8 @@ RE_TYP_VOIE = (
     + r"|ancien\s+chemin"
     + r"|chemin|che|ch"
     + r"|mont[ée]e"
+    + r"|anse"  # anse de Malmousque, anse de Maldormé etc.
+    + r"|plage"  # ex: plage de l'Estaque
     + r"|vc"  # "voie communale"
     + r"|domaine"
     # + r"|voie"  # negative lookahead: \s(?:publique|de\scirculation|d['’]effondrement|d'['’]affichage|sur|le\slong|allant|précitée|administrative|électronique|dématérialisée|de\srecours|de\sconséquence|...)
@@ -195,6 +197,8 @@ RE_ADR_COMPL_ELT = (
     # + r"(?!^(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de))"  # negative lookahead: éviter de capturer n'importe quoi  # 2023-04-11: inopérant?
     # cas particulier
     + r"(?:Les\s+Docks\s+Atrium\s+[\d.]+)"  # grand immeuble de bureaux
+    + r"|(?:(?:Le\s+)?Gyptis(?:\s+I)?)"  # grand immeuble de logement
+    #
     + r"|(?:Immeuble\s+sur\s+rue)"  # désignation de bâtiment sur la parcelle
     + r"|(?:garage)"  # désignation de bâtiment sur la parcelle
     + r"|(?:[(][^)]+\s+selon\s+cadastre[)])"  # ex: "12 rue X (18 selon cadastre)"  # FIXME rattacher plutôt au NUM_IND_VOIE
@@ -238,8 +242,9 @@ RE_VOIE = (
     + r"(?:la\s+Can[n]?ebi[èe]re)"  # inclut l'ancienne graphie "nn"
     # exception: grand(e) rue
     + r"|(?:grand(e)?\s+rue)"
-    # cas particulier: nom "double" avec un tiret (qui sinon est considéré comme séparateur avec un complément d'adresse ou une commune)
-    + r"|(?:place\s+de\s+l['’\s][ée]glise\s+-\s+Fran[çc]ois\s+Maleterre)"
+    # cas particulier: nom "double" avec un tiret ou slash (qui sinon est considéré comme séparateur avec un complément d'adresse ou une commune)
+    + r"|(?:place\s+de\s+l['’\s][ée]glise\s+[-/]\s+Fran[çc]ois\s+Maleterre)"
+    + r"|(?:place\s+de\s+Strasbourg\s+[-/]\s+Paul\s+Cermolacce)"
     # cas particulier: chemin de X à Y (nécessaire car "à" est une des bornes droites de RE_NOM_VOIE)
     + r"|(?:chemin\s+de\s+"
     + r"(?:"

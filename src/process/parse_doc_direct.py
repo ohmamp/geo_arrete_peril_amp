@@ -443,6 +443,7 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
 
             # extraire la ou les parcelles visées par l'arrêté
             if pg_parcelles_str_list := get_parcelles(pg_txt_body):
+                # TODO supprimer les références partielles (ex: Marseille mais sans code quartier) si la référence complète est aussi présente dans le doc
                 refcads_norm = [
                     generate_refcadastrale_norm(
                         codeinsee, pg_parcelles_str, fn_pdf, cpostal

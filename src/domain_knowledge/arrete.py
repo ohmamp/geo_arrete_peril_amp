@@ -186,11 +186,11 @@ RE_DATE_SIGNAT = (
     # Gardanne, Peyrolles-en-Provence
     + r"|^(?:Gardanne|Peyrolles-en-Provence),\s+le"
     # Marseille
-    + r"|^Signé\s+le\s*:\s+"
+    + r"|^Sign[ée]\s+le\s*:\s+"
     # Meyrargues
-    + rf"|^ARRÊTÉ\s+DU\s+MAIRE\s+{RE_NO}[^\n]+\nen\s+date\s+du\s+"
+    + rf"|^ARR[ÊE]T[ÉE]\s+DU\s+MAIRE\s+{RE_NO}[^\n]+\nen\s+date\s+du\s+"
     # Peyrolles-en-Provence (en-tête), Martigues (fin)
-    + rf"|^Arrêté\s+{RE_NO}[\s\S]+?\s+du"
+    + rf"|^Arr[êe]t[ée]\s+{RE_NO}[\s\S]+?\s+du"
     # + r"|^Affiché[e]\s+le\s+:"  # TODO garder la date de signature ou d'affichage?
     + r")"
     + r"\s+(?P<arr_date>"

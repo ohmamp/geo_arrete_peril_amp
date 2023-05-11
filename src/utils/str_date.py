@@ -48,7 +48,7 @@ RE_DATE = (
     r"(?:"
     + r"\d{2}[.]\d{2}[.]\d{4}"  # Peyrolles-en-Provence (en-tête)
     + r"|\d{2}/\d{2}/\d{4}"  # ?
-    + r"|(?:\d{1,2}|1er)\s+"  # cas particulier: 1er
+    + r"|(?:\d(?:\s*\d)?|1[\s]*er)\s+"  # 1 ou 2 chiffres + cas particulier: "1er" ; espace possible entre les deux chiffres pour robustesse OCR
     + RE_MOIS
     + r"\s+\d{4}"  # Gardanne (fin), Roquevaire (fin), Martigues (fin)
     + r")"

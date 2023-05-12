@@ -31,7 +31,7 @@ RE_PROCEDURE_ORDINAIRE = (
 RE_PROCEDURE_URGENTE = (
     r"(?:"
     + r"(?:(?:\s*[–-])?\s+proc[ée]dure\s+(?:urgente|d['’]\s*urgence))"
-    + r"|(?:\s+d['’]\s*urgence)"  # "mise en sécurité d'urgence"
+    + r"|(?:\s+(?:d['’]\s*|en\s+)urgence)"  # "mise en sécurité d'urgence" / "en urgence"
     + r")"
 )
 

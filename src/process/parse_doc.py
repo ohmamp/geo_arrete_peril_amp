@@ -18,6 +18,7 @@ from src.domain_knowledge.arrete import (
     P_ARTICLE,
     P_CONSIDERANT,
     P_DATE_SIGNAT,
+    P_LIEU_SIGNAT,
     P_MAIRE_COMMUNE,
     P_NOM_ARR,
     P_NUM_ARR,
@@ -491,6 +492,29 @@ def parse_doc_postamble(txt_body: str, pream_beg: int, pream_end: int) -> list[d
                     "span_typ": "adr_ville",  # TODO utiliser un autre nom pour éviter le conflit?
                 }
             )
+    elif m_signature := P_LIEU_SIGNAT.search(txt_body, pream_beg, pream_end):
+        logging.warning(f"parse_doc_postamble: signature (lieu): {m_signature}")
+        # stocker la zone reconnue
+        content.append(
+            {
+                "span_beg": m_signature.start(),
+                "span_end": m_signature.end(),
+                "span_txt": m_signature.group(0),
+                "span_typ": "par_sign_lieu",
+            }
+        )
+        # b. extraire la ville de signature
+        # TODO ne capture pas toutes les villes (problème de named group avec contexte trop différent)
+        if m_signature.group("arr_ville_signat"):
+            # stocker la donnée
+            content.append(
+                {
+                    "span_beg": m_signature.start("arr_ville_signat"),
+                    "span_end": m_signature.end("arr_ville_signat"),
+                    "span_txt": m_signature.group("arr_ville_signat"),
+                    "span_typ": "adr_ville",  # TODO utiliser un autre nom pour éviter le conflit?
+                }
+            )
     # TODO c. extraire l'identité et la qualité du signataire? (eg. délégation de signature)
     #
     else:
@@ -886,10 +910,15 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
             # le corps du document s'arrête à la signature ou la date de prise de l'arrêté
             # FIXME attraper le 1er qui apparaît: date de signature ou signataire
             artic_beg = main_beg
-            if m_date_sign := P_DATE_SIGNAT.search(pg_txt_body, main_beg):
+            if m_sign := P_DATE_SIGNAT.search(pg_txt_body, main_beg):
                 # si la page contient la signature de fin de l'acte, l'analyse du contenu
-                # principal s'arrêter à la signature
-                artic_end = m_date_sign.start()
+                # principal doit s'arrêter à la signature (ici avec date)
+                artic_end = m_sign.start()
+            elif m_sign := P_LIEU_SIGNAT.search(pg_txt_body, main_beg):
+                # si la page contient la signature de fin de l'acte, l'analyse du contenu
+                # principal doit s'arrêter à la signature (ici avec lieu seul, date absente
+                # ou non-reconnue)
+                artic_end = m_sign.start()
             else:
                 artic_end = main_end
 
@@ -908,16 +937,16 @@ def parse_arrete_pages(fn_pdf: str, pages: list[str]) -> list:
                     None  # le dernier empan de la page précédente n'est plus disponible
                 )
 
-            if m_date_sign:
+            if m_sign:
                 # analyser le postambule et changer l'état
-                posta_beg = m_date_sign.start()
+                posta_beg = m_sign.start()
                 posta_end = main_end
                 posta_content = parse_doc_postamble(pg_txt_body, posta_beg, posta_end)
                 pg_content.extend(posta_content)
                 if posta_content:
                     latest_span = None  # le dernier empan de la page précédente n'est plus disponible
                 cur_state = "apres_signature"
-            logging.warning(f"{fn_pdf}: parse_doc: après m_date_sign")  # DEBUG
+            logging.warning(f"{fn_pdf}: parse_doc: après m_sign")  # DEBUG
         # TODO si tout le texte a déjà été reconnu, ajouter le contenu de la page au doc et passer à la page suivante
 
         if cur_state == "apres_signature":

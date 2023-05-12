@@ -200,6 +200,23 @@ RE_DATE_SIGNAT = (
 P_DATE_SIGNAT = re.compile(RE_DATE_SIGNAT, re.MULTILINE | re.IGNORECASE)
 
 
+# capturer uniquement le lieu de signature ; utile lorsque la date est mal reconnue (écriture manuelle ou mauvais OCR)
+RE_LIEU_SIGNAT = (
+    r"(?:"
+    # "^Fait à <ville>, le"
+    # Aix-en-Provence, Aubagne, Gémenos, La Ciotat, Roquevaire, Gémenos (fin)
+    + r"^Fait\s+à\s+"
+    + rf"(?P<arr_ville_signat>{RE_COMMUNES_AMP_ALLFORMS}|[^\s,]+)"  # fallback: [^\s,]+ ou RE_COMMUNES ?
+    + r"(?:(?:\s*,)?\s+en\s+l['’]H[ôo]tel\s+de\s+Ville)?"
+    + r"(?:\s*,)?\s+le"
+    # "^<ville>, le"
+    # Gardanne, Peyrolles-en-Provence  # FIXME non inclus dans le groupe nommé arr_ville_signat
+    + r"|^(?:Gardanne|Peyrolles-en-Provence),\s+le"
+    + r")"
+)
+P_LIEU_SIGNAT = re.compile(RE_LIEU_SIGNAT, re.MULTILINE | re.IGNORECASE)
+
+
 def get_date(page_txt: str) -> bool:
     """Récupère la date de l'arrêté.
 

@@ -1,6 +1,9 @@
 """Modèles de documents des arrêtés.
 
 Motifs de reconnaissance des en-têtes, pieds-de-page et annexes.
+
+TODO
+- [ ] exploiter les éléments de template (discriminants) pour déterminer la ville (en complément des autres emplacements: autorité, signature)
 """
 
 import re
@@ -37,17 +40,29 @@ RE_HEADERS = [
         "Aix-en-Provence",
         (
             r"(?:"
-            + r"DEPARTEMENT\s+OPERATIONS\s+JURIDIQUES\s+COMPLEXES\s+"
-            + r"ET\s+CONTROLE\s+ET\s+SUIVI\s+DES\s+PROCEDURES\s+CONTENTIEUSES\n"
-            + r"|SECRETARIAT\s+GENERAL\n"
+            + r"D[ÉE]PARTEMENT\s+OP[ÉE]RATIONS\s+JURIDIQUES\s+COMPLEXES\s+"
+            + r"ET\s+CONTR[ÔO]LE\s+ET\s+SUIVI\s+DES\s+PROC[ÉE]DURES\s+CONTENTIEUSES\n+"
+            + r"|SECR[ÉE]TARIAT\s+G[ÉE]N[ÉE]RAL\n+"
             + r")"
-            + r"Direction\s+Etudes\s+Juridiques\s+&\s+Contentieux\n"
+            + r"Direction\s+[ÉE]tudes\s+Juridiques\s+&\s+Contentieux\s+"
         ),
     ),  # p.1
     (
         "Aix-en-Provence",
-        r"(?:^D\.G\.A\.S\s+[-]\s+Etudes\s+Juridiques,\s+Marchés\s+Publics\s+et\s+Patrimoine\s+Communal\s+Direction\s+Etudes\s+Juridiques\s+&\s+Contentieux)",
+        r"(?:^D\.G\.A\.S\s+[-]\s+[ÉE]tudes\s+Juridiques,\s+March[ée]s\s+Publics\s+et\s+Patrimoine\s+Communal\s+"
+        + r"Direction\s+[ÉE]tudes\s+Juridiques\s+&\s+Contentieux\s+)",
     ),  # p. 1, arrêtés
+    # copie de actes:RE_STAMP_3
+    (
+        "Aix-en-Provence",
+        r"(?:^\s*[A-Z]{2,3}(?:/[A-Z]{2,3})?[\n]+)?"
+        + r"Accus[ée]\s+de\s+r[ée]ception\s+en\s+pr[ée]fecture[\n]+"
+        + r"Identifiant\s+:[\n]+"
+        + r"Date\s+de\s+r[ée]ception\s+:[\n]+"
+        + r"Date\s+de\s+notification[\n]+"
+        + r"Date\s+d[’']affichage\s+:\s+du\s+au[\n]+"
+        + r"Date\s+de\s+publication\s+:[\n]+",
+    ),  # p. 1, en haut à gauche
     # ("Aix-en-Provence", r"^ARRÊTÉ\n"),  # NON! trop générique, capture des spans nécessaires ailleurs
     ("Aubagne", r"^Gérard\s+GAZAY"),
     ("Aubagne", r"^Maire\s+d'Aubagne"),

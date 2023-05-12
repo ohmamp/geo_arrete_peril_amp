@@ -122,7 +122,7 @@ P_CP = re.compile(RE_CP)
 # - contexte droit, qui sera utilisé pour délimiter à droite un nom de voie (butée)
 RE_NOM_VOIE_RCONT = (
     r"("
-    + r"\s*[,;]\s+"  # séparateur "," (ex: 2 rue xxx[,] 13420 GEMENOS)
+    + r"\s*[,;.]\s+"  # séparateur "," (ex: 2 rue xxx[,] 13420 GEMENOS)  # NEW 2023-05-12 "."
     + rf"|(\s*[.–-])*\s*{RE_CP}"  # borne droite <code_postal>  # WIP: ajout ".", ? -> *
     + r"|\s*–\s*"  # séparateur "–"
     + r"|\s+-\s*"  # séparateur "-"

@@ -32,7 +32,7 @@ RE_MAIRE_COMMUNE = (
     + rf"(?:^Le\s+{RE_MAIRE_COMM_DE})"
     # Nous, (...,)? maire de X
     + r"|(?:"
-    + r"Nous[,.]\s+(?P<autorite_nom>[^,]+,\s+)?"  # pas de "^" pour augmenter la robustesse (eg. séparateur "-" en fin de ligne précédente interprété comme un tiret de coupure de mot)
+    + r"Nous[,.]?\s+(?P<autorite_nom>[^,]+,\s+)?"  # pas de "^" pour augmenter la robustesse (eg. séparateur "-" en fin de ligne précédente interprété comme un tiret de coupure de mot)
     + RE_MAIRE_COMM_DE
     + r")"
     + r")"  # fin alternatives
@@ -79,7 +79,7 @@ def get_commune_maire(page_txt: str) -> bool:
 
 
 # Vu, considérant, article
-RE_VU = r"^\s*VU[^e]"
+RE_VU = r"^\s*(?:[eŸ]\s+)?VU[^e]"  # "e" ou "Ÿ": (liste à) puce mal reconnue (OCR)
 # RE_VU = r"^\s*(?P<vu>V[Uu][,\s](.+))"
 P_VU = re.compile(RE_VU, re.MULTILINE | re.IGNORECASE)  # re.VERBOSE ?
 
@@ -205,7 +205,7 @@ RE_LIEU_SIGNAT = (
     r"(?:"
     # "^Fait à <ville>, le"
     # Aix-en-Provence, Aubagne, Gémenos, La Ciotat, Roquevaire, Gémenos (fin)
-    + r"^Fait\s+à\s+"
+    + r"^Fait\s+(à|aux|au)\s+"
     + rf"(?P<arr_ville_signat>{RE_COMMUNES_AMP_ALLFORMS}|[^\s,]+)"  # fallback: [^\s,]+ ou RE_COMMUNES ?
     + r"(?:(?:\s*,)?\s+en\s+l['’]H[ôo]tel\s+de\s+Ville)?"
     + r"(?:\s*,)?\s+le"

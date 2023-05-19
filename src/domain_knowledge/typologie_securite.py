@@ -26,11 +26,11 @@ RE_OBJET = r"Ob(?:j|i|ij)et\s*:\s+"
 
 # procédures: orginaire et urgente
 RE_PROCEDURE_ORDINAIRE = (
-    r"(?:\s*[–-])?\s+proc[ée]dure\s+ordin(?:n)?aire"  # robustesse: 2e n optionnel
+    r"(?:\s*[/–-])?\s+proc[ée]dure\s+ordin(?:n)?aire"  # robustesse: 2e n optionnel
 )
 RE_PROCEDURE_URGENTE = (
     r"(?:"
-    + r"(?:(?:\s*[–-])?\s+proc[ée]dure\s+(?:urgente|d['’]\s*urgence))"
+    + r"(?:(?:\s*[/–-])?\s+proc[ée]dure\s+(?:urgente|d['’]\s*urgence))"
     + r"|(?:\s+(?:d['’]\s*|en\s+)urgence)"  # "mise en sécurité d'urgence" / "en urgence"
     + r")"
 )
@@ -67,7 +67,10 @@ M_CLASS_PS_PO_MOD = re.compile(RE_CLASS_PS_PO_MOD, re.MULTILINE | re.IGNORECASE)
 # mise en sécurité (terminologie actuelle)
 RE_MISE_EN_SECURITE = r"mise\s+en\s+s[ée]curit[ée]"
 RE_ARR_DE_MISE_EN_SECURITE = (
-    rf"{RE_ARRETE}" + r"\s+(?:de\s+)?" + rf"{RE_MISE_EN_SECURITE}"
+    rf"{RE_ARRETE}"
+    + r"\s+(?:de\s+)?"
+    + rf"{RE_MISE_EN_SECURITE}"
+    + r"(?:\s+d['’]\s*un\s+immeuble)?"
 )
 RE_CLASS_MS = (
     r"(?:"
@@ -227,7 +230,7 @@ M_CLASS_DE = re.compile(RE_CLASS_DE, re.MULTILINE | re.IGNORECASE)
 # abrogation de déconstruction / démolition
 RE_CLASS_ABRO_DE = (
     r"(?:"
-    + r"Abrogation\s+de\s+l['’]"
+    + r"Abrogation\s+de\s+l['’]\s*"
     + RE_ARRETE
     + r"\s+de\s+(?:d[ée]construction|d[ée]molition)"
     + r")"

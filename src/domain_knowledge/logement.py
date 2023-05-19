@@ -393,7 +393,7 @@ RE_ADR_DOC = (
     + r"|(?:Objet\s*:"
     + rf"(?:\s+{RE_CLASSE}(?:\s*[,:–-]|\s+au|\s+dans\s+l['’]immeuble\s+sis)?)?"
     + r")"  # fin "Objet:(classe)?"
-    + rf"|(?:{RE_CLASSE}\s*[–-])"  # <classe> - <adresse>
+    + rf"|(?:{RE_CLASSE}(?:\s*[–-])?)"  # <classe> - <adresse>  # WIP: optionnel
     + r")\s+"  # fin alternatives contexte gauche
     # adresse du document
     + rf"(?P<adresse>{RE_ADRESSE})"  # TODO ajouter la reconnaissance explicite d'une 2e adresse optionnelle (ex: "... / ...")

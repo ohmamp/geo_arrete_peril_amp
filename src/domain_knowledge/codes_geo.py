@@ -85,6 +85,9 @@ S_RE_COMMUNES_VARS = (
     # - arrondissements (sur AMP, ne concerne que Marseille): ajout d'une forme courte
     .str.replace(r"e\s+Arrondissement", r"(ème|e)(\\s+Arrondissement)?", regex=True)
     .str.replace(r"er\s+Arrondissement", r"er(\\s+Arrondissement)?", regex=True)
+    # rendre "les" et "le" initial optionnel, ex: les Pennes Mirabeau => Fait aux Pennes Mirabeau
+    .str.replace(r"^Les\s", r"(Les\\s)?", regex=True)
+    .str.replace(r"^Le\s", r"(Le\\s)?", regex=True)
     # - espaces
     .str.replace(r"\s+", r"\\s+", regex=True)
     # - espaces à la place des traits d'union
@@ -122,6 +125,41 @@ S_RE_COMMUNES_VARS = (
     .str.replace(r"û", r"[ûu]", regex=True)
 )
 
+VILLE_PAT_NORM = [
+    (re.compile(x, re.IGNORECASE | re.MULTILINE), y)
+    for x, y in zip(S_RE_COMMUNES_VARS, DF_INSEE["commune"].tolist())
+]
+
+
+# TODO ? Possible de faire plus rapide en adaptant le code de <https://stackoverflow.com/a/2400577>,
+# en utilisant comme clé non pas la chaîne reconnue mais l'expression régulière correspondante,
+# comme <https://stackoverflow.com/questions/2554185/match-groups-in-python> ?
+def normalize_ville(raw_ville: str) -> str:
+    """Normalise un nom de ville.
+
+    Les formes reconnues par `S_RE_COMMUNES_VARS` sont réécrites dans la forme canonique
+    tirée de `DF_INSEE["commune"]`.
+    Pour les villes absentes de cette ressource externe, le nom est renvoyé tel quel.
+
+    Parameters
+    ----------
+    raw_ville: str
+        Nom brut de la ville, extrait du document.
+
+    Returns
+    -------
+    nor_ville: str
+        Forme normale, canonique, du nom de ville.
+    """
+    for p_ville, norm_ville in VILLE_PAT_NORM:
+        if p_ville.match(raw_ville):
+            return norm_ville
+    else:
+        # si toutes les possibilités ont été épuisées,
+        # renvoyer la valeur en entrée
+        return raw_ville
+
+
 # expression régulière avec toutes les graphies de tous les noms de communes (de la métropole AMP)
 # le regex engin de python s'arrête au 1er match dans une alternative, donc on doit :
 # 1. (obligatoire) remonter les arrondissements de Marseille avant "Marseille" (tout court) pour éviter que "Marseille"
@@ -145,6 +183,7 @@ RE_COMMUNES_AMP_ALLFORMS = r"(?:" + r"|".join(S_RE_COMMUNES_SORTED.tolist()) + r
 P_COMMUNES_AMP_ALLFORMS = re.compile(
     RE_COMMUNES_AMP_ALLFORMS, re.IGNORECASE | re.MULTILINE
 )
+
 
 # opérations sur les communes, utilisant les codes INSEE et codes postaux
 #
@@ -190,6 +229,7 @@ COM2INSEE = {
 INSEE2POST = {
     codeinsee: cpostal for codeinsee, cpostal in DF_CPOSTAL.itertuples(index=False)
 }
+
 
 # TODO fuzzyjoin ?
 def get_codeinsee(nom_commune: str, cpostal: str) -> str:

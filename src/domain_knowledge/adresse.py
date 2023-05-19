@@ -14,6 +14,7 @@ from src.domain_knowledge.cadastre import RE_CAD_SECNUM
 # from src.domain_knowledge.cadastre import RE_CAD_MARSEILLE  # (inopérant?)
 from src.domain_knowledge.codes_geo import (
     RE_COMMUNES_AMP_ALLFORMS,
+    normalize_ville,
 )
 from src.utils.text_utils import RE_NO, normalize_string
 
@@ -113,7 +114,7 @@ RE_TYP_VOIE = (
 # code postal
 # negative lookbehind: ni chiffre ni lettre P, pour éviter de capturer les fins de codes postaux et les boîtes postales
 # negative lookahead: pas de chiffre, pour éviter de capturer les débuts de références de parcelles cadastrales (6 chiffres de préfixe à Marseille: 3 arrondissement + 3 quartier)
-RE_CP = r"(?<![\dP])\d{5}(?![\d])"  # WIP: ...(?!\d)"
+RE_CP = r"(?<![\dP])(?:\d{5}|\d{2}\s\d{3})(?![\d])"  # WIP: ...(?!\d)"
 P_CP = re.compile(RE_CP)
 
 # nom de voie
@@ -131,6 +132,7 @@ RE_NOM_VOIE_RCONT = (
     + rf"|(?:(\s*[-–,])?\s*(?:{RE_NUM_IND_LIST})[,]?\s+{RE_TYP_VOIE})"  # on bute directement sur une 2e adresse (rare mais ça arrive)
     + r"|(?:\s*[({][^)}]+\s+selon\s+cadastre[)}])"  # complément d'adresse ; ex: "12 rue X (18 selon cadastre)"
     + r"|(?:\s*[({]cadastré[^)}]+?[)}])"  # (cadastré <ref_cad>)
+    + r"|(?:\s*[({]Risques\s+pr[ée]sent[ée]s\s+par\s+les\s+murs)"  # Aubagne: "<type_arrete> <adresse> (Risques présentés par les murs, bâtiments ou édifices quelconques n'offrant pas les garanties de solidité nécessaires au maintien de la sécurité des occupants et des tiers)"
     + r"|(?:\s+[àa]\s+(?!vent\s+))"  # borne droite "à", sauf "à vent" : "2 rue xxx à GEMENOS|Roquevaire" (rare, utile mais source potentielle de confusion avec les noms de voie "chemin de X à Y")
     + r"|\s+(?<!du )b[âa]timent"  # borne droite "bâtiment", sauf si "du bâtiment" ("rue du bâtiment" existe dans certaines communes)
     + r"|\s+b[âa]t\s+"  # bât(iment)
@@ -155,6 +157,10 @@ RE_NOM_VOIE = (
     + r"(?!(?:Nous|Le\s+maire|Vu|Consid[ée]rant|Article|Propriété\s+de|parcelle|cadastr[ée]))"  # negative lookahead: éviter de capturer n'importe quoi
     + rf"{RE_NOSEP}+)*?"  # (?!{RE_CP}) (avant 2e RE_NOSEP)
 )
+
+# arrondissements (Marseille)
+RE_ARRONDISSEMENTS = r"\d{1,2}\s*([èe]me|er|e)(\s+Arrondissement)?"
+P_ARRONDISSEMENTS = re.compile(RE_ARRONDISSEMENTS, re.MULTILINE | re.IGNORECASE)
 
 # TODO s'arrêter quand on rencontre une référence cadastrale (lookahead?)
 RE_COMMUNE = (
@@ -291,7 +297,7 @@ RE_NUM_IND_VOIE_LIST = (
     + RE_NUM_IND_VOIE
     # plus éventuellement 1 à plusieurs adresses supplémentaires
     + r"(?:"
-    + r"(?:(?:\s*[,/–-]\s*)|(?:\s+et\s+)|(?:\s+))"  # séparateur (parfois juste "\s+" !)
+    + r"(?:(?:\s*(?:--|[,/–-])\s*)|(?:\s+et\s+)|(?:\s+))"  # séparateur (parfois juste "\s+" !)  ; TODO remplacer "--" par "–" en amont?
     + r"(?:angle\s+)?"  # optionnel: 2 rue X / angle rue Y
     + RE_NUM_IND_VOIE
     + r")*"  # 0 à N adresses supplémentaires
@@ -381,17 +387,36 @@ def create_adresse_normalisee(
     adr_norm: str
         Adresse normalisée
     """
-    adr_norm_parts = [
-        adr_num,
-        adr_ind,
-        adr_voie,
-        adr_compl,
-        adr_cpostal,
-        adr_ville,
-    ]
+    # logique BAN: tous les champs sont séparés par une espace, sauf le numéro de voie et l'indice de répétition:
+    # (ex: 6a rue Victor Hugo 13001 Marseille) (rmq_iteration)
+    adr_num_ind = "".join(
+        x
+        for x in [
+            adr_num,
+            # BAN: indice en minuscules (rmq_iteration)
+            adr_ind.lower() if pd.notna(adr_ind) else None,
+        ]
+        if pd.notna(x)
+    )
+    # normaliser le nom de ville ; enlever le numéro d'arrondissement (Marseille): ex: "Marseiller 1er"
+    if pd.notna(adr_ville):
+        adr_ville = re.sub(P_ARRONDISSEMENTS, "", adr_ville).strip().lower()
+    # normaliser les champs restants et tout concaténer
     adr_norm = " ".join(
-        x for x in adr_norm_parts if pd.notna(x)
-    )  # TODO normaliser la graphie?
+        x
+        for x in [
+            adr_num_ind,
+            # tout en minuscules dans l'adresse normalisée (rmq_iteration)
+            adr_voie.lower() if pd.notna(adr_voie) else None,
+            adr_compl.lower()
+            if pd.notna(adr_compl)
+            else None,  # TODO normaliser: accents etc?
+            adr_cpostal,
+            adr_ville,
+        ]
+        if pd.notna(x)
+    )
+    # TODO normaliser encore plus la graphie? eg. sur le nom de commune
     adr_norm = normalize_string(adr_norm, num=True, apos=True, hyph=True, spaces=True)
     return adr_norm
 
@@ -426,13 +451,13 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
         return [adr_fields]
 
     adresses = []
+    # ajouter une butée droite pour le lookahead
+    # FIXME contournement sale
+    adr_ad_brute = adr_ad_brute + " - "
     m_adresse = P_ADRESSE_NG.match(adr_ad_brute)  # was: ".search()"
-    if not m_adresse:
-        # retenter de chercher une adresse, après avoir ajouté une butée pour le lookahead
-        # FIXME contournement sale
-        adr_ad_brute = adr_ad_brute + " - "
-        m_adresse = P_ADRESSE_NG.match(adr_ad_brute)  # was: .search()
-    # si toujours aucune adresse extraite, on renvoie aussi une liste contenant une unique adresse vide
+    if m_adresse:
+        logging.warning(f"process_adresse_brute: match: {m_adresse.groupdict()}")
+    # si aucune adresse extraite, on renvoie aussi une liste contenant une unique adresse vide
     if not m_adresse:
         logging.error(f"aucune adresse extraite de {adr_ad_brute} par P_ADRESSE_NG")
         # TODO factoriser avec le cas adr_ad_brute is None
@@ -460,7 +485,13 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
             f"complément d'adresse trouvé, pré: {m_adresse['compl_ini']} ; post: {m_adresse['compl_fin']} dans adr_ad_brute: {adr_ad_brute}"
         )
     cpostal = m_adresse["code_postal"]
+    if cpostal:
+        # code postal: supprimer une éventuelle espace après le département (ex: 13 001)
+        cpostal = cpostal.replace(" ", "")
     commune = m_adresse["commune"]
+    if commune:
+        # commune: remplacer par la forme canonique (pour les communes AMP)
+        commune = normalize_ville(commune)
 
     # traitement spécifique pour la voie: type + nom (legacy?)
     # adr_voie = m_adresse["voie"].strip()
@@ -566,7 +597,7 @@ RE_ADR_RCONT = (
     r"(?:"
     + r"section|référence|cadastré|(?<!figurant\sau)cadastre|situé"  # was: "parcelle|"...
     + r"|concernant|concerné"
-    + r"|à\s+l[’']exception"
+    + r"|à\s+l[’']\s*exception"
     + r"|à\s+leur\s+jonction"
     + r"|ainsi[,]?(?:\s+que)?"
     + r"|appartenant"  # NEW 2023-03-11
@@ -581,14 +612,14 @@ RE_ADR_RCONT = (
     + r"|effectué"
     + r"|établi"
     + r"|(?:doit|doivent|devra|devront|il\s+devra|peut|peuvent)\s+(être|exploiter|prendre|(?:dans|sous)\s+un\s+délai)"
-    + r"|(?:est|sont)\s+(?:à\s+l['’]état|de\s+nouveau|dans|à)"
+    + r"|(?:est|sont)\s+(?:à\s+l['’]\s*état|de\s+nouveau|dans|à)"
     + r"|(?:est|sont)\s+(?:mis\s+en\s+demeure)"
     + r"|(?:est|sont|reste|restent)\s+((strictement\s+)?interdit|accessible|pris)"  # (?:e|s|es)?
     + r"|(?:(?:est|sont|ont\s+été|est\s+de|doit|doivent)$)"
     + r"|et(?:\s+à\s+en)?\s+interdire"
     + r"|et\s+au\s+cabinet"
     + r"|et\s+(?:concerné|donnant\s+sur)"
-    + r"|et\s+de\s+l['’]appartement"  # la fin du motif évite de capturer "rue Roug*et de *Lisle"
+    + r"|et\s+de\s+l['’]\s*appartement"  # la fin du motif évite de capturer "rue Roug*et de *Lisle"
     + r"|et\s+des\s+risques"
     + r"|et\s+installation"
     # + r"|et\s+l['’]immeuble"  # 2023-03-11
@@ -627,6 +658,7 @@ RE_ADR_RCONT = (
     + r"|qui\s+se\s+retrouve"
     + r"|réalisé"
     + r"|représenté"
+    + r"|(?:Risques\s+pr[ée]sent[ée]s\s+par\s+les\s+murs)"  # Aubagne: "<type_arrete> <adresse> (Risques présentés par les murs, bâtiments ou édifices quelconques n'offrant pas les garanties de solidité nécessaires au maintien de la sécurité des occupants et des tiers)"
     + r"|selon\s+les\s+hachures"
     + r"|signé"
     + r"|sur\s+une\s+largeur"

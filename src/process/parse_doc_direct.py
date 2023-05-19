@@ -18,7 +18,11 @@ from src.domain_knowledge.adresse import (
     create_adresse_normalisee,
 )
 from src.domain_knowledge.cadastre import generate_refcadastrale_norm, get_parcelles
-from src.domain_knowledge.codes_geo import get_codeinsee, get_codepostal
+from src.domain_knowledge.codes_geo import (
+    get_codeinsee,
+    get_codepostal,
+    normalize_ville,
+)
 from src.domain_knowledge.logement import get_adr_doc, get_gest, get_proprio, get_syndic
 from src.domain_knowledge.typologie_securite import (
     get_classe,
@@ -356,6 +360,8 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
             hyph=True,
             spaces=True,
         )
+        # remplacer par la forme canonique (communes AMP)
+        adr_commune_maire = normalize_ville(adr_commune_maire)
     logging.warning(f"adrs_commune_maire: {adrs_commune_maire}")  # DEBUG
     logging.warning(f"adr_commune_maire: {adr_commune_maire}")  # DEBUG
     #

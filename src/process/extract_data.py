@@ -18,6 +18,7 @@ import pandas as pd
 from src.process.aggregate_pages import DTYPE_META_NTXT_DOC
 from src.domain_knowledge.adresse import (
     create_adresse_normalisee,
+    normalize_adresse,
 )
 from src.domain_knowledge.codes_geo import (
     P_COMMUNES_AMP_ALLFORMS,
@@ -265,19 +266,33 @@ def create_docs_dataframe(
                 )
 
         # - créer une adresse normalisée ; la cohérence des champs est vérifiée
+        adr_interm = {
+            "num": adr_num,  # numéro de la voie
+            "ind": adr_ind,  # indice de répétition
+            "voie": adr_voie,  # nom de la voie
+            "compl": adr_compl,  # complément d'adresse
+            "cpostal": adr_cpostal,  # code postal
+            "ville": adr_commune,  # ville
+        }
+        adr_norm = normalize_adresse(adr_interm)
         adr_adresse = create_adresse_normalisee(
-            adr_num, adr_ind, adr_voie, adr_compl, adr_cpostal, adr_commune
+            adr_norm["num"],
+            adr_norm["ind"],
+            adr_norm["voie"],
+            adr_norm["compl"],
+            adr_norm["cpostal"],
+            adr_norm["commune"],
         )
         # - rassembler les champs
         doc_adr = {
             # adresse
             "adr_ad_brute": adr_ad_brute,  # adresse brute
-            "adr_num": adr_num,  # numéro de la voie
-            "adr_ind": adr_ind,  # indice de répétition
-            "adr_voie": adr_voie,  # nom de la voie
-            "adr_compl": adr_compl,  # complément d'adresse
-            "adr_cpostal": adr_cpostal,  # code postal
-            "adr_ville": adr_commune,  # ville
+            "adr_num": adr_norm["num"],  # numéro de la voie
+            "adr_ind": adr_norm["ind"],  # indice de répétition
+            "adr_voie": adr_norm["voie"],  # nom de la voie
+            "adr_compl": adr_norm["compl"],  # complément d'adresse
+            "adr_cpostal": adr_norm["cpostal"],  # code postal
+            "adr_ville": adr_norm["commune"],  # ville
             "adr_adresse": adr_adresse,  # adresse normalisée
             "adr_codeinsee": adr_codeinsee,  # code insee (5 chars)  # complété en aval par "enrichi"
         }

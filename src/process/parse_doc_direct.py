@@ -16,6 +16,7 @@ import pandas as pd
 from src.domain_knowledge.actes import P_ACCUSE
 from src.domain_knowledge.adresse import (
     create_adresse_normalisee,
+    normalize_adresse,
 )
 from src.domain_knowledge.cadastre import generate_refcadastrale_norm, get_parcelles
 from src.domain_knowledge.codes_geo import (
@@ -106,6 +107,7 @@ def enrich_adresse(fn_pdf: str, adresse: dict, commune_maire: str) -> Dict:
                 f"{fn_pdf}: Pas de code postal: adr_brute={adresse_enr['ad_brute']}, commune={adresse_enr['ville']}, code_insee={codeinsee}, get_codepostal={adresse_enr['cpostal']}"
             )
     # - créer une adresse normalisée ; la cohérence des champs est vérifiée
+    adresse_enr = normalize_adresse(adresse_enr)
     if adresse_enr["ad_brute"]:
         adresse_enr["adresse"] = create_adresse_normalisee(
             adresse_enr["num"],
@@ -516,8 +518,13 @@ def process_files(
     out_dir: Path
         Dossier destination des fichiers CSV contenant les données extraites
     """
-    # date de mise à jour
-    datemaj = datetime.now().date().strftime("%d/%m/%Y")
+    # date de traitement, en 2 formats
+    date_proc = (
+        datetime.now().date().strftime("%Y%d%m")
+    )  # format identifiants uniques des arrêtés
+    datemaj = (
+        datetime.now().date().strftime("%d/%m/%Y")
+    )  # format colonne "datemaj" des tables
 
     # filtrage en deux temps, car glob() est case-sensitive (sur linux en tout cas)
     # et l'extension de certains fichiers est ".PDF" plutôt que ".pdf"
@@ -538,9 +545,16 @@ def process_files(
     rows_arrete = []
     rows_notifie = []
     rows_parcelle = []
+    # identifiant des entrées: type arrêté - date du traitement - index
+    type_arr = "AP"  # arrêtés de péril
+    idx_beg = 1
     # itérer sur les fichiers PDF et TXT
-    for i, fp_pdf in enumerate(fps_pdf):
-        idu = f"id_{i:04}"  # FIXME identifiant unique
+    for i, fp_pdf in enumerate(fps_pdf, start=idx_beg):
+        # identifiant unique:
+        # TODO détecter le ou les éventuels fichiers déjà produits ce jour, initialiser
+        # le compteur à la prochaine valeur mais en écartant les doublons (blake2b?)
+        # format: {type d'arrêté}-{date}-{id relatif, sur 4 chiffres}
+        idu = f"{type_arr}-{date_proc}-{i:04}"
         # fichier txt
         fp_otxt = in_dir_otxt / f"{fp_pdf.stem}.txt"  # ocr
         fp_ntxt = in_dir_ntxt / f"{fp_pdf.stem}.txt"  # natif

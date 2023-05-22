@@ -86,10 +86,12 @@ P_VU = re.compile(RE_VU, re.MULTILINE | re.IGNORECASE)  # re.VERBOSE ?
 
 def contains_vu(page_txt: str) -> bool:
     """Détecte si une page contient un VU.
+
     Parameters
     ----------
     page_txt: str
         Texte d'une page de document
+
     Returns
     -------
     has_stamp: bool
@@ -105,10 +107,12 @@ P_CONSIDERANT = re.compile(RE_CONSIDERANT, re.MULTILINE | re.IGNORECASE)
 
 def contains_considerant(page_txt: str) -> bool:
     """Détecte si une page contient un CONSIDERANT.
+
     Parameters
     ----------
     page_txt: str
         Texte d'une page de document
+
     Returns
     -------
     has_stamp: bool
@@ -291,10 +295,12 @@ P_NUM_ARR_FALLBACK = re.compile(RE_NUM_ARR_FALLBACK, re.MULTILINE | re.IGNORECAS
 
 def get_num(page_txt: str) -> bool:
     """Récupère le numéro de l'arrêté.
+
     Parameters
     ----------
     page_txt: str
         Texte d'une page de document
+
     Returns
     -------
     doc_num: str
@@ -315,10 +321,12 @@ P_NOM_ARR = re.compile(RE_NOM_ARR, re.MULTILINE | re.IGNORECASE)
 
 def get_nom(page_txt: str) -> bool:
     """Récupère le nom de l'arrêté.
+
     Parameters
     ----------
     page_txt: str
         Texte d'une page de document
+
     Returns
     -------
     doc_nom: str

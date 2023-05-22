@@ -354,6 +354,53 @@ RE_ADRESSE_NG = (
 P_ADRESSE_NG = re.compile(RE_ADRESSE_NG, re.MULTILINE | re.IGNORECASE)
 
 
+def normalize_adresse(adresse: Dict[str, str]) -> Dict[str, str]:
+    """Normalise les champs d'adresse.
+
+    Les formes normales de chaque champ sont:
+    - indice de répétition en minuscules,
+    - voie en minuscules,
+    - ville en forme canonique tirée du fichier des codes communes INSEE.
+
+    Les espaces superflues ont normalement été supprimées en amont.
+
+    Parameters
+    ----------
+    adresse: Dict[str, str]
+        Adresse dont les champs sont bruts.
+
+    Returns
+    -------
+    adresse_norm: Dict[str, str]
+        Adresse dont les champs sont normalisés.
+    """
+    # normalisation simple des champs (redondant et inutile ?)
+    adresse_norm = {
+        k: (
+            normalize_string(v, num=True, apos=True, hyph=True, spaces=True)
+            if pd.notna(v)
+            else v
+        )
+        for k, v in adresse.items()
+    }
+    # indice de répétition: mettre en minuscules
+    if pd.notna(adresse_norm["ind"]):
+        adresse_norm["ind"] = adresse_norm["ind"].lower()
+    # voie: mettre en minuscules
+    if pd.notna(adresse_norm["voie"]):
+        adresse_norm["voie"] = adresse_norm["voie"].lower()
+    # complément: tel quel (ou le normaliser?)
+    # code postal: tel quel (déjà normalisé en amont: espace entre code département et le reste)
+    # ville: enlever le numéro d'arrondissement (Marseille), ex: "Marseille 1er" ;
+    # la forme a déjà été normalisée (ou après? TODO si après, remettre la normalisation ici?)
+    if pd.notna(adresse_norm["ville"]):
+        adresse_norm["ville"] = re.sub(
+            P_ARRONDISSEMENTS, "", adresse_norm["ville"]
+        ).strip()
+    #
+    return adresse_norm
+
+
 def create_adresse_normalisee(
     adr_num: str,
     adr_ind: str,
@@ -366,6 +413,8 @@ def create_adresse_normalisee(
 
     L'adresse normalisée rassemble les champs extraits de l'adresse brute, et ailleurs
     dans le document si nécessaire (eg. autorité prenant l'arrêté, template).
+
+    Le complément d'adresse est ignoré.
 
     Parameters
     ----------
@@ -393,31 +442,22 @@ def create_adresse_normalisee(
         x
         for x in [
             adr_num,
-            # BAN: indice en minuscules (rmq_iteration)
-            adr_ind.lower() if pd.notna(adr_ind) else None,
+            adr_ind,
         ]
         if pd.notna(x)
     )
-    # normaliser le nom de ville ; enlever le numéro d'arrondissement (Marseille): ex: "Marseiller 1er"
-    if pd.notna(adr_ville):
-        adr_ville = re.sub(P_ARRONDISSEMENTS, "", adr_ville).strip().lower()
-    # normaliser les champs restants et tout concaténer
+    # tout concaténer, sauf le complément d'adresse
     adr_norm = " ".join(
         x
         for x in [
             adr_num_ind,
-            # tout en minuscules dans l'adresse normalisée (rmq_iteration)
-            adr_voie.lower() if pd.notna(adr_voie) else None,
-            adr_compl.lower()
-            if pd.notna(adr_compl)
-            else None,  # TODO normaliser: accents etc?
+            adr_voie,
+            # adr_compl,  # TODO normaliser: accents etc?
             adr_cpostal,
             adr_ville,
         ]
         if pd.notna(x)
     )
-    # TODO normaliser encore plus la graphie? eg. sur le nom de commune
-    adr_norm = normalize_string(adr_norm, num=True, apos=True, hyph=True, spaces=True)
     return adr_norm
 
 
@@ -635,7 +675,7 @@ RE_ADR_RCONT = (
     + r"|figurant"
     + r"|fragilisé"  # 2023-03-11
     + r"|il\s+sera"
-    + r"|jusqu['’](?:au|à)"  # 2023-03-11
+    + r"|jusqu['’]\s*(?:au|à)"  # 2023-03-11
     + r"|le\s+rapport"
     + r"|leur\s+demandant"
     + r"|lors\s+de"
@@ -643,7 +683,7 @@ RE_ADR_RCONT = (
     + r"|mentionné"
     + r"|mettant\s+fin"
     + r"|^Nomenclature\s+ACTES"
-    + r"|n['’](?:a|ont)\s+pas"
+    + r"|n['’]\s*(?:a|ont)\s+pas"
     + r"|ne\s+présente"
     + rf"|{RE_NO}"  # WIP 2023-03-12
     + r"|ont\s+été\s+évacués"

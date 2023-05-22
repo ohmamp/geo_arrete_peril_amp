@@ -189,6 +189,14 @@ RE_HEADERS = [
         "Trets",
         r"^Fax\s*:\s+04[.,]42[.,]37[.,]55[.,]20",  # fax
     ),
+    (
+        "Saint-Savournin",
+        r"Ville\s+de\s+SAINT-SAVOURNIN\s+"
+        + r"13119\s+"
+        + r"8\s*:\s+04\s+42\s+04\s+64\s+03\s+-\s+Fax\s*:\s+04\s+42\s+72\s+43\s+08\s+"
+        + r"Mail\s*:\s+mairie@mairie-stsavournin.fr\s+"
+        + r"Site\s*:\s+www.mairie-stsavournin.fr",
+    ),  # non enlevé actuellement car après le type d'arrêté
 ]
 # TODO en-tête Aix-en-Provence p. 2 et suivantes: numéro de page (en haut à droite)
 

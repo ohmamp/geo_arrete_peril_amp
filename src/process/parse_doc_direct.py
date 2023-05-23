@@ -567,7 +567,7 @@ def process_files(
         else:
             # sinon anomalie
             fp_txt = None
-            raise ValueError(f"Aucun fichier txt trouvé pour {fp_pdf}")
+            raise ValueError(f"{fp_pdf}: aucun fichier txt trouvé ({fp_otxt, fp_ntxt})")
         # print(f"---------\n{fp_pdf}")  # DEBUG
         doc_data = parse_arrete(fp_pdf, fp_txt)
 

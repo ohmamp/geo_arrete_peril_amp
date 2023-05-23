@@ -6,16 +6,16 @@
 # TODO récupérer dans data/externe la liste des codes DGFIP des communes (et arrondissements de Marseille), eg. <https://deliberations.ampmetropole.fr/documents/metropole/deliberations/2018/10/18/RAPPORTDELACOMMISSION/C06HH.pdf>
 
 # TODO améliorer la couverture:
-# data_enr_struct.csv: 827 arrêtés sans référence cadastrale sur 2452 (33.73%) (2023-03-06)
+# - data_enr_struct.csv: 827 arrêtés sans référence cadastrale sur 2452 (33.73%) (2023-03-06)
 # (dont 285 avec un code insee, dont 3 avec un 13055)
-#
+# - actes_2022_traites: 31 arrêtés sans référence cadastrale sur 895 (3.5%) (2023-05-22)
 
-# FIXME variante "immeuble sis 44 rue Barsotti – 13003 MARSEILLE 3EME, parcelle cadastrée\nsection 813H, numéro 86"
-# FIXME faux positifs
-# - "parcelle *du 10* rue du ..."
+# TODO test: "immeuble sis 44 rue Barsotti – 13003 MARSEILLE 3EME, parcelle cadastrée\nsection 813H, numéro 86"
+# TODO test: faux positifs "parcelle *du 10* rue du ..."
+
 # FIXME ? identifiant de parcelle mais pas concerné par le péril:
 # - "limite séparative entre les parcelles 213886 E0047 et 213886 E0089" (105 chemin des Jonquilles)
-# FIXME? référence de parcelle mal formée:
+# FIXME ? référence de parcelle mal formée:
 # csvcut -c arr_pdf,arr_nom_arr,par_ref_cad data/interim/arretes_peril_compil_data_enr_struct.csv |grep "[^,],$" |less
 # - "21388O0142" => "213888O0142" ("7, bld lacordaire.pdf")
 # - "2015899 H0064" => "215899 H0064" ("91 bld Oddo 13015 - Péril simple 06.03.20.pdf")

@@ -23,9 +23,8 @@ from src.utils.text_utils import RE_NO, normalize_string
 
 # TODO gérer "106-108 rue X *(102-104 selon cadastre)*"
 
-# TODO 40 arrêtés 13055 (dont 3 sans référence cadastrale):
-# csvcut -c arr_nom_arr,adr_ad_brute,adr_codeinsee,par_ref_cad data/interim/arretes_peril_compil_data_enr_struct.csv |grep ",13055," |less
-
+# TODO 22 arrêtés 13055 (dont 3 sans référence cadastrale):
+# csvcut -c nom_arr,codeinsee data/processed/arretes_peril_compil/paquet_arrete.csv |grep ",13055" |wc -l
 
 # regex générique pour ce qu'on considérera comme un "token" (plus ou moins, un mot) dans un nom de voie ou de commune
 # lettres non-accentuées et accentuées, majuscules et minuscules

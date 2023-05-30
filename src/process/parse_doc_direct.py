@@ -6,9 +6,10 @@
 
 import argparse
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, date
 import logging
 from pathlib import Path
+import shutil
 from typing import Dict, List
 
 import pandas as pd
@@ -45,6 +46,7 @@ from src.process.export_data import (
 )
 from src.process.extract_data import determine_commune
 from src.process.parse_doc import parse_arrete_pages
+from src.utils.file_utils import get_file_digest
 from src.utils.str_date import process_date_brute
 from src.utils.text_utils import normalize_string, remove_accents
 from src.utils.txt_format import load_pages_text
@@ -503,28 +505,33 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
 
 
 def process_files(
-    in_dir_pdf: Path, in_dir_ntxt: Path, in_dir_otxt: Path, out_dir: Path
+    in_dir_pdf: Path,
+    in_dir_ntxt: Path,
+    in_dir_otxt: Path,
+    out_files: Dict[str, Path],
+    date_exec: date,
 ):
     """Analyse le texte des fichiers PDF extrait dans des fichiers TXT.
 
     Parameters
     ----------
-    in_dir_pdf: Path
+    in_dir_pdf : Path
         Dossier contenant les fichiers PDF
-    in_dir_ntxt: Path
+    in_dir_ntxt : Path
         Dossier contenant les fichiers TXT natif
-    in_dir_otxt: Path
+    in_dir_otxt : Path
         Dossier contenant les fichiers TXT extrait par OCR
-    out_dir: Path
-        Dossier destination des fichiers CSV contenant les données extraites
+    out_files : Dict[str, Path]
+        Fichiers CSV destination, contenant les données extraites.
+        Dictionnaire indexé par les clés {"adresse", "arrete", "notifie", "parcelle"}.
+    date_exec : date
+        Date d'exécution du script, utilisée pour (a) le nom des copies de fichiers CSV
+        incluant la date de traitement, (b) l'identifiant unique des arrêtés dans les 4
+        tables, (c) le champ 'datemaj' initialement rempli avec la date d'exécution.
     """
     # date de traitement, en 2 formats
-    date_proc = (
-        datetime.now().date().strftime("%Y%d%m")
-    )  # format identifiants uniques des arrêtés
-    datemaj = (
-        datetime.now().date().strftime("%d/%m/%Y")
-    )  # format colonne "datemaj" des tables
+    date_proc = date_exec.strftime("%Y%m%d")  # format identifiants uniques des arrêtés
+    datemaj = date_exec.strftime("%d/%m/%Y")  # format colonne "datemaj" des tables
 
     # filtrage en deux temps, car glob() est case-sensitive (sur linux en tout cas)
     # et l'extension de certains fichiers est ".PDF" plutôt que ".pdf"
@@ -545,19 +552,26 @@ def process_files(
     rows_arrete = []
     rows_notifie = []
     rows_parcelle = []
-    # identifiant des entrées: type arrêté - date du traitement - index
+    # hash utilisé dans le preprocessing
+    # TODO en faire un paramètre?
+    digest = "blake2b"
+    # identifiant des entrées dans les fichiers de sortie: <type arrêté>-<date du traitement>-<index>
     type_arr = "AP"  # arrêtés de péril
     idx_beg = 1
     # itérer sur les fichiers PDF et TXT
     for i, fp_pdf in enumerate(fps_pdf, start=idx_beg):
-        # identifiant unique:
+        # hash du fichier PDF en entrée (utile pour éviter les conflits de fichiers ayant le même nom ;
+        # pourra être utilisé aussi pour détecter certains doublons)
+        # TODO utiliser le hash pour détecter les doublons: fichier existant avec le même hash en préfixe
+        fp_digest = get_file_digest(fp_pdf, digest=digest)  # hash du fichier
+        # identifiant unique du document dans les tables de sortie (paquet_*.csv):
         # TODO détecter le ou les éventuels fichiers déjà produits ce jour, initialiser
         # le compteur à la prochaine valeur mais en écartant les doublons (blake2b?)
         # format: {type d'arrêté}-{date}-{id relatif, sur 4 chiffres}
         idu = f"{type_arr}-{date_proc}-{i:04}"
         # fichier txt
-        fp_otxt = in_dir_otxt / f"{fp_pdf.stem}.txt"  # ocr
-        fp_ntxt = in_dir_ntxt / f"{fp_pdf.stem}.txt"  # natif
+        fp_otxt = in_dir_otxt / f"{fp_digest}-{fp_pdf.stem}.txt"  # ocr
+        fp_ntxt = in_dir_ntxt / f"{fp_digest}-{fp_pdf.stem}.txt"  # natif
         if fp_otxt.is_file():
             # texte ocr
             fp_txt = fp_otxt
@@ -598,12 +612,18 @@ def process_files(
 
 
 if __name__ == "__main__":
+    # date et heure d'exécution
+    dtim_exec = datetime.now()
+    # date seulement (suffit pour les noms de fichiers CSV et les valeurs des colonnes
+    # 'idu' et 'datemaj')
+    date_exec = dtim_exec.date()
+
     # log
     dir_log = Path(__file__).resolve().parents[2] / "logs"
     if not dir_log.is_dir():
         dir_log.mkdir(exist_ok=True)
     logging.basicConfig(
-        filename=f"{dir_log}/test_parse_doc_direct_{datetime.now().isoformat()}.log",
+        filename=f"{dir_log}/test_parse_doc_direct_{dtim_exec.isoformat()}.log",
         encoding="utf-8",
         level=logging.DEBUG,
     )
@@ -668,4 +688,26 @@ if __name__ == "__main__":
         )
         out_dir.mkdir(parents=True, exist_ok=True)
 
-    process_files(in_dir_pdf, in_dir_ntxt, in_dir_otxt, out_dir)
+    process_files(in_dir_pdf, in_dir_ntxt, in_dir_otxt, out_files, date_exec=date_exec)
+
+    # copier les fichier CSV en ajoutant au nom de chaque fichier CSV:
+    # - la date de traitement ("2023-05-30")
+    date_proc = date_exec.strftime("%Y-%m-%d")
+    # - le numéro de l'exécution ce jour, sur 2 chiffres ("02")
+    # extraire le nombre d'exécutions précédentes ce même jour (le cas échéant)
+    idx_exec = 0  # init 0
+    for fp_out in out_files.values():
+        # pour chaque fichier CSV correspondant à une table, trouver tous les fichiers générés par
+        # d'éventuelles exécutions précédentes, repérer le numéro d'exécution le plus haut, et
+        # prendre le numéro suivant
+        fp_out_execs = fp_out.parent.glob(
+            f"{fp_out.stem}_{date_proc}_[0-9][0-9]{fp_out.suffix}"
+        )
+        for fp_out_exec in fp_out_execs:
+            # le numéro se trouve à la fin du stem, après le dernier séparateur "_"
+            fp_out_idx = int(fp_out_exec.stem.split("_")[-1])
+            idx_exec = max(idx_exec, fp_out_idx)
+    idx_exec += 1  # on prend le numéro suivant
+    for fp_out in out_files.values():
+        fp_copy = fp_out.with_stem(f"{fp_out.stem}_{date_proc}_{idx_exec:>02}")
+        shutil.copy2(fp_out, fp_copy)

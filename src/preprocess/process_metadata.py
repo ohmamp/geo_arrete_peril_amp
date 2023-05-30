@@ -75,13 +75,16 @@ def _guess_duplicates(df: pd.DataFrame, subset: List[str]) -> pd.Series:
     return s_dups
 
 
-def guess_duplicates_meta(df_meta: pd.DataFrame):
+def guess_duplicates_meta(df_meta: pd.DataFrame, hash_fn: str = "blake2b"):
     """Détermine si les fichiers PDF sont des doublons à partir de leurs métadonnées.
 
     Parameters
     ----------
-    df_meta: pd.DataFrame
+    df_meta : pd.DataFrame
         Métadonnées des fichiers PDF
+    hash_fn : str
+        Nom de la fonction de hachage, doit être un nom de colonne du DataFrame
+        de métadonnées.
 
     Returns
     -------
@@ -111,7 +114,7 @@ def guess_duplicates_meta(df_meta: pd.DataFrame):
     df_mmod = df_mmod.assign(dup_createdate=s_dups_createdate)
 
     # détection basée sur le hachage des fichiers
-    cols_dups_hash = ["sha1"]
+    cols_dups_hash = [hash_fn]
     s_dups_hash = _guess_duplicates(df_mmod, cols_dups_hash)
     df_mmod = df_mmod.assign(dup_hash=s_dups_hash)
 
@@ -301,7 +304,8 @@ if __name__ == "__main__":
     # ouvrir le fichier d'entrée
     df_metas = pd.read_csv(in_file, dtype=DTYPE_META_BASE)
     # détecter les doublons
-    df_mmod = guess_duplicates_meta(df_metas)
+    # TODO ajouter la fonction de hash en paramètre de guess_duplicates_meta() ?
+    df_mmod = guess_duplicates_meta(df_metas)  # fn_hash="blake2b"
     df_mmod = guess_tampon_transmission(df_mmod)
     df_mmod = guess_dernpage_transmission(df_mmod)
     df_mmod = guess_pdftext(df_mmod)

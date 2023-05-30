@@ -11,7 +11,6 @@ Ce module utilise pikepdf.
 import argparse
 from datetime import datetime, timedelta
 from dateutil import tz
-import hashlib
 import logging
 from pathlib import Path
 from typing import Dict, List
@@ -20,6 +19,7 @@ import pandas as pd
 import pikepdf
 
 from src.preprocess.data_sources import RAW_BATCHES, EXCLUDE_FILES
+from src.utils.file_utils import get_file_digest
 
 
 # fuseau horaire de Paris
@@ -131,45 +131,22 @@ def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose=True) -> dict:
     return infos
 
 
-def get_file_digest(fp_pdf: Path, digest: str = "sha1") -> str:
-    """Extraire le hachage d'un fichier avec la fonction `digest`.
-
-    Parameters
-    ----------
-    fp_pdf: Path
-        Chemin du fichier PDF à traiter.
-    digest: str
-        Nom de la fonction de hachage à utiliser, "sha1" par défaut.
-
-    Returns
-    -------
-    fd_hexdigest: str
-        Hachage du fichier.
-    """
-    with open(fp_pdf, mode="rb") as f:
-        # python >= 3.8
-        f_digest = hashlib.new(digest)
-        while chunk := f.read(8192):
-            f_digest.update(chunk)
-        # alternative en 1 ligne (plutôt que 3) pour python >= 3.11:
-        # f_digest = hashlib.file_digest(f, digest)
-    fd_hexdigest = f_digest.hexdigest()
-    return fd_hexdigest
-
-
-def get_pdf_info(fp_pdf: Path) -> Dict[str, str | int]:
+def get_pdf_info(fp_pdf: Path, digest: str = "blake2b") -> Dict[str, str | int]:
     """Extraire les informations (dont métadonnées) d'un fichier PDF.
 
     Utilise actuellement pikepdf.
 
     Parameters
     ----------
-    fp_pdf: Path
+    fp_pdf : Path
         Chemin du fichier PDF à traiter.
+    digest : str
+        Algorithme de hachage à utiliser
+        <https://docs.python.org/3/library/hashlib.html#hash-algorithms> .
 
     Returns
     -------
-    pdf_info: dict
+    pdf_info : dict
         Informations (dont métadonnées) du fichier PDF d'entrée
     """
     logging.info(f"Ouverture du fichier {fp_pdf}")
@@ -178,7 +155,7 @@ def get_pdf_info(fp_pdf: Path) -> Dict[str, str | int]:
         "pdf": fp_pdf.name,  # nom du fichier
         "fullpath": fp_pdf.resolve(),  # chemin complet
         "filesize": fp_pdf.stat().st_size,  # taille du fichier
-        "sha1": get_file_digest(fp_pdf, digest="sha1"),  # hash du fichier
+        digest: get_file_digest(fp_pdf, digest=digest),  # hash du fichier
     }
     # lire les métadonnées du PDF avec pikepdf
     meta_pike = get_pdf_info_pikepdf(fp_pdf)

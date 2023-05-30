@@ -128,7 +128,8 @@ def process_files(
         # fichier d'origine
         fp_pdf_in = Path(df_row.fullpath)
         # fichier à produire
-        fp_txt = out_dir_txt / (fp_pdf_in.stem + ".txt")
+        # TODO gérer le digest proprement, sans présupposer que c'est toujours blake2b
+        fp_txt = out_dir_txt / (f"{df_row.blake2b}-{fp_pdf_in.stem}" + ".txt")
         # si les fichiers à produire existent déjà
         if fp_txt.is_file():
             if redo:

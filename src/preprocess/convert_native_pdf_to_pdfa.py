@@ -51,11 +51,19 @@ def process_files(
         Métadonnées des fichiers d'entrée et chemins vers les fichiers PDF/A.
     """
     fullpath_pdfa = []
+    # hash utilisé dans le preprocessing
+    # TODO en faire un paramètre?
+    digest = "blake2b"
+    #
     for df_row in df_meta.itertuples():
         # fichier d'origine
         fp_pdf_in = Path(df_row.fullpath)
-        # fichiers à produire
-        fp_pdf_out = out_pdf_dir / fp_pdf_in.name
+        # hash du fichier PDF en entrée (utile pour éviter les conflits de fichiers ayant le même nom ;
+        # pourra être utilisé aussi pour détecter certains doublons)
+        # TODO utiliser le hash pour détecter les doublons: fichier existant avec le même hash en préfixe
+        fp_digest = df_row.getattr(digest)  # hash
+        # fichier à produire
+        fp_pdf_out = out_pdf_dir / f"{fp_digest}-{fp_pdf_in.name}"
 
         # si le fichier à produire existe déjà
         if fp_pdf_out.is_file():

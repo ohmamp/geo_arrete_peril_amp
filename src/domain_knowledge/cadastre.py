@@ -155,9 +155,9 @@ P_CAD_SECNUM = re.compile(RE_CAD_SECNUM, re.IGNORECASE | re.MULTILINE)
 # avec le contexte gauche
 RE_PARCELLE = (
     r"(?:"  # contexte gauche
-    + r"(?:cadastr[ée](?:e|es|s)?(?:\s+section)?\s+)"
-    + r"|(?:r[ée]f[ée]rence(?:s)?\s+cadastrale(?:s)?\s+)"
-    + r"|(?:r[ée]f[ée]renc[ée](?:e|es|s)?\s+au\s+cadastre\s+sous\s+le\s+)"  # référence au cadastre sous le (n°)
+    + r"(?:cadas[ti]r[ée](?:e|es|s)?(?:\s+section)?\s+)"  # [ti] pour OCR
+    + r"|(?:r[ée]f[ée]rence(?:s)?\s+cadas[ti]rale(?:s)?\s+)"  # [ti] pour OCR
+    + r"|(?:r[ée]f[ée]renc[ée](?:e|es|s)?\s+au\s+cadas[ti]re\s+sous\s+le\s+)"  # [ti] pour OCR  # référence au cadastre sous le (n°)
     + r"|(?:parcelle(?:s)?\s+(?:sise(?:s)?\s+)?"
     # negative lookahead: éviter de capturer des faux positifs
     + rf"(?!"

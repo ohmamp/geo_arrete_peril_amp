@@ -61,7 +61,7 @@ def process_files(
         # hash du fichier PDF en entrée (utile pour éviter les conflits de fichiers ayant le même nom ;
         # pourra être utilisé aussi pour détecter certains doublons)
         # TODO utiliser le hash pour détecter les doublons: fichier existant avec le même hash en préfixe
-        fp_digest = df_row.getattr(digest)  # hash
+        fp_digest = getattr(df_row, digest)  # hash
         # fichier à produire
         fp_pdf_out = out_pdf_dir / f"{fp_digest}-{fp_pdf_in.name}"
 

@@ -78,7 +78,7 @@ RE_ACCUSE = (
     + r"Objet acte: (?:[\s\S]+?)(?:\n)?"  # la ligne se termine par "\n" mais si l'objet se termine par un tiret, l'extracteur de texte peut mal l'interpréter...
     + r"Nature de l'acte: (?P<nature_acte>Actes individuels|Actes réglementaires|Autres)\n"
     + r"Matière: \d[.]\d-[^\n]+\n"
-    + r"Identifiant Acte: \d{3}-\d{9}-\d{8}-\S+-(?P<nature_abr>AI|AR|AU)\n"
+    + r"Identifiant Acte: \d{3}-\d{9}-\d{8}-\S+-(?P<nature_abr>AI|AR|AU)\n+"
 )
 # actes individuels: ...-AI, actes réglementaires: ...-AR, autres: ...-AU
 # (?P<nature_acte>Actes individuels|Actes réglementaires)\n

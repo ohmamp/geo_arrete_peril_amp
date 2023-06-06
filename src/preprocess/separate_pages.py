@@ -157,7 +157,7 @@ if __name__ == "__main__":
     if args.append and out_file.is_file():
         # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées
         df_txts_old = pd.read_csv(out_file, dtype=DTYPE_NTXT_PAGES)
-        df_txts = pd.concat([df_txts_old, df_txts])
+        df_proc = pd.concat([df_txts_old, df_txts])
     else:
         # sinon utiliser les seules nouvelles entrées
         df_proc = df_txts

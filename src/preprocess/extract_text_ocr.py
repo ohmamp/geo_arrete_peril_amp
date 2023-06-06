@@ -157,7 +157,7 @@ def process_files(
         # fichier d'origine
         fp_pdf_in = Path(df_row.fullpath)
         # fichiers à produire
-        fp_digest = df_row.getattr(digest)  # hash
+        fp_digest = getattr(df_row, digest)  # hash
         fp_pdf_out = out_pdf_dir / f"{fp_digest}-{fp_pdf_in.name}"
         fp_txt = out_txt_dir / (f"{fp_digest}-{fp_pdf_in.stem}" + ".txt")
 

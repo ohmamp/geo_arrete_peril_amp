@@ -9,8 +9,12 @@ DATA_PRO=data/processed
 # DIR_IN=${DATA_RAW}/arretes_peril_compil
 # BATCH=arretes_peril_compil
 #
-DIR_IN=${DATA_RAW}/actes_2022_traites
-BATCH=actes_2022_traites
+# DIR_IN=${DATA_RAW}/actes_2022_traites
+# BATCH=actes_2022_traites
+#
+DIR_IN=${DATA_RAW}/envoi_amp_arretes_1er_trim_2023/arretes_03_2023
+BATCH=arretes_03_2023
+
 
 # 1. extraire les métadonnées des fichiers PDF
 python src/preprocess/extract_metadata.py ${DIR_IN} ${DATA_INT}/${BATCH}_meta_base.csv --append

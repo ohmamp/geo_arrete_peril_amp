@@ -7,6 +7,7 @@
 import argparse
 from collections import OrderedDict
 from datetime import datetime, date
+import itertools
 import logging
 from pathlib import Path
 import shutil
@@ -623,7 +624,7 @@ if __name__ == "__main__":
     if not dir_log.is_dir():
         dir_log.mkdir(exist_ok=True)
     logging.basicConfig(
-        filename=f"{dir_log}/test_parse_doc_direct_{dtim_exec.isoformat()}.log",
+        filename=f"{dir_log}/parse_doc_direct_{dtim_exec.isoformat()}.log",
         encoding="utf-8",
         level=logging.DEBUG,
     )
@@ -646,13 +647,6 @@ if __name__ == "__main__":
         "out_dir",
         help="Chemin vers le dossier pour les 4 fichiers CSV en sortie contenant les données extraites des documents",
     )
-    # par défaut, le fichier out_file ne doit pas exister, sinon option:
-    # "redo" (écrase le fichier existant)
-    parser.add_argument(
-        "--redo",
-        action="store_true",
-        help="Ré-exécuter le traitement d'un lot, et écraser le fichier de sortie",
-    )
     args = parser.parse_args()
 
     # entrée: fichiers PDF et TXT
@@ -666,48 +660,44 @@ if __name__ == "__main__":
     if not in_dir_otxt.is_dir():
         raise ValueError(f"Impossible de trouver le dossier {in_dir_otxt}")
 
-    # sortie: CSV de documents
-    # on crée le dossier parent (récursivement) si besoin
+    # sortie: fichiers CSV générés
+    # créer le dossier destination, récursivement, si besoin
     out_dir = Path(args.out_dir).resolve()
-    out_files = {
+    logging.info(
+        f"Dossier de sortie: {out_dir} {'existe déjà' if out_dir.is_dir() else 'va être créé'}."
+    )
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # 4 fichiers CSV seront générés
+    out_basenames = {
         x: out_dir / f"paquet_{x}.csv"
         for x in ["arrete", "adresse", "parcelle", "notifie"]
     }
-    if out_dir.is_dir():
-        for out_file in out_files.values():
-            if out_file.is_file():
-                if not args.redo:
-                    # erreur si le fichier CSV existe déjà mais ni redo, ni append
-                    raise ValueError(
-                        f"Le fichier de sortie {out_file} existe déjà. Pour l'écraser, ajoutez --redo ; pour l'augmenter, ajoutez --append."
-                    )
-    else:
-        # créer le dossier de sortie si besoin
-        logging.info(
-            f"Dossier de sortie: {out_dir} {'existe déjà' if out_dir.is_dir() else 'doit être créé'}."
-        )
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-    process_files(in_dir_pdf, in_dir_ntxt, in_dir_otxt, out_files, date_exec=date_exec)
-
-    # copier les fichier CSV en ajoutant au nom de chaque fichier CSV:
-    # - la date de traitement ("2023-05-30")
+    # les fichiers avec les noms de base seront des copies des fichiers générés par la
+    # dernière exécution, incluant:
+    # - la date de traitement (ex: "2023-05-30")
     date_proc = date_exec.strftime("%Y-%m-%d")
-    # - le numéro de l'exécution ce jour, sur 2 chiffres ("02")
-    # extraire le nombre d'exécutions précédentes ce même jour (le cas échéant)
+    # et le numéro d'exécution de ce jour (ex: "02"), calculé en recensant les éventuels
+    # fichiers existants
     idx_exec = 0  # init 0
+    out_prevruns = itertools.chain.from_iterable(
+        out_dir.glob(f"{fp_out.stem}_{date_proc}_[0-9][0-9]{fp_out.suffix}")
+        for fp_out in out_basenames.values()
+    )
+    for fp_prevrun in out_prevruns:
+        # le numéro se trouve à la fin du stem, après le dernier séparateur "_"
+        fp_out_idx = int(fp_prevrun.stem.split("_")[-1])
+        idx_exec = max(idx_exec, fp_out_idx)
+    idx_exec += 1  # on prend le numéro d'exécution suivant
+    # les noms des fichiers générés par cette exécution
+    out_files = {
+        x: fp_out.with_stem(f"{fp_out.stem}_{date_proc}_{idx_exec:>02}")
+        for x, fp_out in out_basenames.items()
+    }
+    process_files(in_dir_pdf, in_dir_ntxt, in_dir_otxt, out_files, date_exec=date_exec)
+    # faire une copie des 4 fichiers générés avec les noms de base (écraser chaque fichier
+    # pré-existant ayant le nom de base)
     for fp_out in out_files.values():
-        # pour chaque fichier CSV correspondant à une table, trouver tous les fichiers générés par
-        # d'éventuelles exécutions précédentes, repérer le numéro d'exécution le plus haut, et
-        # prendre le numéro suivant
-        fp_out_execs = fp_out.parent.glob(
-            f"{fp_out.stem}_{date_proc}_[0-9][0-9]{fp_out.suffix}"
-        )
-        for fp_out_exec in fp_out_execs:
-            # le numéro se trouve à la fin du stem, après le dernier séparateur "_"
-            fp_out_idx = int(fp_out_exec.stem.split("_")[-1])
-            idx_exec = max(idx_exec, fp_out_idx)
-    idx_exec += 1  # on prend le numéro suivant
-    for fp_out in out_files.values():
-        fp_copy = fp_out.with_stem(f"{fp_out.stem}_{date_proc}_{idx_exec:>02}")
+        # retirer la date et le numéro d'exécution pour retrouver le nom de base
+        fp_copy = fp_out.with_stem(f"{fp_out.stem.rsplit('_', maxsplit=2)[0]}")
         shutil.copy2(fp_out, fp_copy)

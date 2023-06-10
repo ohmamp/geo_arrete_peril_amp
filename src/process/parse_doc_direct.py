@@ -56,6 +56,11 @@ from src.utils.txt_format import load_pages_text
 # URL stable pour les PDF: "yyyy" sera remplacé par l'année de l'arrêté, "pdf" par le nom du fichier
 FS_URL = "https://sig.ampmetropole.fr/geodata/geo_arretes/peril/{yyyy}/{pdf}"
 
+# 4 fichiers CSV seront générés
+OUT_BASENAMES = {
+    x: f"paquet_{x}.csv" for x in ["arrete", "adresse", "parcelle", "notifie"]
+}
+
 
 def enrich_adresse(fn_pdf: str, adresse: dict, commune_maire: str) -> Dict:
     """Consolide et enrichit une adresse, avec ville et codes (INSEE et code postal).
@@ -262,14 +267,14 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
 
     Parameters
     ----------
-    fp_pdf_in: Path
+    fp_pdf_in : Path
         Fichier PDF source (temporairement?)
-    fp_txt_in: Path
+    fp_txt_in : Path
         Fichier texte à analyser.
 
     Returns
     -------
-    doc_data: dict
+    doc_data : dict
         Données extraites du document.
     """
     fn_pdf = fp_pdf_in.name
@@ -509,9 +514,9 @@ def process_files(
     in_dir_pdf: Path,
     in_dir_ntxt: Path,
     in_dir_otxt: Path,
-    out_files: Dict[str, Path],
+    out_dir: Path,
     date_exec: date,
-):
+) -> Dict[str, Path]:
     """Analyse le texte des fichiers PDF extrait dans des fichiers TXT.
 
     Parameters
@@ -522,14 +527,54 @@ def process_files(
         Dossier contenant les fichiers TXT natif
     in_dir_otxt : Path
         Dossier contenant les fichiers TXT extrait par OCR
-    out_files : Dict[str, Path]
-        Fichiers CSV destination, contenant les données extraites.
-        Dictionnaire indexé par les clés {"adresse", "arrete", "notifie", "parcelle"}.
+    out_dir : Path
+        Dossier de sortie
     date_exec : date
         Date d'exécution du script, utilisée pour (a) le nom des copies de fichiers CSV
         incluant la date de traitement, (b) l'identifiant unique des arrêtés dans les 4
         tables, (c) le champ 'datemaj' initialement rempli avec la date d'exécution.
+
+    Returns
+    -------
+    out_files : Dict[str, Path]
+        Fichiers CSV produits, contenant les données extraites.
+        Dictionnaire indexé par les clés {"adresse", "arrete", "notifie", "parcelle"}.
     """
+    # 1. déterminer le nom des fichiers de sortie
+    # les noms des fichiers de sortie incluent:
+    # - la date de traitement (ex: "2023-05-30")
+    date_proc_dash = date_exec.strftime("%Y-%m-%d")
+    # - le numéro d'exécution ce jour (ex: "02"), calculé en recensant les
+    # éventuels fichiers existants
+    out_prevruns = itertools.chain.from_iterable(
+        out_dir.glob(f"paquet_{x}_{date_proc_dash}_[0-9][0-9].csv")
+        for x in OUT_BASENAMES
+    )
+    #    - numéro d'exécution du script ce jour
+    i_run = 0  # init
+    for fp_prevrun in out_prevruns:
+        # le numéro se trouve à la fin du stem, après le dernier séparateur "_"
+        fp_out_idx = int(fp_prevrun.stem.split("_")[-1])
+        i_run = max(i_run, fp_out_idx)
+    i_run += 1  # on prend le numéro d'exécution suivant
+    # résultat: fichiers générés par cette exécution
+    out_files = {
+        x: out_dir / f"paquet_{x}_{date_proc_dash}_{i_run:>02}.csv"
+        for x in OUT_BASENAMES
+    }
+
+    # 2. déterminer le premier identifiant unique (idu) des prochaines entrées:
+    # il suit le dernier idu généré par les exécutions précédentes le même jour
+    i_idu = 0  # init
+    for fp_prevrun in out_prevruns:
+        # ouvrir le fichier, lire les idus, prendre le dernier, extraire l'index
+        s_idus = pd.read_csv(fp_prevrun, usecols=["idu"], dtype={"idu": "string"})[
+            "idu"
+        ]
+        max_idx = s_idus.str.rsplit("-", n=1, expand=True)[1].max()
+        i_idu = max(i_idu, max_idx)
+    i_idu += 1  # on prend le numéro d'arrêté suivant
+
     # date de traitement, en 2 formats
     date_proc = date_exec.strftime("%Y%m%d")  # format identifiants uniques des arrêtés
     datemaj = date_exec.strftime("%d/%m/%Y")  # format colonne "datemaj" des tables
@@ -557,20 +602,22 @@ def process_files(
     # TODO en faire un paramètre?
     digest = "blake2b"
     # identifiant des entrées dans les fichiers de sortie: <type arrêté>-<date du traitement>-<index>
-    type_arr = "AP"  # arrêtés de péril
-    idx_beg = 1
     # itérer sur les fichiers PDF et TXT
-    for i, fp_pdf in enumerate(fps_pdf, start=idx_beg):
+    for i, fp_pdf in enumerate(fps_pdf, start=i_idu):
+        # type d'arrêté ; à date, seulement des arrêtés de péril "AP" ;
+        # à l'avenir, pourrait être prédit à partir du texte, avec un classifieur
+        type_arr = "AP"
         # hash du fichier PDF en entrée (utile pour éviter les conflits de fichiers ayant le même nom ;
         # pourra être utilisé aussi pour détecter certains doublons)
         # TODO utiliser le hash pour détecter les doublons: fichier existant avec le même hash en préfixe
         fp_digest = get_file_digest(fp_pdf, digest=digest)  # hash du fichier
         # identifiant unique du document dans les tables de sortie (paquet_*.csv):
-        # TODO détecter le ou les éventuels fichiers déjà produits ce jour, initialiser
-        # le compteur à la prochaine valeur mais en écartant les doublons (blake2b?)
+        # TODO détecter le ou les éventuels fichiers déjà produits ce jour, écarter les doublons (blake2b?)
+        # et initialiser le compteur à la prochaine valeur
         # format: {type d'arrêté}-{date}-{id relatif, sur 4 chiffres}
         idu = f"{type_arr}-{date_proc}-{i:04}"
-        # fichier txt
+        # localiser le fichier contenant le texte extrait, soit par OCR
+        # soit directement
         fp_otxt = in_dir_otxt / f"{fp_digest}-{fp_pdf.stem}.txt"  # ocr
         fp_ntxt = in_dir_ntxt / f"{fp_digest}-{fp_pdf.stem}.txt"  # natif
         if fp_otxt.is_file():
@@ -583,10 +630,10 @@ def process_files(
             # sinon anomalie
             fp_txt = None
             raise ValueError(f"{fp_pdf}: aucun fichier txt trouvé ({fp_otxt, fp_ntxt})")
-        # print(f"---------\n{fp_pdf}")  # DEBUG
+        # analyser le texte
         doc_data = parse_arrete(fp_pdf, fp_txt)
 
-        # ajout des entrées dans les 4 tables
+        # ajouter des entrées dans les 4 tables
         rows_adresse.extend(
             ({"idu": idu} | x | {"datemaj": datemaj}) for x in doc_data["adresses"]
         )
@@ -599,7 +646,8 @@ def process_files(
         rows_parcelle.extend(
             ({"idu": idu} | x | {"datemaj": datemaj}) for x in doc_data["parcelles"]
         )
-    # créer les 4 DataFrames
+
+    # créer les 4 DataFrames et les exporter en CSV
     for key, rows, dtype in [
         ("adresse", rows_adresse, DTYPE_ADRESSE),
         ("arrete", rows_arrete, DTYPE_ARRETE),
@@ -609,7 +657,7 @@ def process_files(
         out_file = out_files[key]
         df = pd.DataFrame.from_records(rows).astype(dtype=dtype)
         df.to_csv(out_file, index=False)
-        # TODO copier le fichier CSV en ajoutant au nom de fichier la date de traitement
+    return out_files
 
 
 if __name__ == "__main__":
@@ -668,33 +716,14 @@ if __name__ == "__main__":
     )
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 4 fichiers CSV seront générés
-    out_basenames = {
-        x: out_dir / f"paquet_{x}.csv"
-        for x in ["arrete", "adresse", "parcelle", "notifie"]
-    }
-    # les fichiers avec les noms de base seront des copies des fichiers générés par la
-    # dernière exécution, incluant:
-    # - la date de traitement (ex: "2023-05-30")
-    date_proc = date_exec.strftime("%Y-%m-%d")
-    # et le numéro d'exécution de ce jour (ex: "02"), calculé en recensant les éventuels
-    # fichiers existants
-    idx_exec = 0  # init 0
-    out_prevruns = itertools.chain.from_iterable(
-        out_dir.glob(f"{fp_out.stem}_{date_proc}_[0-9][0-9]{fp_out.suffix}")
-        for fp_out in out_basenames.values()
+    # RESUME HERE: param "out_dir", return "out_files" ?
+    out_files = process_files(
+        in_dir_pdf,
+        in_dir_ntxt,
+        in_dir_otxt,
+        out_dir,
+        date_exec=date_exec,
     )
-    for fp_prevrun in out_prevruns:
-        # le numéro se trouve à la fin du stem, après le dernier séparateur "_"
-        fp_out_idx = int(fp_prevrun.stem.split("_")[-1])
-        idx_exec = max(idx_exec, fp_out_idx)
-    idx_exec += 1  # on prend le numéro d'exécution suivant
-    # les noms des fichiers générés par cette exécution
-    out_files = {
-        x: fp_out.with_stem(f"{fp_out.stem}_{date_proc}_{idx_exec:>02}")
-        for x, fp_out in out_basenames.items()
-    }
-    process_files(in_dir_pdf, in_dir_ntxt, in_dir_otxt, out_files, date_exec=date_exec)
     # faire une copie des 4 fichiers générés avec les noms de base (écraser chaque fichier
     # pré-existant ayant le nom de base)
     for fp_out in out_files.values():

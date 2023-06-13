@@ -6,6 +6,7 @@ le nom du fichier par son hachage.
 """
 
 import argparse
+from collections import Counter, defaultdict
 from datetime import datetime
 import logging
 from pathlib import Path
@@ -18,7 +19,11 @@ from src.utils.file_utils import get_file_digest
 def index_folder(
     in_dir: Path, out_dir: Path, recursive: bool = True, digest: str = "blake2b"
 ):
-    """Indexer un dossier: extraire les infos des fichiers PDF qu'il contient.
+    """Indexer un dossier: hacher et copier les fichiers PDF qu'il contient.
+
+    Les copies sont renommées en préfixant le nom de chaque fichier par le
+    hachage, afin d'éviter les conflits de noms de fichiers issus de dossiers
+    différents.
 
     Parameters
     ----------
@@ -39,12 +44,39 @@ def index_folder(
     pdfs_in = sorted(in_dir.rglob(pat_pdf) if recursive else in_dir.glob(pat_pdf))
     if not pdfs_in:
         logging.warning(f"Aucun PDF trouvé dans {in_dir}")
+    else:
+        logging.info(f"Fichiers PDF à indexer: {len(pdfs_in)}")
+
     # pour chaque PDF, calculer son hachage et le copier dans le dossier de sortie
     for fp_pdf in pdfs_in:
         f_digest = get_file_digest(fp_pdf, digest=digest)  # hash du fichier
         # copie: ajout du hash devant le nom du fichier
         fp_copy = out_dir / f"{f_digest}-{fp_pdf.name}"
         shutil.copy2(fp_pdf, fp_copy)
+
+    # détecter les doublons *selon la fonction de hachage* dans tout "out_dir"
+    # TODO déplacer dans un utilitaire distinct, p. ex. dans quality, et qui
+    # serait appelé pour générer le rapport d'erreurs ?
+    pdfs_outdir = sorted(out_dir.rglob(pat_pdf) if recursive else in_dir.glob(pat_pdf))
+    hash_dups = defaultdict(list)
+    for pdf_path in pdfs_outdir:
+        pdf_digest = pdf_path.stem.split("-", 1)[0]
+        hash_dups[pdf_digest].append(pdf_path.name)  # ou pdf_path complet ?
+    # on repère les hashes non-uniques ; on peut facilement récupérer les groupes de
+    # fichiers concernés (pour chaque hash: 1 "original" et ses doublons)
+    nb_dups = 0  # nombre de doublons (cumul des fichiers surnuméraires)
+    nb_typs = 0  # nombre de fichiers "originaux" ayant au moins 1 doublon
+    for pdf_digest, pdf_dups in hash_dups.items():
+        if len(pdf_dups) > 1:
+            nb_dups += len(pdf_dups) - 1
+            nb_typs += 1
+    # si on ne voulait que le nombre de doublons:
+    # pdfs_hash_set = set(hash_dups.keys())
+    # nb_dups = len(pdfs_outdir) - len(pdfs_hash_set)
+    logging.info(
+        f"{out_dir} contient {nb_dups} doublons potentiels (fichiers de même hachage)"
+        + f" concernant {nb_typs} fichiers PDF différents"
+    )
 
 
 if __name__ == "__main__":
@@ -87,4 +119,4 @@ if __name__ == "__main__":
 
     # indexer le dossier
     recursive = not args.nonrecursive
-    index_folder(in_dir, recursive=recursive)
+    index_folder(in_dir, out_dir, recursive=recursive)

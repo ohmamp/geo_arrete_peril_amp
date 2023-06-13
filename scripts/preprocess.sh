@@ -15,6 +15,9 @@ DATA_PRO=data/processed
 DIR_IN=${DATA_RAW}/envoi_amp_arretes_1er_trim_2023/arretes_03_2023
 BATCH=arretes_03_2023
 
+# 0. indexer les fichiers PDF en entrée: copier chaque fichier dans data/interim/pdf-index
+# et ajouter le hachage au début du nom du fichier
+python src/preprocess/index_pdfs.py ${DIR_IN} ${DATA_INT}/pdf-index
 
 # 1. extraire les métadonnées des fichiers PDF
 python src/preprocess/extract_metadata.py ${DIR_IN} ${DATA_INT}/${BATCH}_meta_base.csv --append

@@ -18,7 +18,7 @@ from typing import List
 
 import pandas as pd
 
-from src.preprocess.extract_metadata import DTYPE_META_BASE
+from src.preprocess.index_pdfs import DTYPE_META_BASE
 
 # format des données en sortie
 DTYPE_META_PROC = DTYPE_META_BASE | {

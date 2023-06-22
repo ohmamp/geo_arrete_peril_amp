@@ -9,7 +9,7 @@ Ce module utilise pikepdf.
 # TODO transformer la blacklist sur les fichiers, importée de data_sources, en vrai script, exécuté en amont, pour exclure les documents non pertinents comme les diagnostics
 
 import argparse
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil import tz
 import logging
 from pathlib import Path
@@ -22,11 +22,8 @@ from src.preprocess.data_sources import RAW_BATCHES, EXCLUDE_FILES
 from src.utils.file_utils import get_file_digest
 
 
-# fuseau horaire de Paris
-TZ_FRA = tz.gettz("Europe/Paris")
-
-
-# format de sortie
+# FIXME supprimer après nettoyage et renommage de ce module
+# colonnes des fichiers CSV d'index
 DTYPE_META_BASE = {
     "pdf": "string",
     "fullpath": "string",
@@ -37,6 +34,10 @@ DTYPE_META_BASE = {
     "createdate": "string",
     "modifydate": "string",
 }
+
+
+# fuseau horaire de Paris
+TZ_FRA = tz.gettz("Europe/Paris")
 
 
 def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose=True) -> dict:

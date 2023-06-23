@@ -320,7 +320,7 @@ def create_docs_dataframe(
                 if pd.notna(getattr(df_row, "proprio"))
                 else None
             ),  # identification des propriétaires
-            "not_proprio": "TODO_proprio",  # TODO liste des noms des propriétaires
+            "not_proprio": "",  # TODO liste des noms des propriétaires
             "not_id_syndic": (
                 normalize_string(
                     getattr(df_row, "syndic"),
@@ -332,7 +332,7 @@ def create_docs_dataframe(
                 if pd.notna(getattr(df_row, "syndic"))
                 else None
             ),  # identification du syndic
-            "not_syndic": "TODO_syndic",  # nom du syndic
+            "not_syndic": "",  # TODO nom du syndic
             "not_id_gest": (
                 normalize_string(
                     getattr(df_row, "gest"), num=True, apos=True, hyph=True, spaces=True
@@ -340,7 +340,7 @@ def create_docs_dataframe(
                 if pd.notna(getattr(df_row, "gest"))
                 else None
             ),  # identification du gestionnaire
-            "not_gest": "TODO_gest",  # nom du gestionnaire
+            "not_gest": "",  # TODO nom du gestionnaire
         }
         doc_data = doc_idu | doc_arr | doc_adr | doc_par | doc_not
         doc_rows.append(doc_data)

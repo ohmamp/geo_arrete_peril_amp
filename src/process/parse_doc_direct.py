@@ -495,13 +495,13 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                 "id_proprio": list(notifies["proprios"])[0]
                 if notifies["proprios"]
                 else None,
-                "proprio": "TODO_proprio",
+                "proprio": "",  # TODO liste des noms des propriétaires (canoniques?)
                 "id_syndic": list(notifies["syndics"])[0]
                 if notifies["syndics"]
                 else None,
-                "syndic": "TODO_syndic",
+                "syndic": "",  # TODO syndic (canonique?)
                 "id_gest": list(notifies["gests"])[0] if notifies["gests"] else None,
-                "gest": "TODO_gest",
+                "gest": "",  # TODO gestionnaire (canonique?)
                 "codeinsee": codeinsee,
             }
         ],  # a priori un seul par fichier (pour le moment)

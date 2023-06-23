@@ -41,6 +41,7 @@ def index_folder(
     new_csv: Path,
     recursive: bool = True,
     digest: str = "blake2b",
+    verbose: bool = False,
 ):
     """Indexer un dossier: hacher et copier les fichiers PDF qu'il contient.
 
@@ -64,49 +65,51 @@ def index_folder(
     digest : str, defaults to "blake2b"
         Algorithme de hachage à utiliser
         <https://docs.python.org/3/library/hashlib.html#hash-algorithms> .
+    verbose: boolean, defaults to False
+        Si True, des warnings sont émis à chaque anomalie constatée dans les
+        métadonnées du PDF.
     """
     # 1. lister les PDFs déjà indexés (dans le fichier CSV)
     if index_csv.is_file():
         df_index_old = pd.read_csv(index_csv, dtype=DTYPE_META_BASE)
+        logging.info(f"Index CSV chargé: {df_index_old.shape[0]} entrées")
     else:
         # créer un DataFrame vide, mais aux colonnes typées
         df_index_old = pd.DataFrame(columns=DTYPE_META_BASE.keys()).astype(
             DTYPE_META_BASE
         )
+        logging.info(f"Pas d'index CSV à charger")
         # df_index_csv = None  # alternative
-    pdfs_index = set(df_index_old["fullpath"])
-    # NB: On prend les chemins complets, donc on fait ici l'hypothèse que ce chemin
-    # complet ("fullpath") des PDF indexés reste stable. Cela implique notamment
-    # que "out_dir" ne change pas) ; sinon il faudrait modifier deux extraits du
-    # code plus bas, pour comparer uniquement les noms de fichiers
+    set_pdfs_index = set(df_index_old["pdf"])
 
     # 2. hacher puis copier chaque PDF du dossier d'entrée, dans le dossier destination
-    logging.info(f"Ouverture du dossier {in_dir}")
     pdfs_in = sorted(in_dir.rglob(PAT_PDF) if recursive else in_dir.glob(PAT_PDF))
-    if not pdfs_in:
-        logging.warning(f"Aucun PDF trouvé dans {in_dir}")
-    else:
-        logging.info(f"Fichiers PDF à hacher et copier: {len(pdfs_in)}")
+    logging.info(f"Dossier {in_dir}: {len(pdfs_in)} fichier(s) PDF trouvé(s)")
+    nb_files_copied = 0
     for fp_pdf in pdfs_in:
         # hash du fichier
         f_digest = get_file_digest(fp_pdf, digest=digest)
         # ajout du hash devant le nom de la copie du fichier
         fp_copy = out_dir / f"{f_digest}-{fp_pdf.name}"
-        shutil.copy2(fp_pdf, fp_copy)
+        if not fp_copy.is_file():
+            shutil.copy2(fp_pdf, fp_copy)
+            nb_files_copied += 1
+    logging.info(f"Dossier {out_dir}: {nb_files_copied} fichier(s) PDF importé(s)")
 
     # 3. indexer les fichiers PDFs dans le dossier destination (après les copies)
     # et absents de l'(ancien) index
-    pdfs_outdir = set(out_dir.rglob(PAT_PDF) if recursive else out_dir.glob(PAT_PDF))
-    print(repr(sorted(pdfs_outdir)[0]))
-    print(repr(sorted(pdfs_index)[0]))
-    pdfs_new = sorted(pdfs_outdir - pdfs_index)
-    print(len(pdfs_new))
-    raise ValueError("stop me now")
+    fp_pdfs_outdir = sorted(
+        out_dir.rglob(PAT_PDF) if recursive else out_dir.glob(PAT_PDF)
+    )  # list[PosixPath]
+    pdf2path_outdir = {x.name: x for x in fp_pdfs_outdir}
+    set_pdfs_outdir = set(pdf2path_outdir.keys())
+    set_pdfs_new = set_pdfs_outdir - set_pdfs_index
+    pdfs_new = sorted(pdf2path_outdir[x] for x in set_pdfs_new)
     logging.info(f"Fichiers PDF à indexer: {len(pdfs_new)}")
     pdf_infos = []
     for fp_pdf in pdfs_new:
         # extraire les métadonnées (étendues) des fichiers PDF
-        pdf_info = get_pdf_info(fp_pdf)
+        pdf_info = get_pdf_info(fp_pdf, verbose=verbose)
         pdf_infos.append(pdf_info)
     if pdf_infos:
         # produire le fichier CSV contenant les nouvelles entrées ajoutées à l'index
@@ -130,7 +133,7 @@ def index_folder(
     #
     # - cohérence: signaler les éventuels PDFs présents dans l'index mais absents du
     # dossier destination (déplacés ou supprimés)
-    pdfs_mis = sorted(pdfs_index - pdfs_outdir)
+    pdfs_mis = sorted(set_pdfs_index - set_pdfs_outdir)
     if pdfs_mis:
         logging.warning(f"Fichiers indexés mais absents de {out_dir} : {len(pdfs_mis)}")
         # TODO marquer, voire supprimer les entrées correspondantes de l'index CSV?
@@ -138,7 +141,7 @@ def index_folder(
     # FIXME reprendre le hash (digest) qui est déjà disponible dans l'index CSV, colonne "blake2b"
     # (nom du digest), et calculer les doublons avec pandas?
     hash_dups = defaultdict(list)
-    for pdf_path in pdfs_outdir:
+    for pdf_path in fp_pdfs_outdir:
         pdf_digest = pdf_path.stem.split("-", 1)[0]
         hash_dups[pdf_digest].append(pdf_path.name)  # ou pdf_path complet ?
     # on repère les hashes non-uniques ; on peut facilement récupérer les groupes de
@@ -153,8 +156,8 @@ def index_folder(
     # pdfs_hash_set = set(hash_dups.keys())
     # nb_dups = len(pdfs_outdir) - len(pdfs_hash_set)
     logging.info(
-        f"{out_dir} contient {nb_dups} doublons potentiels (fichiers de même hachage)"
-        + f" concernant {nb_typs} fichiers PDF différents"
+        f"Doublons potentiels (même hachage): {nb_dups} ({nb_typs} distincts)"
+        + f" dans {out_dir}"
     )
 
 

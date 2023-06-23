@@ -40,7 +40,7 @@ DTYPE_META_BASE = {
 TZ_FRA = tz.gettz("Europe/Paris")
 
 
-def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose=True) -> dict:
+def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose: bool = False) -> dict:
     """Renvoie les infos du PDF en utilisant pikepdf.
 
     Les infos incluent un sous-ensemble des métadonnées du PDF.
@@ -49,7 +49,7 @@ def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose=True) -> dict:
     ----------
     fp_pdf_in: Path
         Chemin du fichier PDF à traiter.
-    verbose: boolean, defaults to True
+    verbose: boolean, defaults to False
         Si True, des warnings sont émis à chaque anomalie constatée dans les
         métadonnées du PDF.
 
@@ -74,6 +74,9 @@ def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose=True) -> dict:
                 logging.info(f"{fp_pdf_in.name}: métadonnées XMP: {meta_base}")
             # lire les métadonnées stockées dans docinfo (ancien format)
             meta.load_from_docinfo(f_pdf.docinfo)
+            # NB: load_from_docinfo() peut lever un UserWarning, qui est alors inclus dans le log de ce script
+            # <https://github.com/pikepdf/pikepdf/blob/94c50cd408b214f7569a717c3409e36b7a996769/src/pikepdf/models/metadata.py#L438>
+            # ex: "UserWarning: The metadata field /MetadataDate with value 'pikepdf.String("D:20230117110535+01'00'")' has no XMP equivalent, so it was discarded"
             meta_doci = {k: v for k, v in meta.items()}
             if verbose:
                 logging.info(f"{fp_pdf_in.name}: docinfo: {repr(f_pdf.docinfo)}")
@@ -105,8 +108,8 @@ def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose=True) -> dict:
                     logging.warning(
                         f"{fp_pdf_in}: metadata: {key}={base_v} (xmp) vs {doci_v} (docinfo)"
                     )
-
-    logging.info(f"{fp_pdf_in}: pike:finalmetadata: {meta}")
+    if verbose:
+        logging.info(f"{fp_pdf_in}: pike:finalmetadata: {meta}")
     # sélection des champs et fixation de leur ordre
     infos = {
         "nb_pages": len(f_pdf.pages),  # nombre de pages
@@ -132,7 +135,9 @@ def get_pdf_info_pikepdf(fp_pdf_in: Path, verbose=True) -> dict:
     return infos
 
 
-def get_pdf_info(fp_pdf: Path, digest: str = "blake2b") -> Dict[str, str | int]:
+def get_pdf_info(
+    fp_pdf: Path, digest: str = "blake2b", verbose: bool = False
+) -> Dict[str, str | int]:
     """Extraire les informations (dont métadonnées) d'un fichier PDF.
 
     Utilise actuellement pikepdf.
@@ -144,6 +149,9 @@ def get_pdf_info(fp_pdf: Path, digest: str = "blake2b") -> Dict[str, str | int]:
     digest : str
         Algorithme de hachage à utiliser
         <https://docs.python.org/3/library/hashlib.html#hash-algorithms> .
+    verbose: boolean, defaults to False
+        Si True, des warnings sont émis à chaque anomalie constatée dans les
+        métadonnées du PDF.
 
     Returns
     -------
@@ -159,7 +167,7 @@ def get_pdf_info(fp_pdf: Path, digest: str = "blake2b") -> Dict[str, str | int]:
         digest: get_file_digest(fp_pdf, digest=digest),  # hash du fichier
     }
     # lire les métadonnées du PDF avec pikepdf
-    meta_pike = get_pdf_info_pikepdf(fp_pdf)
+    meta_pike = get_pdf_info_pikepdf(fp_pdf, verbose=verbose)
     # ajouter les métadonnées PDF à celles du fichier
     pdf_info.update(meta_pike)
     return pdf_info

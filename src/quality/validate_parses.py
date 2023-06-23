@@ -51,7 +51,7 @@
 
 
 # TODO trouver les trous dans la raquette pour le cadastre:
-# cd data/interim/txt_native ; grep -il "cadastr\|parcell" *.txt |sort |uniq > ../../fn_cadastr_parcell.txt
+# cd data/interim/txt_nat ; grep -il "cadastr\|parcell" *.txt |sort |uniq > ../../fn_cadastr_parcell.txt
 # cd ../.. ; csvgrep -c par_ref_cad -r "^." runs/2023-03-06T17:10/arretes_peril_compil_data_enr_struct.csv |csvcut -c arr_pdf |sed -e 's/.pdf/.txt/ ; s/^"// ; s/"$// ;' |sort > fn_refcad.txt
 # meld fn_cadastr_parcell.txt fn_refcad.txt
 

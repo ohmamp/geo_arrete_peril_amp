@@ -8,5 +8,5 @@ DIR_IN=${DATA_RAW}/arretes_peril_compil
 BATCH=arretes_peril_compil
 #
 rm data/interim/${BATCH}_*.csv
-rm -Rf data/interim/txt_native/*.txt
+rm -Rf data/interim/txt_nat/*.txt
 rm -Rf data/processed/${BATCH}/*.csv

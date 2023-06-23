@@ -16,7 +16,7 @@ BATCH=actes_2022_traites
 rm ${DATA_INT}/${BATCH}_meta_base.csv
 rm ${DATA_INT}/${BATCH}_meta_proc.csv
 rm ${DATA_INT}/${BATCH}_meta_ntxt.csv
-rm -Rf data/interim/txt_native/*.txt
+rm -Rf data/interim/txt_nat/*.txt
 rm ${DATA_INT}/${BATCH}_meta_ntxt_pdftype.csv
 rm ${DATA_INT}/${BATCH}_ntxt_pages.csv
 rm ${DATA_INT}/${BATCH}_meta_ntxt_filt.csv ${DATA_INT}/${BATCH}_ntxt_pages_filt.csv

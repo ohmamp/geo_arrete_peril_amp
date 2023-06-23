@@ -20,7 +20,7 @@ from src.preprocess.convert_to_pdfa import convert_pdf_to_pdfa
 
 # schéma des données en sortie
 DTYPE_META_NTXT_PDFA = DTYPE_META_NTXT_PDFTYPE | {
-    "fullpath_pdfa": "string",  # chemin vers le fichier PDF/A produit
+    "fullpath_pdfa": "string",  # chemin vers le fichier PDF/A éventuel
 }
 
 
@@ -29,6 +29,7 @@ def process_files(
     df_meta: pd.DataFrame,
     out_pdf_dir: Path,
     redo: bool = False,
+    keep_pdfa: bool = False,
     verbose: int = 0,
 ) -> pd.DataFrame:
     """Convertir les fichiers PDF natifs en PDF/A.
@@ -41,6 +42,8 @@ def process_files(
         Dossier de sortie pour les PDF/A.
     redo: bool, defaults to False
         Si True, réanalyse les fichiers déjà traités.
+    keep_pdfa: bool, defaults to False
+        Si True, n'efface pas les fichiers PDF générés par l'OCR.
     verbose: int, defaults to 0
         Niveau de verbosité d'ocrmypdf (-1, 0, 1, 2):
         <https://ocrmypdf.readthedocs.io/en/latest/api.html#ocrmypdf.Verbosity>
@@ -50,49 +53,53 @@ def process_files(
     df_mmod: pd.DataFrame
         Métadonnées des fichiers d'entrée et chemins vers les fichiers PDF/A.
     """
-    fullpath_pdfa = []
-    # hash utilisé dans le preprocessing
-    # TODO en faire un paramètre?
-    digest = "blake2b"
-    #
-    for df_row in df_meta.itertuples():
-        # fichier d'origine
-        fp_pdf_in = Path(df_row.fullpath)
-        # hash du fichier PDF en entrée (utile pour éviter les conflits de fichiers ayant le même nom ;
-        # pourra être utilisé aussi pour détecter certains doublons)
-        # TODO utiliser le hash pour détecter les doublons: fichier existant avec le même hash en préfixe
-        fp_digest = getattr(df_row, digest)  # hash
-        # fichier à produire
-        fp_pdf_out = out_pdf_dir / f"{fp_digest}-{fp_pdf_in.name}"
+    if not keep_pdfa:
+        # FIXME pas très joli
+        fullpath_pdfa = [None for x in df_meta.itertuples()]
+    else:
+        fullpath_pdfa = []
+        # hash utilisé dans le preprocessing
+        # TODO en faire un paramètre?
+        digest = "blake2b"
+        #
+        for df_row in df_meta.itertuples():
+            # fichier d'origine
+            fp_pdf_in = Path(df_row.fullpath)
+            # hash du fichier PDF en entrée (utile pour éviter les conflits de fichiers ayant le même nom ;
+            # pourra être utilisé aussi pour détecter certains doublons)
+            # TODO utiliser le hash pour détecter les doublons: fichier existant avec le même hash en préfixe
+            fp_digest = getattr(df_row, digest)  # hash
+            # fichier à produire
+            fp_pdf_out = out_pdf_dir / f"{fp_digest}-{fp_pdf_in.name}"
 
-        # si le fichier à produire existe déjà
-        if fp_pdf_out.is_file():
-            if redo:
-                # ré-exécution explicitement demandée: émettre une info et traiter le fichier
-                # TODO comparer les versions d'ocrmypdf/tesseract/pikepdf dans les métadonnées du PDF de sortie et les versions actuelles des dépendances,
-                # et si pertinent émettre un message proposant de ré-analyser le PDF ?
-                logging.info(
-                    f"Re-traitement de {fp_pdf_in}, le fichier de sortie {fp_pdf_out} existant sera écrasé."
-                )
-            else:
-                # pas de ré-exécution demandée: émettre un warning et passer au fichier suivant
-                logging.info(
-                    f"{fp_pdf_in} est ignoré car le fichier {fp_pdf_out} existe déjà."
-                )
+            # si le fichier à produire existe déjà
+            if fp_pdf_out.is_file():
+                if redo:
+                    # ré-exécution explicitement demandée: émettre une info et traiter le fichier
+                    # TODO comparer les versions d'ocrmypdf/tesseract/pikepdf dans les métadonnées du PDF de sortie et les versions actuelles des dépendances,
+                    # et si pertinent émettre un message proposant de ré-analyser le PDF ?
+                    logging.info(
+                        f"Re-traitement de {fp_pdf_in}, le fichier de sortie {fp_pdf_out} existant sera écrasé."
+                    )
+                else:
+                    # pas de ré-exécution demandée: émettre un warning et passer au fichier suivant
+                    logging.info(
+                        f"{fp_pdf_in} est ignoré car le fichier {fp_pdf_out} existe déjà."
+                    )
+                    fullpath_pdfa.append(fp_pdf_out)
+                    continue
+
+            if df_row.processed_as == "text" and not df_row.exclude:
+                # convertir le PDF natif ("texte") en PDF/A-2b
+                logging.info(f"Conversion en PDF/A d'un PDF texte: {fp_pdf_in}")
+                convert_pdf_to_pdfa(fp_pdf_in, fp_pdf_out, verbose=verbose)
+                # TODO stocker la valeur de retour d'ocrmypdf dans une nouvelle colonne "retcode_pdfa" ?
+                # stocker le chemin vers le fichier PDF/A produit
                 fullpath_pdfa.append(fp_pdf_out)
-                continue
-
-        if df_row.processed_as == "text" and not df_row.exclude:
-            # convertir le PDF natif ("texte") en PDF/A-2b
-            logging.info(f"Conversion en PDF/A d'un PDF texte: {fp_pdf_in}")
-            convert_pdf_to_pdfa(fp_pdf_in, fp_pdf_out, verbose=verbose)
-            # TODO stocker la valeur de retour d'ocrmypdf dans une nouvelle colonne "retcode_pdfa" ?
-            # stocker le chemin vers le fichier PDF/A produit
-            fullpath_pdfa.append(fp_pdf_out)
-        else:
-            # ignorer le PDF non-natif ("image") ;
-            # le fichier PDF/A sera produit lors de l'OCRisation
-            fullpath_pdfa.append(None)
+            else:
+                # ignorer le PDF non-natif ("image") ;
+                # le fichier PDF/A sera produit lors de l'OCRisation
+                fullpath_pdfa.append(None)
 
     # remplir le fichier CSV de sortie
     df_mmod = df_meta.assign(
@@ -125,6 +132,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "out_dir",
         help="Chemin vers le dossier de sortie contenant les PDF-A",
+    )
+    parser.add_argument(
+        "--keep_pdfa",
+        action="store_true",
+        help="Convertir les PDF en PDF/A dans data/interim/pdfa_nat",
     )
     group = parser.add_mutually_exclusive_group()
     # par défaut, le fichier out_file ne doit pas exister, sinon deux options mutuellement exclusives:
@@ -172,7 +184,7 @@ if __name__ == "__main__":
 
     # sortie: dossier pour PDF-A
     out_dir = Path(args.out_dir).resolve()
-    out_pdf_dir = out_dir / "pdf"
+    out_pdf_dir = out_dir / "pdfa_nat"
     # on le crée si besoin
     out_pdf_dir.mkdir(parents=True, exist_ok=True)
 
@@ -180,7 +192,13 @@ if __name__ == "__main__":
     logging.info(f"Ouverture du fichier CSV {in_file}")
     df_metas = pd.read_csv(in_file, dtype=DTYPE_META_NTXT_PDFTYPE)
     # traiter les fichiers
-    df_mmod = process_files(df_metas, out_pdf_dir, redo=args.redo, verbose=args.verbose)
+    df_mmod = process_files(
+        df_metas,
+        out_pdf_dir,
+        redo=args.redo,
+        keep_pdfa=args.keep_pdfa,
+        verbose=args.verbose,
+    )
     # sauvegarder les infos extraites dans un fichier CSV
     if args.append and out_file.is_file():
         # si 'append', charger le fichier existant et lui ajouter les nouvelles entrées

@@ -1,10 +1,12 @@
 """Extraire le texte des fichiers PDF par OCR.
 
-Le texte des PDF non-natifs ("PDF image") est extrait avec ocrmypdf,
-qui ajoute au fichier PDF une couche avec le texte extrait par OCR.
+Le texte des PDF non-natifs ("PDF image") est extrait avec ocrmypdf.
 
-ocrmypdf produit un fichier PDF/A et un fichier "sidecar" contenant
-le texte extrait par l'OCR uniquement.
+ocrmypdf produit un fichier PDF/A incluant une couche de texte extrait par OCR,
+et un fichier "sidecar" contenant le texte extrait par l'OCR uniquement.
+
+Le fichier PDF/A est effacé, sauf mention contraire explicite par l'option
+"keep_pdfa".
 """
 
 # 2023-03-20: 260 fichiers en 38 minutes ; 184 en 24 minutes
@@ -31,6 +33,7 @@ le texte extrait par l'OCR uniquement.
 import argparse
 from datetime import datetime
 import logging
+import os
 from pathlib import Path
 from typing import NamedTuple
 
@@ -123,6 +126,7 @@ def process_files(
     out_pdf_dir: Path,
     out_txt_dir: Path,
     redo: bool = False,
+    keep_pdfa: bool = False,
     verbose: int = 0,
 ) -> pd.DataFrame:
     """Traiter un ensemble de fichiers PDF: convertir les PDF en PDF/A et extraire le texte.
@@ -137,6 +141,8 @@ def process_files(
         Dossier de sortie pour les fichiers texte.
     redo: bool, defaults to False
         Si True, réanalyse les fichiers déjà traités.
+    keep_pdfa: bool, defaults to False
+        Si True, n'efface pas les fichiers PDF générés par l'OCR.
     verbose: int, defaults to 0
         Niveau de verbosité d'ocrmypdf (-1, 0, 1, 2):
         <https://ocrmypdf.readthedocs.io/en/latest/api.html#ocrmypdf.Verbosity>
@@ -174,24 +180,27 @@ def process_files(
         # et le fichier n'est pas exclus (et pas <NA>)
         assert not df_row.exclude
 
-        # si les fichiers à produire existent déjà
-        if fp_pdf_out.is_file() and fp_txt.is_file():
+        # si le fichier txt à produire existe déjà
+        if fp_txt.is_file():
             if redo:
                 # ré-exécution explicitement demandée: émettre une info et traiter le fichier
                 # TODO comparer les versions d'ocrmypdf/tesseract/pikepdf dans les métadonnées du PDF de sortie et les versions actuelles des dépendances,
                 # et si pertinent émettre un message proposant de ré-analyser le PDF ?
                 logging.info(
-                    f"Re-traitement de {fp_pdf_in}, les fichiers de sortie {fp_pdf_out} et {fp_txt} existants seront écrasés."
+                    f"Re-traitement de {fp_pdf_in}, le fichier de sortie {fp_txt} existant sera écrasé."
                 )
             else:
                 # pas de ré-exécution demandée: émettre un warning et passer au fichier suivant
                 logging.info(
-                    f"{fp_pdf_in} est ignoré car les fichiers {fp_pdf_out} et {fp_txt} existent déjà."
+                    f"{fp_pdf_in} est ignoré car le fichier {fp_txt} existe déjà."
                 )
                 retcode_ocr.append(
                     None
                 )  # valeur de retour ocrmypdf, impossible à récupérer sans refaire tourner la conversion
-                fullpath_pdfa.append(fp_pdf_out)
+                if fp_pdf_out.is_file():
+                    fullpath_pdfa.append(fp_pdf_out)
+                else:
+                    fullpath_pdfa.append(None)
                 fullpath_txt.append(fp_txt)
                 continue
 
@@ -199,10 +208,14 @@ def process_files(
         retcode = preprocess_pdf_file(
             df_row, fp_pdf_in, fp_pdf_out, fp_txt, verbose=verbose
         )
-        # stocker les chemins vers les fichiers PDF/A et TXT produits
+        # stocker les chemins: fichier TXT (OCR), éventuellement PDF/A
         retcode_ocr.append(retcode)  # valeur de retour ocrmypdf
-        fullpath_pdfa.append(fp_pdf_out)
         fullpath_txt.append(fp_txt)
+        if not keep_pdfa:
+            os.remove(fp_pdf_out)
+            fullpath_pdfa.append(None)
+        else:
+            fullpath_pdfa.append(fp_pdf_out)
     df_mmod = df_meta.assign(
         retcode_ocr=retcode_ocr,
         fullpath_pdfa=fullpath_pdfa,
@@ -235,6 +248,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "out_dir",
         help="Chemin vers le dossier de sortie contenant les PDF-A et le texte extrait",
+    )
+    parser.add_argument(
+        "--keep_pdfa",
+        action="store_true",
+        help="Ne pas effacer les PDF/A générés par l'OCR dans data/interim/pdfa_ocr",
     )
     group = parser.add_mutually_exclusive_group()
     # par défaut, le fichier out_file ne doit pas exister, sinon deux options mutuellement exclusives:
@@ -282,8 +300,8 @@ if __name__ == "__main__":
 
     # sortie: dossiers pour PDF-A et TXT
     out_dir = Path(args.out_dir).resolve()
-    out_pdf_dir = out_dir / "pdf"
-    out_txt_dir = out_dir / "ocr_txt"
+    out_pdf_dir = out_dir / "pdfa_ocr"
+    out_txt_dir = out_dir / "txt_ocr"
     # on les crée si besoin
     out_pdf_dir.mkdir(parents=True, exist_ok=True)
     out_txt_dir.mkdir(parents=True, exist_ok=True)
@@ -293,7 +311,12 @@ if __name__ == "__main__":
     df_metas = pd.read_csv(in_file, dtype=DTYPE_META_NTXT_PDFA)
     # traiter les fichiers
     df_mmod = process_files(
-        df_metas, out_pdf_dir, out_txt_dir, redo=args.redo, verbose=args.verbose
+        df_metas,
+        out_pdf_dir,
+        out_txt_dir,
+        redo=args.redo,
+        keep_pdfa=args.keep_pdfa,
+        verbose=args.verbose,
     )
     # sauvegarder les infos extraites dans un fichier CSV
     if args.append and out_file.is_file():

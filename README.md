@@ -38,7 +38,7 @@ conda deactivate
 conda activate agperils-amp
 scripts/preprocess.sh  # FIXME redo
 scripts/parsebest.sh  # FIXME parse_doc_direct + redo
-time python src/process/parse_doc_direct.py data/raw/actes_2022_traites data/interim/txt_native data/interim/ocr_txt data/processed/actes_2022_traites_ntxt_otxt --redo
+time python src/process/parse_doc_direct.py data/raw/actes_2022_traites data/interim/txt_nat data/interim/txt_ocr data/processed/actes_2022_traites_ntxt_otxt --redo
 ```
 
 ## Legacy (TODO cleanup)

@@ -237,7 +237,7 @@ if __name__ == "__main__":
 
     # sortie: dossier pour TXT natifs
     out_dir = Path(args.out_dir).resolve()
-    out_txt_dir = out_dir / "txt_native"
+    out_txt_dir = out_dir / "txt_nat"
     # on le crée si besoin
     out_txt_dir.mkdir(parents=True, exist_ok=True)
 

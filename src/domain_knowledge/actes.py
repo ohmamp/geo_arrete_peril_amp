@@ -118,7 +118,7 @@ def is_accusedereception_page(page_txt: str) -> bool:
 
 
 # TODO vérifier les matières ;
-# grep -h "Matière:" data/interim/txt_native/*.txt |sort |uniq -c
+# grep -h "Matière:" data/interim/txt_nat/*.txt |sort |uniq -c
 # renvoie:
 #      1 Matière: 1.7-Actes speciaux et divers
 #      3 Matière: 2.1-Documents d urbanisme

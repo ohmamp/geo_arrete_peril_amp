@@ -5,6 +5,10 @@ du fichier dans un dossier de travail, en faisant précéder
 le nom du fichier par son hachage.
 """
 
+# TODO ajuster le logging
+# TODO détecter les fichers doublons, p. ex. "abrogation déconstruction 41 et 43 rue de la Palud 13001.pdf" et "interdiction 9 traverse Sainte Marie 13003.pdf"
+# TODO transformer la blacklist sur les fichiers, importée de data_sources, en vrai script, exécuté en amont, pour exclure les documents non pertinents comme les diagnostics
+
 import argparse
 from collections import defaultdict
 from datetime import datetime
@@ -15,7 +19,7 @@ import shutil
 import pandas as pd
 
 from src.preprocess.data_sources import EXCLUDE_FILES
-from src.preprocess.extract_metadata import get_pdf_info
+from src.preprocess.pdf_info import get_pdf_info
 from src.utils.file_utils import get_file_digest
 
 # colonnes des fichiers CSV d'index
@@ -84,6 +88,10 @@ def index_folder(
 
     # 2. hacher puis copier chaque PDF du dossier d'entrée, dans le dossier destination
     pdfs_in = sorted(in_dir.rglob(PAT_PDF) if recursive else in_dir.glob(PAT_PDF))
+    # exclure d'éventuels fichiers non pertinents
+    # TODO transformer en vrai script ; utiliser des DataFrames pour accélérer le traitement si le nombre de fichiers concernés augmente trop?
+    pdfs_in = [x for x in pdfs_in if x.name not in EXCLUDE_FILES]
+
     logging.info(f"Dossier {in_dir}: {len(pdfs_in)} fichier(s) PDF trouvé(s)")
     nb_files_copied = 0
     for fp_pdf in pdfs_in:
@@ -159,6 +167,14 @@ def index_folder(
         f"Doublons potentiels (même hachage): {nb_dups} ({nb_typs} distincts)"
         + f" dans {out_dir}"
     )
+    if False:
+        # bonus: afficher des indicateurs
+        print(
+            df_index[["creatortool", "producer"]]
+            .value_counts(dropna=False)
+            .to_frame("counts")
+            .reset_index()
+        )
 
 
 if __name__ == "__main__":

@@ -542,9 +542,11 @@ def process_files(
     date_proc_dash = date_exec.strftime("%Y-%m-%d")
     # - le numéro d'exécution ce jour (ex: "02"), calculé en recensant les
     # éventuels fichiers existants
-    out_prevruns = itertools.chain.from_iterable(
-        out_dir.glob(f"paquet_{x}_{date_proc_dash}_[0-9][0-9].csv")
-        for x in OUT_BASENAMES
+    out_prevruns = sorted(
+        itertools.chain.from_iterable(
+            out_dir.glob(f"paquet_{x}_{date_proc_dash}_[0-9][0-9].csv")
+            for x in OUT_BASENAMES
+        )
     )
     #    - numéro d'exécution du script ce jour
     i_run = 0  # init
@@ -567,7 +569,7 @@ def process_files(
         s_idus = pd.read_csv(fp_prevrun, usecols=["idu"], dtype={"idu": "string"})[
             "idu"
         ]
-        max_idx = s_idus.str.rsplit("-", n=1, expand=True)[1].max()
+        max_idx = s_idus.str.rsplit("-", n=1, expand=True)[1].astype("int32").max()
         i_idu = max(i_idu, max_idx)
     i_idu += 1  # on prend le numéro d'arrêté suivant
 
@@ -586,6 +588,8 @@ def process_files(
     rows_parcelle = []
     # identifiant des entrées dans les fichiers de sortie: <type arrêté>-<date du traitement>-<index>
     # itérer sur les fichiers PDF et TXT
+    # FIXME filtrer les fichiers déjà traités !
+    # RESUME HERE
     for i, df_row in enumerate(df_in.itertuples(), start=i_idu):
         # fichier PDF
         fp_pdf = Path(df_row.fullpath)

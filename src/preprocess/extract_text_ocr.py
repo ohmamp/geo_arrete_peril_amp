@@ -155,18 +155,12 @@ def process_files(
     retcode_ocr = []
     fullpath_pdfa = []
     fullpath_txt = []
-    # hash utilisé dans le preprocessing
-    # TODO en faire un paramètre?
-    digest = "blake2b"
-    #
     for df_row in df_meta.itertuples():
         # fichier d'origine
         fp_pdf_in = Path(df_row.fullpath)
         # fichiers à produire
-        fp_digest = getattr(df_row, digest)  # hash
-        fp_pdf_out = out_pdf_dir / f"{fp_digest}-{fp_pdf_in.name}"
-        fp_txt = out_txt_dir / (f"{fp_digest}-{fp_pdf_in.stem}" + ".txt")
-
+        fp_pdf_out = out_pdf_dir / f"{fp_pdf_in.name}"
+        fp_txt = out_txt_dir / (f"{fp_pdf_in.stem}" + ".txt")
         # sauter les fichiers identifiés comme PDF texte, et les fichiers exclus
         # et simplement reporter les chemins vers les fichiers txt et éventuellement PDF/A
         if df_row.processed_as == "text" or df_row.exclude:

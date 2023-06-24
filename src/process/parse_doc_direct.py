@@ -48,7 +48,6 @@ from src.process.export_data import (
 )
 from src.process.extract_data import determine_commune
 from src.process.parse_doc import parse_arrete_pages
-from src.utils.file_utils import get_file_digest
 from src.utils.str_date import process_date_brute
 from src.utils.text_utils import normalize_string, remove_accents
 from src.utils.txt_format import load_pages_text

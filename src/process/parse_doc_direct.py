@@ -39,6 +39,7 @@ from src.preprocess.data_sources import (
     EXCLUDE_FIXME_FILES,
     EXCLUDE_HORS_AMP,
 )
+from src.preprocess.extract_text_ocr import DTYPE_META_NTXT_OCR
 from src.process.export_data import (
     DTYPE_ADRESSE,
     DTYPE_ARRETE,
@@ -511,9 +512,7 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
 
 
 def process_files(
-    in_dir_pdf: Path,
-    in_dir_ntxt: Path,
-    in_dir_otxt: Path,
+    df_in: pd.DataFrame,
     out_dir: Path,
     date_exec: date,
 ) -> Dict[str, Path]:
@@ -521,12 +520,9 @@ def process_files(
 
     Parameters
     ----------
-    in_dir_pdf : Path
-        Dossier contenant les fichiers PDF
-    in_dir_ntxt : Path
-        Dossier contenant les fichiers TXT natif
-    in_dir_otxt : Path
-        Dossier contenant les fichiers TXT extrait par OCR
+    df_in: pd.DataFrame
+        Fichier meta_$RUN_otxt.csv contenant les métadonnées enrichies et
+        les fichiers PDF et TXT (natif ou OCR) à traiter.
     out_dir : Path
         Dossier de sortie
     date_exec : date
@@ -579,57 +575,35 @@ def process_files(
     date_proc = date_exec.strftime("%Y%m%d")  # format identifiants uniques des arrêtés
     datemaj = date_exec.strftime("%d/%m/%Y")  # format colonne "datemaj" des tables
 
-    # filtrage en deux temps, car glob() est case-sensitive (sur linux en tout cas)
-    # et l'extension de certains fichiers est ".PDF" plutôt que ".pdf"
-    fps_pdf = sorted(
-        x
-        for x in in_dir_pdf.glob("*")
-        if (
-            (x.suffix.lower() == ".pdf")
-            and (
-                x.name
-                not in set(EXCLUDE_FILES + EXCLUDE_FIXME_FILES)  # + EXCLUDE_HORS_AMP)
-            )
-        )
-    )
+    # filtrage en deux temps
+    # TODO vérifier si ok sans ; sinon corriger avant déploiement
+    # df_in["pdf"].str.split("-", 1)[0] not in set(EXCLUDE_FILES + EXCLUDE_FIXME_FILES)  # + EXCLUDE_HORS_AMP)
 
     # 4 tables de sortie
     rows_adresse = []
     rows_arrete = []
     rows_notifie = []
     rows_parcelle = []
-    # hash utilisé dans le preprocessing
-    # TODO en faire un paramètre?
-    digest = "blake2b"
     # identifiant des entrées dans les fichiers de sortie: <type arrêté>-<date du traitement>-<index>
     # itérer sur les fichiers PDF et TXT
-    for i, fp_pdf in enumerate(fps_pdf, start=i_idu):
+    for i, df_row in enumerate(df_in.itertuples(), start=i_idu):
+        # fichier PDF
+        fp_pdf = Path(df_row.fullpath)
+        if not fp_pdf.is_file():
+            raise ValueError(f"{fp_pdf}: fichier PDF introuvable ({fp_txt})")
+        # fichier TXT (OCR sinon natif)
+        fp_txt = Path(df_row.fullpath_txt)
+        if not fp_txt.is_file():
+            raise ValueError(f"{fp_pdf}: fichier TXT introuvable ({fp_txt})")
+
         # type d'arrêté ; à date, seulement des arrêtés de péril "AP" ;
         # à l'avenir, pourrait être prédit à partir du texte, avec un classifieur
         type_arr = "AP"
-        # hash du fichier PDF en entrée (utile pour éviter les conflits de fichiers ayant le même nom ;
-        # pourra être utilisé aussi pour détecter certains doublons)
-        # TODO utiliser le hash pour détecter les doublons: fichier existant avec le même hash en préfixe
-        fp_digest = get_file_digest(fp_pdf, digest=digest)  # hash du fichier
         # identifiant unique du document dans les tables de sortie (paquet_*.csv):
         # TODO détecter le ou les éventuels fichiers déjà produits ce jour, écarter les doublons (blake2b?)
         # et initialiser le compteur à la prochaine valeur
         # format: {type d'arrêté}-{date}-{id relatif, sur 4 chiffres}
         idu = f"{type_arr}-{date_proc}-{i:04}"
-        # localiser le fichier contenant le texte extrait, soit par OCR
-        # soit directement
-        fp_otxt = in_dir_otxt / f"{fp_digest}-{fp_pdf.stem}.txt"  # ocr
-        fp_ntxt = in_dir_ntxt / f"{fp_digest}-{fp_pdf.stem}.txt"  # natif
-        if fp_otxt.is_file():
-            # texte ocr
-            fp_txt = fp_otxt
-        elif fp_ntxt.is_file():
-            # sinon texte natif
-            fp_txt = fp_ntxt
-        else:
-            # sinon anomalie
-            fp_txt = None
-            raise ValueError(f"{fp_pdf}: aucun fichier txt trouvé ({fp_otxt, fp_ntxt})")
         # analyser le texte
         doc_data = parse_arrete(fp_pdf, fp_txt)
 
@@ -680,16 +654,8 @@ if __name__ == "__main__":
     # arguments de la commande exécutable
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "in_dir_pdf",
-        help="Chemin vers le dossier contenant les fichiers PDF",
-    )
-    parser.add_argument(
-        "in_dir_ntxt",
-        help="Chemin vers le dossier contenant les fichiers TXT de texte natif",
-    )
-    parser.add_argument(
-        "in_dir_otxt",
-        help="Chemin vers le dossier contenant les fichiers TXT de texte extrait par OCR",
+        "meta_run_otxt",
+        help="Fichier 'meta_$RUN_otxt.csv' contenant le lot de fichiers à traiter (métadonnées enrichies et chemins vers les fichiers PDF et TXT, natif ou OCR)",
     )
     parser.add_argument(
         "out_dir",
@@ -698,15 +664,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # entrée: fichiers PDF et TXT
-    in_dir_pdf = Path(args.in_dir_pdf).resolve()
-    if not in_dir_pdf.is_dir():
-        raise ValueError(f"Impossible de trouver le dossier {in_dir_pdf}")
-    in_dir_ntxt = Path(args.in_dir_ntxt).resolve()
-    if not in_dir_ntxt.is_dir():
-        raise ValueError(f"Impossible de trouver le dossier {in_dir_ntxt}")
-    in_dir_otxt = Path(args.in_dir_otxt).resolve()
-    if not in_dir_otxt.is_dir():
-        raise ValueError(f"Impossible de trouver le dossier {in_dir_otxt}")
+    meta_run_otxt = Path(args.meta_run_otxt).resolve()
+    if not meta_run_otxt.is_file():
+        raise ValueError(f"Impossible de trouver le fichier {meta_run_otxt}")
+    df_in = pd.read_csv(meta_run_otxt, dtype=DTYPE_META_NTXT_OCR)
 
     # sortie: fichiers CSV générés
     # créer le dossier destination, récursivement, si besoin
@@ -718,9 +679,7 @@ if __name__ == "__main__":
 
     # RESUME HERE: param "out_dir", return "out_files" ?
     out_files = process_files(
-        in_dir_pdf,
-        in_dir_ntxt,
-        in_dir_otxt,
+        df_in,
         out_dir,
         date_exec=date_exec,
     )

@@ -14,6 +14,8 @@ RUN=`date +%FT%T`  # date au format "Y-m-dTH:M:S" (ex: "2023-06-17T12:31:44")
 # extraire les métadonnées et les ajouter à l'index CSV,
 # générer un fichier CSV avec les seuls fichiers nouvellement ajoutés
 python src/preprocess/index_pdfs.py ${DIR_IN} ${DATA_INT}/pdf-index ${DATA_INT}/pdf-index.csv ${DATA_INT}/pdf-index_new_${RUN}.csv
+# RESUME HERE
+# TODO arrêter là si aucun nouvel index n'a été généré
 
 # 2. traiter les métadonnées pour déterminer si ce sont des PDF natifs (textes) ou images
 python src/preprocess/process_metadata.py ${DATA_INT}/pdf-index_new_${RUN}.csv ${DATA_INT}/meta_${RUN}_proc.csv
@@ -37,3 +39,6 @@ python src/preprocess/convert_native_pdf_to_pdfa.py ${DATA_INT}/meta_${RUN}_ntxt
 # 8. extraire le texte des PDF non natifs par OCR
 # (1 entrée: CSV de métadonnées ; 2 sorties: CSV de métadonnées enrichies (OCR) + dossier pour les fichiers (PDF/A et TXT sidecar OCR))
 python src/preprocess/extract_text_ocr.py ${DATA_INT}/meta_${RUN}_ntxt_pdfa.csv ${DATA_INT}/meta_${RUN}_otxt.csv ${DATA_INT} 
+
+# 9. analyser le texte des PDF et produire les fichiers paquet_*.csv
+python src/process/parse_doc_direct.py data/interim/meta_${RUN}_otxt.csv ${DATA_PRO}

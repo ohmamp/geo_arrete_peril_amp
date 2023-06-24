@@ -536,6 +536,19 @@ def process_files(
         Fichiers CSV produits, contenant les données extraites.
         Dictionnaire indexé par les clés {"adresse", "arrete", "notifie", "parcelle"}.
     """
+    # 0. charger la liste des PDF déjà traités, définis comme les PDF déjà
+    # présents dans un des fichiers "paquet_arrete_*.csv"
+    fps_paquet_arrete = sorted(
+        out_dir.glob(
+            f"paquet_arrete_[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9].csv"
+        )
+    )
+    pdfs_old = []
+    for fp_paquet_arrete in fps_paquet_arrete:
+        df_arr_old = pd.read_csv(fp_paquet_arrete, dtype=DTYPE_ARRETE)
+        pdfs_old.extend(df_arr_old["pdf"])
+    pdfs_old = set(pdfs_old)
+
     # 1. déterminer le nom des fichiers de sortie
     # les noms des fichiers de sortie incluent:
     # - la date de traitement (ex: "2023-05-30")
@@ -574,11 +587,11 @@ def process_files(
     i_idu += 1  # on prend le numéro d'arrêté suivant
 
     # date de traitement, en 2 formats
-    date_proc = date_exec.strftime("%Y%m%d")  # format identifiants uniques des arrêtés
-    datemaj = date_exec.strftime("%d/%m/%Y")  # format colonne "datemaj" des tables
+    date_proc = date_exec.strftime("%Y%m%d")  # pour "idu" (id uniques des arrêtés)
+    datemaj = date_exec.strftime("%d/%m/%Y")  # pour "datemaj" des 4 tables
 
     # filtrage en deux temps
-    # TODO vérifier si ok sans ; sinon corriger avant déploiement
+    # TODO vérifier si ok sans filtrer ici ; sinon corriger avant déploiement
     # df_in["pdf"].str.split("-", 1)[0] not in set(EXCLUDE_FILES + EXCLUDE_FIXME_FILES)  # + EXCLUDE_HORS_AMP)
 
     # 4 tables de sortie
@@ -586,10 +599,23 @@ def process_files(
     rows_arrete = []
     rows_notifie = []
     rows_parcelle = []
+
+    # filtrer les fichiers déjà traités: ne garder que les PDF qui ne
+    # sont pas déjà présents dans un "paquet_arrete_*.csv"
+    s_dups = df_in["pdf"].isin(pdfs_old)
+    if not s_dups.empty:
+        logging.info(
+            f"{s_dups.shape[0]} fichiers seront ignorés car"
+            + " déjà présents dans un paquet_arrete_*.csv"
+        )
+    df_in = df_in[~s_dups]
+    # si après filtrage, df_in est vide, aucun fichier CSV ne sera produit
+    # et on peut sortir immédiatement
+    if df_in.empty:
+        return {}
+
     # identifiant des entrées dans les fichiers de sortie: <type arrêté>-<date du traitement>-<index>
     # itérer sur les fichiers PDF et TXT
-    # FIXME filtrer les fichiers déjà traités !
-    # RESUME HERE
     for i, df_row in enumerate(df_in.itertuples(), start=i_idu):
         # fichier PDF
         fp_pdf = Path(df_row.fullpath)
@@ -681,7 +707,6 @@ if __name__ == "__main__":
     )
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # RESUME HERE: param "out_dir", return "out_files" ?
     out_files = process_files(
         df_in,
         out_dir,

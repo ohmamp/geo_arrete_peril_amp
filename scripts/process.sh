@@ -6,16 +6,21 @@ DATA_PRO=data/processed
 # DIR_IN=${DATA_RAW}/arretes_peril_hors_marseille_2018_2022
 # DIR_IN=${DATA_RAW}/arretes_peril_compil
 # DIR_IN=${DATA_RAW}/actes_2022_traites
-DIR_IN=${DATA_RAW}/envoi_amp_arretes_1er_trim_2023/arretes_01_2023
+DIR_IN=${DATA_RAW}/envoi_amp_arretes_1er_trim_2023/arretes_03_2023
 RUN=`date +%FT%T`  # date au format "Y-m-dTH:M:S" (ex: "2023-06-17T12:31:44")
 
 # 1. indexer les fichiers PDF dans le dossier d'entrée:
 # calculer le hash de chaque fichier et en faire une copie dans data/interim/pdf-index ,
 # extraire les métadonnées et les ajouter à l'index CSV,
 # générer un fichier CSV avec les seuls fichiers nouvellement ajoutés
-python src/preprocess/index_pdfs.py ${DIR_IN} ${DATA_INT}/pdf-index ${DATA_INT}/pdf-index.csv ${DATA_INT}/pdf-index_new_${RUN}.csv
-# RESUME HERE
-# TODO arrêter là si aucun nouvel index n'a été généré
+NEW_INDEX=${DATA_INT}/pdf-index_new_${RUN}.csv
+python src/preprocess/index_pdfs.py ${DIR_IN} ${DATA_INT}/pdf-index ${DATA_INT}/pdf-index.csv ${NEW_INDEX}
+# arrêter là si aucun nouveau fichier d'index n'a été généré,
+# car aucun PDF dans ${DIR_IN} n'était nouveau
+if [ ! -f "${NEW_INDEX}" ]; then
+    echo "Arrêt immédiat: aucun nouveau PDF à analyser dans ${DIR_IN}"
+    exit 0
+fi
 
 # 2. traiter les métadonnées pour déterminer si ce sont des PDF natifs (textes) ou images
 python src/preprocess/process_metadata.py ${DATA_INT}/pdf-index_new_${RUN}.csv ${DATA_INT}/meta_${RUN}_proc.csv

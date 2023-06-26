@@ -1,4 +1,4 @@
-name: agperils-amp
+name: geo-arretes
 channels:
   - conda-forge
   - defaults

@@ -1,4 +1,4 @@
-# agperils-amp
+# geo-arretes
 
 Analyse et géolocalisation des arrêtés de périls sur le territoire de la métropole Aix-Marseille Provence
 
@@ -20,14 +20,14 @@ mamba env create --file environment-prod.yml
 4. Installer ocrmypdf (maintenant que ses dépendances ont été installées à la
 création de l'environnement).
 ```sh
-conda activate agperils-amp
+conda activate geo-arretes
 # installer ocrmypdf qui ne pouvait pas être installé en même temps que ses dépendances...
 mamba install ocrmypdf
 # depuis le dossier où se trouve le code source du projet
 pip install -e .
 # désactiver et réactiver l'environnement virtuel car tesseract, installé par ocrmypdf,
 # a déposé ses fichiers de langage dans un sous-dossier
-# `$HOME/mambaforge/envs/agperils-amp/share/tessdata`
+# `$HOME/mambaforge/envs/geo-arretes/share/tessdata`
 # (sinon ils ne seront visibles...)
 conda deactivate
 ```
@@ -35,20 +35,9 @@ conda deactivate
 ## Utilisation
 
 ```sh
-conda activate agperils-amp
-scripts/preprocess.sh  # FIXME redo
-scripts/parsebest.sh  # FIXME parse_doc_direct + redo
-time python src/process/parse_doc_direct.py data/raw/actes_2022_traites data/interim/txt_nat data/interim/txt_ocr data/processed/actes_2022_traites_ntxt_otxt --redo
+conda activate geo-arretes
+scripts/process.sh
 ```
-
-## Legacy (TODO cleanup)
-
-### Préliminaires Windows (legacy ; broken)
-
-* installer MSVC++ build tools : <https://visualstudio.microsoft.com/fr/visual-cpp-build-tools/>
-  * changer les chemins d'installation si nécessaire (ex: sous-dossiers de `D:\Logiciels\`)
-
-* [? Installer ImageMagick pour Wand](https://docs.wand-py.org/en/0.6.2/guide/install.html#install-imagemagick-on-windows)
 
 ### Résolution de problèmes
 

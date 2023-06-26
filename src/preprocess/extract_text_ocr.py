@@ -101,11 +101,13 @@ def preprocess_pdf_file(
     )
 
     # Si un PDF est susceptible de contenir des couches d'OCR de mauvaise qualité, indiquer à
-    # ocrmypdf de les ignorer et de refaire l'OCR
+    # ocrmypdf de les ignorer et de refaire l'OCR, avec "--redo-ocr" (CLI) / "redo_ocr" (ici)
     # (si cela ne fonctionne pas ou pas toujours, modifier le code pour remplacer "--redo-ocr"
     # par "--force-ocr" qui forcera la rasterization des pages avant de leur appliquer l'OCR)
     # FIXME ? force ocr pour les PDF avec une mauvaise OCR, eg. "Image Capture Plus" ?
-    redo_ocr = pd.notna(df_row.guess_badocr) and df_row.guess_badocr
+    redo_ocr = True
+    # redo_ocr = df_row.processed_as == "image"  # toujours vrai?
+    assert df_row.processed_as == "image"
 
     logging.info(f"PDF image: {fp_pdf_in}")
     retcode = extract_text_from_pdf_image(

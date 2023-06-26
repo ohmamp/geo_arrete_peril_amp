@@ -53,8 +53,19 @@ from src.utils.text_utils import normalize_string, remove_accents
 from src.utils.txt_format import load_pages_text
 
 
+# TODO déplacer dans un fichier dotenv ?
 # URL stable pour les PDF: "yyyy" sera remplacé par l'année de l'arrêté, "pdf" par le nom du fichier
-FS_URL = "https://sig.ampmetropole.fr/geodata/geo_arretes/peril/{yyyy}/{pdf}"
+FS_URL = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/{commune}/{yyyy}/{pdf}"
+# URLs partielles pour les PDF qui n'ont pu être analysés complètement, à compléter manuellement après
+# déplacement du fichier
+# TODO forcer la cohérence entre le bout d'URL "pdf_a_reclasser" et les chemins de dossiers dans "process.sh"
+FS_URL_NO_YEAR = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_a_reclasser/{commune}/{pdf}"
+# URL de dernier recours, à mettre à jour manuellement
+# TODO forcer la cohérence entre le bout d'URL "pdf_a_reclasser" et les chemins de dossiers dans "process.sh"
+FS_URL_FALLBACK = (
+    "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_a_reclasser/{pdf}"
+)
+
 
 # 4 fichiers CSV seront générés
 OUT_BASENAMES = {
@@ -282,12 +293,14 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
     pages = load_pages_text(fp_txt_in)
     if not any(pages):
         logging.warning(f"{fp_txt_in}: aucune page de texte")
+        arr_url = FS_URL_FALLBACK.format(pdf=fn_pdf)
+        logging.warning(f"URL temporaire (sans code commune ni année): {arr_url}")
         return {
             "adresses": [],
             "arretes": [
                 {
                     "pdf": fn_pdf,
-                    "url": fp_pdf_in,  # FS_URL.format(yyyy="unk", fn_pdf)  # TODO arretes["date"].dt.year ?
+                    "url": arr_url,
                 }
             ],
             "notifies": [],
@@ -393,10 +406,6 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                 arretes["equ_com"] = equ_com
             if "pdf" not in arretes:
                 arretes["pdf"] = fn_pdf
-            if "url" not in arretes:
-                arretes[
-                    "url"
-                ] = fp_pdf_in  # FS_URL.format(yyyy="unk", fn_pdf)  # TODO arretes["date"].dt.year ?
 
             # extraire la ou les adresse(s) visée(s) par l'arrêté détectées sur cette page
             if not adresses:
@@ -478,14 +487,30 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
         except AssertionError:
             print(f"{notifies}")
             raise
+    # déplacer le PDF et déterminer l'URL
+    if "codeinsee" in arretes:
+        if "date" in arretes:
+            # ré-extraire l'année de la date formatée
+            # TODO stocker l'année dans un champ dédié, au moment de l'extraction et normalisation
+            # de la date, et le récupérer ici?
+            arr_year = datetime.strptime(arretes["date"], "%d/%m/%Y").date().year
+            arr_comm = arretes["codeinsee"]
 
-    # si parse_content() a renvoyé [], arretes vaut toujours {} mais on veut pdf et url
-    # TODO corriger, c'est moche (et un peu fragile)
-    if not arretes:
-        arretes = {
-            "pdf": fn_pdf,
-            "url": fp_pdf_in,  # FS_URL.format(yyyy="unk", fn_pdf)  # TODO arretes["date"].dt.year ?
-        }
+            arretes["url"] = FS_URL.format(
+                commune=arretes["codeinsee"], yyyy=arr_year, pdf=fn_pdf
+            )
+        else:
+            arretes["url"] = FS_URL_NO_YEAR.format(
+                commune=arretes["codeinsee"], pdf=fn_pdf
+            )
+            logging.warning(f"URL temporaire (sans année): {arretes['url']}")
+    else:
+        # ("codeinsee" not in arretes)
+        # dans le pire cas: (arretes == {})
+        arretes = {"pdf": fn_pdf, "url": FS_URL_FALLBACK.format(pdf=fn_pdf)}
+        logging.warning(
+            f"URL temporaire (sans code commune ni année): {arretes['url']}"
+        )
 
     doc_data = {
         "adresses": adresses,
@@ -535,10 +560,23 @@ def process_files(
         Fichiers CSV produits, contenant les données extraites.
         Dictionnaire indexé par les clés {"adresse", "arrete", "notifie", "parcelle"}.
     """
+    # - les fichiers CSV datés sont stockés dans un sous-dossier "csv"
+    out_dir_csv = out_dir / "csv"
+    logging.info(
+        f"Sous-dossier de sortie: {out_dir_csv} {'existe déjà' if out_dir_csv.is_dir() else 'va être créé'}."
+    )
+    out_dir_csv.mkdir(parents=True, exist_ok=True)
+    # - les fichiers PDF à reclasser sont stockés dans un sous-dossier (temporaire) "pdf_a_reclasser"
+    out_dir_pdf_areclass = out_dir / "pdf_a_reclasser"
+    logging.info(
+        f"Sous-dossier de sortie: {out_dir_pdf_areclass} {'existe déjà' if out_dir_pdf_areclass.is_dir() else 'va être créé'}."
+    )
+    out_dir_pdf_areclass.mkdir(parents=True, exist_ok=True)
+
     # 0. charger la liste des PDF déjà traités, définis comme les PDF déjà
     # présents dans un des fichiers "paquet_arrete_*.csv"
     fps_paquet_arrete = sorted(
-        out_dir.glob(
+        out_dir_csv.glob(
             f"paquet_arrete_[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9].csv"
         )
     )
@@ -556,7 +594,7 @@ def process_files(
     # éventuels fichiers existants
     out_prevruns = sorted(
         itertools.chain.from_iterable(
-            out_dir.glob(f"paquet_{x}_{date_proc_dash}_[0-9][0-9].csv")
+            out_dir_csv.glob(f"paquet_{x}_{date_proc_dash}_[0-9][0-9].csv")
             for x in OUT_BASENAMES
         )
     )
@@ -569,7 +607,7 @@ def process_files(
     i_run += 1  # on prend le numéro d'exécution suivant
     # résultat: fichiers générés par cette exécution
     out_files = {
-        x: out_dir / f"paquet_{x}_{date_proc_dash}_{i_run:>02}.csv"
+        x: out_dir_csv / f"paquet_{x}_{date_proc_dash}_{i_run:>02}.csv"
         for x in OUT_BASENAMES
     }
 
@@ -601,12 +639,38 @@ def process_files(
 
     # filtrer les fichiers déjà traités: ne garder que les PDF qui ne
     # sont pas déjà présents dans un "paquet_arrete_*.csv"
-    s_dups = df_in["pdf"].isin(pdfs_old)
+    pdfs_in_old = set(df_in["pdf"].tolist()).intersection(pdfs_old)
+    # vérifier que le fichier PDF existe bien dans les dossiers destination,
+    # pdf_a_reclasser ou un dossier de commune,
+    # sinon il faut le traiter comme s'il était complètement nouveau
+    already_proc = []
+    out_dir_pdf_communes = out_dir / "[0-9][0-9][0-9][0-9][0-9]"
+    for fn in pdfs_in_old:
+        areclass = sorted(out_dir_pdf_areclass.rglob(fn))
+        bienclas = sorted(out_dir_pdf_communes.rglob(fn))
+        if areclass or bienclas:
+            logging.warning(
+                f"Fichier à ignorer car déjà traité: {areclass[0] if areclass else bienclas[0]}"
+            )
+            already_proc.append(fn)
+    already_proc = set(already_proc)
+    #
+    s_dups = df_in["pdf"].isin(already_proc)
     if not s_dups.empty:
         logging.info(
-            f"{s_dups.shape[0]} fichiers seront ignorés car"
-            + " déjà présents dans un paquet_arrete_*.csv"
+            f"{s_dups.shape[0]} fichiers seront ignorés au total,"
+            + " car déjà traités précédemment (présents dans un"
+            + " paquet_arrete_*.csv et présents dans un dossier"
+            + " de commune)"
         )
+        # déplacer les fichiers déjà traités dans doublons/
+        # (plus prudent que de les supprimer d'emblée)
+        fp_dups = df_in[s_dups]["fullpath"].tolist()
+        out_dups = out_dir / "doublons"
+        for fp_dup in fp_dups:
+            shutil.move(fp_dup, out_dups / fp_dup.name)
+
+    #
     df_in = df_in[~s_dups]
     # si après filtrage, df_in est vide, aucun fichier CSV ne sera produit
     # et on peut sortir immédiatement
@@ -660,6 +724,37 @@ def process_files(
         out_file = out_files[key]
         df = pd.DataFrame.from_records(rows).astype(dtype=dtype)
         df.to_csv(out_file, index=False)
+
+    # déplacer les fichiers PDF traités ;
+    # le code est redondant avec celui utilisé pour remplir le champ d'URL
+    # mais on fait les déplacements de fichiers après l'écriture du dataframe
+    # pour éviter de déplacer le fichier si les CSV ne sont finalement pas
+    # produits (eg. à cause d'un échec sur un autre document)
+    df_arr = pd.read_csv(out_files["arrete"], dtype=DTYPE_ARRETE)
+    for df_row in df_arr.itertuples():
+        fn = df_row.pdf
+        fp = Path(df_in.loc[df_in["pdf"] == fn]["fullpath"].tolist()[0])
+        if pd.notna(df_row.codeinsee):
+            commune = df_row.codeinsee
+            if pd.notna(df_row.date):
+                year = str(datetime.strptime(df_row.date, "%d/%m/%Y").date().year)
+                dest_dir = out_dir / commune / year
+            else:
+                dest_dir = out_dir / "pdf_a_reclasser" / commune
+        else:
+            dest_dir = out_dir / "pdf_a_reclasser"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        shutil.move(fp, dest_dir / fp.name)
+
+    # faire une copie des 4 fichiers générés avec les noms de base (écraser chaque fichier
+    # pré-existant ayant le nom de base)
+    for fp_out in out_files.values():
+        # retirer la date et le numéro d'exécution pour retrouver le nom de base
+        fp_copy = (
+            out_dir / fp_out.with_stem(f"{fp_out.stem.rsplit('_', maxsplit=2)[0]}").name
+        )
+        shutil.copy2(fp_out, fp_copy)
+
     return out_files
 
 
@@ -688,7 +783,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "out_dir",
-        help="Chemin vers le dossier pour les 4 fichiers CSV en sortie contenant les données extraites des documents",
+        help="Dossier de sortie pour les fichiers produits."
+        + " Les 4 fichiers CSV (paquet_*.csv) sont rangés à la racine, leur copie datée est conservée dans le dossier csv/ ."
+        + " Les fichiers PDF traités sont rangés dans des dossiers par code commune puis année (ex: 13201/2023/),"
+        + " et en l'absence de code commune ou d'année dans le dossier temporaire pdf_a_reclasser/ .)",
     )
     args = parser.parse_args()
 
@@ -705,15 +803,9 @@ if __name__ == "__main__":
         f"Dossier de sortie: {out_dir} {'existe déjà' if out_dir.is_dir() else 'va être créé'}."
     )
     out_dir.mkdir(parents=True, exist_ok=True)
-
+    #
     out_files = process_files(
         df_in,
         out_dir,
         date_exec=date_exec,
     )
-    # faire une copie des 4 fichiers générés avec les noms de base (écraser chaque fichier
-    # pré-existant ayant le nom de base)
-    for fp_out in out_files.values():
-        # retirer la date et le numéro d'exécution pour retrouver le nom de base
-        fp_copy = fp_out.with_stem(f"{fp_out.stem.rsplit('_', maxsplit=2)[0]}")
-        shutil.copy2(fp_out, fp_copy)

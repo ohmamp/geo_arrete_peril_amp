@@ -2,11 +2,25 @@
 DATA_RAW=data/raw
 DATA_INT=data/interim
 DATA_PRO=data/processed
-#
+
+# local
 # DIR_IN=${DATA_RAW}/arretes_peril_hors_marseille_2018_2022
 # DIR_IN=${DATA_RAW}/arretes_peril_compil
 # DIR_IN=${DATA_RAW}/actes_2022_traites
-DIR_IN=${DATA_RAW}/envoi_amp_arretes_1er_trim_2023/arretes_03_2023
+DIR_IN=${DATA_RAW}/envoi_amp_arretes_1er_trim_2023/arretes_01_2023_test
+DIR_OUT=${DATA_PRO}
+#
+# serveur  # TODO dotenv
+# dossier contenant les PDF à analyser
+# DIR_IN=/mnt/d/Fichiers/geo_arretes/peril/pdf_a_analyser
+# dossier de sortie:
+# - les 4 fichiers paquet_*.csv sont stockés à la racine, et écrasés à chaque exécution,
+# - les 4 fichiers paquet avec la date d'exécution sont stockés dans un sous-dossier csv/,
+# - les fichiers PDF traités correctement sont dans un dossier par commune, puis année (ex: 13201/2023),
+# - les fichiers PDF à reclasser sont dans un dossier temporaire pdf_a_reclasser/
+# DIR_OUT=/mnt/d/Fichiers/geo_arretes/peril
+
+#
 RUN=`date +%FT%T`  # date au format "Y-m-dTH:M:S" (ex: "2023-06-17T12:31:44")
 
 # 1. indexer les fichiers PDF dans le dossier d'entrée:
@@ -46,4 +60,4 @@ python src/preprocess/convert_native_pdf_to_pdfa.py ${DATA_INT}/meta_${RUN}_ntxt
 python src/preprocess/extract_text_ocr.py ${DATA_INT}/meta_${RUN}_ntxt_pdfa.csv ${DATA_INT}/meta_${RUN}_otxt.csv ${DATA_INT} 
 
 # 9. analyser le texte des PDF et produire les fichiers paquet_*.csv
-python src/process/parse_doc_direct.py data/interim/meta_${RUN}_otxt.csv ${DATA_PRO}
+python src/process/parse_doc_direct.py data/interim/meta_${RUN}_otxt.csv ${DIR_OUT}

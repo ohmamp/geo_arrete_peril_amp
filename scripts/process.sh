@@ -18,6 +18,7 @@ DIR_OUT=${DATA_PRO}
 # - les 4 fichiers paquet avec la date d'exécution sont stockés dans un sous-dossier csv/,
 # - les fichiers PDF traités correctement sont dans un dossier par commune, puis année (ex: 13201/2023),
 # - les fichiers PDF à reclasser sont dans un dossier temporaire pdf_a_reclasser/
+# - les fichiers TXT sont dans le sous-dossier txt/
 # DIR_OUT=/mnt/d/Fichiers/geo_arretes/peril
 
 #

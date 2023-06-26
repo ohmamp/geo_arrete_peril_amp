@@ -493,7 +493,11 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
             # ré-extraire l'année de la date formatée
             # TODO stocker l'année dans un champ dédié, au moment de l'extraction et normalisation
             # de la date, et le récupérer ici?
-            arr_year = datetime.strptime(arretes["date"], "%d/%m/%Y").date().year
+            # code correct:
+            # arr_year = datetime.strptime(arretes["date"], "%d/%m/%Y").date().year
+            # mais ne fonctionne pas sur des dates mal reconnues (OCR) ex: "00/02/2022"
+            # alors qu'on peut extraire l'année
+            arr_year = arretes["date"].rsplit("/", 1)[1]
             arr_comm = arretes["codeinsee"]
 
             arretes["url"] = FS_URL.format(
@@ -754,7 +758,11 @@ def process_files(
         if pd.notna(df_row.codeinsee):
             commune = df_row.codeinsee
             if pd.notna(df_row.date):
-                year = str(datetime.strptime(df_row.date, "%d/%m/%Y").date().year)
+                # code correct
+                # year = str(datetime.strptime(df_row.date, "%d/%m/%Y").date().year)
+                # mais ne fonctionne pas sur des dates mal reconnues (OCR) ex: "00/02/2022"
+                # alors qu'on peut extraire l'année
+                year = df_row.date.rsplit("/", 1)[1]
                 dest_dir = out_dir / commune / year
             else:
                 dest_dir = out_dir / "pdf_a_reclasser" / commune

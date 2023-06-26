@@ -388,7 +388,9 @@ def normalize_adresse(adresse: Dict[str, str]) -> Dict[str, str]:
     # voie: mettre en minuscules
     if pd.notna(adresse_norm["voie"]):
         adresse_norm["voie"] = adresse_norm["voie"].lower()
-    # complément: tel quel (ou le normaliser?)
+    # complément: mettre en minuscules (2023-06-26 FL)
+    if pd.notna(adresse_norm["compl"]):
+        adresse_norm["compl"] = adresse_norm["compl"].lower()
     # code postal: tel quel (déjà normalisé en amont: espace entre code département et le reste)
     # ville: enlever le numéro d'arrondissement (Marseille), ex: "Marseille 1er" ;
     # la forme a déjà été normalisée (ou après? TODO si après, remettre la normalisation ici?)
@@ -516,7 +518,7 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
     )
     # récupérer les champs communs à toutes les adresses groupées: complément,
     # code postal et commune
-    adr_compl = " ".join(
+    adr_compl = " / ".join(
         m_adresse[x].strip() for x in ["compl_ini", "compl_fin"] if m_adresse[x]
     )  # FIXME concat?
     if adr_compl:

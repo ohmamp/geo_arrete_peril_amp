@@ -6,8 +6,8 @@ DATA_PRO=data/processed
 # local
 # DIR_IN=${DATA_RAW}/arretes_peril_hors_marseille_2018_2022
 # DIR_IN=${DATA_RAW}/arretes_peril_compil
-# DIR_IN=${DATA_RAW}/actes_2022_traites
-DIR_IN=${DATA_RAW}/envoi_amp_arretes_1er_trim_2023/arretes_01_2023_test
+# DIR_IN=${DATA_RAW}/actes_2022_traites_test
+DIR_IN=${DATA_RAW}/envoi_amp_arretes_1er_trim_2023/arretes_03_2023_test
 DIR_OUT=${DATA_PRO}
 #
 # serveur  # TODO dotenv

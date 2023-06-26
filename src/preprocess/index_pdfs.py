@@ -24,8 +24,9 @@ from src.utils.file_utils import get_file_digest
 
 # colonnes des fichiers CSV d'index
 DTYPE_META_BASE = {
-    "pdf": "string",
-    "fullpath": "string",
+    "pdf": "string",  # nom de fichier de la copie dans le dossier de travail (incluant le hash)
+    "fullpath": "string",  # chemin de la copie dans le dossier de travail (avec le hash)
+    "origpath": "string",  # chemin du fichier original dans le dossier d'entrée (sans le hash)
     "filesize": "Int64",  # FIXME Int16 ? (dtype à fixer en amont, avant le dump)
     "nb_pages": "Int64",  # FIXME Int16 ? (dtype à fixer en amont, avant le dump)
     "creatortool": "string",
@@ -94,6 +95,7 @@ def index_folder(
 
     logging.info(f"Dossier {in_dir}: {len(pdfs_in)} fichier(s) PDF trouvé(s)")
     nb_files_copied = 0
+    fp_copy2orig = {}  # mapping de la copie vers le fichier d'origine
     for fp_pdf in pdfs_in:
         # hash du fichier
         f_digest = get_file_digest(fp_pdf, digest=digest)
@@ -101,6 +103,7 @@ def index_folder(
         fp_copy = out_dir / f"{f_digest}-{fp_pdf.name}"
         if not fp_copy.is_file():
             shutil.copy2(fp_pdf, fp_copy)
+            fp_copy2orig[str(fp_copy)] = str(fp_pdf)
             nb_files_copied += 1
     logging.info(f"Dossier {out_dir}: {nb_files_copied} fichier(s) PDF importé(s)")
 
@@ -118,6 +121,8 @@ def index_folder(
     for fp_pdf in pdfs_new:
         # extraire les métadonnées (étendues) des fichiers PDF
         pdf_info = get_pdf_info(fp_pdf, verbose=verbose)
+        # ajouter le chemin du fichier d'origina
+        pdf_info["origpath"] = fp_copy2orig[str(fp_pdf)]
         pdf_infos.append(pdf_info)
     if pdf_infos:
         # produire le fichier CSV contenant les nouvelles entrées ajoutées à l'index

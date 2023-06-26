@@ -572,6 +572,12 @@ def process_files(
         f"Sous-dossier de sortie: {out_dir_pdf_areclass} {'existe déjà' if out_dir_pdf_areclass.is_dir() else 'va être créé'}."
     )
     out_dir_pdf_areclass.mkdir(parents=True, exist_ok=True)
+    # - les fichiers TXT extraits nativement ou par OCR dans un sous-dossier "txt"
+    out_dir_txt = out_dir / "txt"
+    logging.info(
+        f"Sous-dossier de sortie: {out_dir_txt} {'existe déjà' if out_dir_txt.is_dir() else 'va être créé'}."
+    )
+    out_dir_txt.mkdir(parents=True, exist_ok=True)
 
     # 0. charger la liste des PDF déjà traités, définis comme les PDF déjà
     # présents dans un des fichiers "paquet_arrete_*.csv"
@@ -623,27 +629,19 @@ def process_files(
         i_idu = max(i_idu, max_idx)
     i_idu += 1  # on prend le numéro d'arrêté suivant
 
-    # date de traitement, en 2 formats
-    date_proc = date_exec.strftime("%Y%m%d")  # pour "idu" (id uniques des arrêtés)
-    datemaj = date_exec.strftime("%d/%m/%Y")  # pour "datemaj" des 4 tables
-
-    # filtrage en deux temps
-    # TODO vérifier si ok sans filtrer ici ; sinon corriger avant déploiement
+    # 3. filtrer les arrêtés
+    # - filtrer les documents hors périmètre thématique ou géographique ?
+    # TODO vérifier si ok sans liste d'exclusion ici ; sinon corriger avant déploiement?
     # df_in["pdf"].str.split("-", 1)[0] not in set(EXCLUDE_FILES + EXCLUDE_FIXME_FILES)  # + EXCLUDE_HORS_AMP)
-
-    # 4 tables de sortie
-    rows_adresse = []
-    rows_arrete = []
-    rows_notifie = []
-    rows_parcelle = []
-
-    # filtrer les fichiers déjà traités: ne garder que les PDF qui ne
+    #
+    # - filtrer les fichiers déjà traités: ne garder que les PDF qui ne
     # sont pas déjà présents dans un "paquet_arrete_*.csv"
     pdfs_in_old = set(df_in["pdf"].tolist()).intersection(pdfs_old)
     # vérifier que le fichier PDF existe bien dans les dossiers destination,
     # pdf_a_reclasser ou un dossier de commune,
     # sinon il faut le traiter comme s'il était complètement nouveau
     already_proc = []
+    # sous-dossiers par code commune (INSEE), sur 5 chiffres
     out_dir_pdf_communes = out_dir / "[0-9][0-9][0-9][0-9][0-9]"
     for fn in pdfs_in_old:
         areclass = sorted(out_dir_pdf_areclass.rglob(fn))
@@ -656,19 +654,27 @@ def process_files(
     already_proc = set(already_proc)
     #
     s_dups = df_in["pdf"].isin(already_proc)
-    if not s_dups.empty:
+    if any(s_dups):
         logging.info(
-            f"{s_dups.shape[0]} fichiers seront ignorés au total,"
-            + " car déjà traités précédemment (présents dans un"
-            + " paquet_arrete_*.csv et présents dans un dossier"
-            + " de commune)"
+            f"{s_dups.sum()} fichiers seront déplacés dans 'doublons/'"
+            + " et ne seront pas retraités, car ils sont déjà présents"
+            + " dans un fichier 'paquet_arrete_*.csv' de 'csv/'"
+            + " et dans un dossier de commune"
+            + " ou 'pdf_a_reclasser' ."
         )
         # déplacer les fichiers déjà traités dans doublons/
         # (plus prudent que de les supprimer d'emblée)
-        fp_dups = df_in[s_dups]["fullpath"].tolist()
         out_dups = out_dir / "doublons"
-        for fp_dup in fp_dups:
-            shutil.move(fp_dup, out_dups / fp_dup.name)
+        #
+        df_dups = df_in[s_dups]
+        for df_row in df_dups.itertuples():
+            fp = Path(df_row.fullpath)
+            fp_dst = out_dups / fp.name
+            shutil.move(fp, fp_dst)
+            # si le move a réussi, on peut supprimer le fichier dans le dossier d'entrée
+            if fp_dst.is_file():
+                fp_orig = Path(df_row.origpath)
+                fp_orig.unlink()
 
     #
     df_in = df_in[~s_dups]
@@ -676,6 +682,16 @@ def process_files(
     # et on peut sortir immédiatement
     if df_in.empty:
         return {}
+
+    # 4 tables de sortie
+    rows_adresse = []
+    rows_arrete = []
+    rows_notifie = []
+    rows_parcelle = []
+
+    # date de traitement, en 2 formats
+    date_proc = date_exec.strftime("%Y%m%d")  # pour "idu" (id uniques des arrêtés)
+    datemaj = date_exec.strftime("%d/%m/%Y")  # pour "datemaj" des 4 tables
 
     # identifiant des entrées dans les fichiers de sortie: <type arrêté>-<date du traitement>-<index>
     # itérer sur les fichiers PDF et TXT
@@ -732,8 +748,9 @@ def process_files(
     # produits (eg. à cause d'un échec sur un autre document)
     df_arr = pd.read_csv(out_files["arrete"], dtype=DTYPE_ARRETE)
     for df_row in df_arr.itertuples():
+        # nom du PDF (incluant hash)
         fn = df_row.pdf
-        fp = Path(df_in.loc[df_in["pdf"] == fn]["fullpath"].tolist()[0])
+        # déterminer le dossier destination
         if pd.notna(df_row.codeinsee):
             commune = df_row.codeinsee
             if pd.notna(df_row.date):
@@ -743,8 +760,27 @@ def process_files(
                 dest_dir = out_dir / "pdf_a_reclasser" / commune
         else:
             dest_dir = out_dir / "pdf_a_reclasser"
+        # créer le dossier destination si besoin
         dest_dir.mkdir(parents=True, exist_ok=True)
-        shutil.move(fp, dest_dir / fp.name)
+        # retrouver l'entrée correspondance dans df_in, pour avoir le
+        # chemin complet de sa copie (à déplacer) et du fichier original
+        # (à supprimer)
+        # .head(1) car normalement il y a *exactement une* entrée correspondante
+        # et .itertuples() pour avoir facilement un namedtuple
+        for df_row_in in df_in.loc[df_in["pdf"] == fn].head(1).itertuples():
+            # chemin du fichier traité (copié depuis dir_in vers le dossier de travail)
+            fp = Path(df_row_in.fullpath)
+            # chemin du fichier d'origine (pour suppression après move)
+            fp_orig = Path(df_row_in.origpath)
+            # chemin destination du fichier traité
+            fp_dst = dest_dir / fp.name
+            shutil.move(fp, fp_dst)
+            # si le move a réussi, on peut supprimer le fichier dans le dossier d'entrée
+            if fp_dst.is_file():
+                fp_orig.unlink()
+            # chemin du fichier TXT (OCR sinon natif)
+            fp_txt = Path(df_row_in.fullpath_txt)
+            shutil.copy2(fp_txt, out_dir_txt / fp_txt.name)
 
     # faire une copie des 4 fichiers générés avec les noms de base (écraser chaque fichier
     # pré-existant ayant le nom de base)

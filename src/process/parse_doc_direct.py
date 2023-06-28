@@ -48,6 +48,7 @@ from src.process.export_data import (
 )
 from src.process.extract_data import determine_commune
 from src.process.parse_doc import parse_arrete_pages
+from src.quality.validate_parses import generate_html_report
 from src.utils.str_date import process_date_brute
 from src.utils.text_utils import normalize_string, remove_accents
 from src.utils.txt_format import load_pages_text
@@ -55,7 +56,7 @@ from src.utils.txt_format import load_pages_text
 
 # TODO déplacer dans un fichier dotenv ?
 # URL stable pour les PDF: "yyyy" sera remplacé par l'année de l'arrêté, "pdf" par le nom du fichier
-FS_URL = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/{commune}/{yyyy}/{pdf}"
+FS_URL = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_analyses/{commune}/{yyyy}/{pdf}"
 # URLs partielles pour les PDF qui n'ont pu être analysés complètement, à compléter manuellement après
 # déplacement du fichier
 # TODO forcer la cohérence entre le bout d'URL "pdf_a_reclasser" et les chemins de dossiers dans "process.sh"
@@ -564,8 +565,8 @@ def process_files(
         Fichiers CSV produits, contenant les données extraites.
         Dictionnaire indexé par les clés {"adresse", "arrete", "notifie", "parcelle"}.
     """
-    # - les fichiers CSV datés sont stockés dans un sous-dossier "csv"
-    out_dir_csv = out_dir / "csv"
+    # - les fichiers CSV datés sont stockés dans un sous-dossier "csv_historique"
+    out_dir_csv = out_dir / "csv_historique"
     logging.info(
         f"Sous-dossier de sortie: {out_dir_csv} {'existe déjà' if out_dir_csv.is_dir() else 'va être créé'}."
     )
@@ -662,7 +663,7 @@ def process_files(
         logging.info(
             f"{s_dups.sum()} fichiers seront déplacés dans 'doublons/'"
             + " et ne seront pas retraités, car ils sont déjà présents"
-            + " dans un fichier 'paquet_arrete_*.csv' de 'csv/'"
+            + " dans un fichier 'paquet_arrete_*.csv' de 'csv_historique/'"
             + " et dans un dossier de commune"
             + " ou 'pdf_a_reclasser' ."
         )
@@ -763,7 +764,7 @@ def process_files(
                 # mais ne fonctionne pas sur des dates mal reconnues (OCR) ex: "00/02/2022"
                 # alors qu'on peut extraire l'année
                 year = df_row.date.rsplit("/", 1)[1]
-                dest_dir = out_dir / commune / year
+                dest_dir = out_dir / "pdf_analyses" / commune / year
             else:
                 dest_dir = out_dir / "pdf_a_reclasser" / commune
         else:
@@ -828,7 +829,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "out_dir",
         help="Dossier de sortie pour les fichiers produits."
-        + " Les 4 fichiers CSV (paquet_*.csv) sont rangés à la racine, leur copie datée est conservée dans le dossier csv/ ."
+        + " Les 4 fichiers CSV (paquet_*.csv) sont rangés à la racine,"
+        + " leur copie datée est conservée dans le dossier csv_historique/ ."
         + " Les fichiers PDF traités sont rangés dans des dossiers par code commune puis année (ex: 13201/2023/),"
         + " et en l'absence de code commune ou d'année dans le dossier temporaire pdf_a_reclasser/ .)",
     )
@@ -853,3 +855,29 @@ if __name__ == "__main__":
         out_dir,
         date_exec=date_exec,
     )
+    # générer le rapport d'erreurs
+    run = out_files["adresse"].stem.split("_", 2)[2]
+    dfs = {
+        x: pd.read_csv(out_files[x], dtype=x_dtype)
+        for (x, x_dtype) in (
+            ("adresse", DTYPE_ADRESSE),
+            ("arrete", DTYPE_ARRETE),
+            ("notifie", DTYPE_NOTIFIE),
+            ("parcelle", DTYPE_PARCELLE),
+        )
+    }
+    html_report = generate_html_report(
+        run,
+        dfs["adresse"],
+        dfs["arrete"],
+        dfs["notifie"],
+        dfs["parcelle"],
+    )
+    out_dir_rapport = out_dir / "rapport_erreurs"
+    logging.info(
+        f"Sous-dossier de sortie: {out_dir_rapport} {'existe déjà' if out_dir_rapport.is_dir() else 'va être créé'}."
+    )
+    out_dir_rapport.mkdir(parents=True, exist_ok=True)
+    fp_rapport = out_dir_rapport / f"rapport_{run}.html"
+    with open(fp_rapport, mode="w") as f_rapport:
+        f_rapport.write(html_report)

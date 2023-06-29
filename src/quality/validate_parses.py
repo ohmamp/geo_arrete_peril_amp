@@ -141,6 +141,28 @@ def examine_doc_content(fn_pdf: str, doc_content: "list[dict]"):
         # l'ordre relatif (vu | considérant)+ < arrête < (article)+ est vérifié au niveau des transitions admissibles
 
 
+def error_codeinsee_manquant(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
+    """Signale les arrêtés dont le code INSEE est manquant.
+
+    Le code INSEE est déterminé sur base du nom de la commune, croisé avec
+    la table des codes communes dans data/external/ (actuellement restreint
+    au périmètre de la métropole Aix-Marseille Provence).
+
+    Parameters
+    ----------
+    df_arr: pd.DataFrame
+        DataFrame des arrêtés, contenant les codes INSEE.
+
+    Returns
+    -------
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les entrées dont le code INSEE est vide.
+    """
+    return ("Code INSEE manquant", df_arr[df_arr["codeinsee"].isna()])
+
+
 def error_codeinsee_13055(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
     """Signale les arrêtés dont le code INSEE est 13055.
 
@@ -161,7 +183,7 @@ def error_codeinsee_13055(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
     df_err: pd.DataFrame
         DataFrame contenant les entrées dont le code INSEE vaut 13055.
     """
-    return ("Code INSEE 13055", df_arr[df_arr["codeinsee"].dropna() == 13055])
+    return ("Code INSEE 13055", df_arr[df_arr["codeinsee"].dropna() == "13055"])
 
 
 def error_date_manquante(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
@@ -209,15 +231,16 @@ def error_classe_manquante(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
     return ("Classe manquante", df_arr[df_arr["classe"].isna()])
 
 
-def warn_par_ref_cad_empty(
-    df_arr: pd.DataFrame, df_par: pd.DataFrame
+def error_voie_manquante(
+    df_arr: pd.DataFrame, df_adr: pd.DataFrame
 ) -> "tuple[str, pd.DataFrame]":
-    """Signale les arrêtés sans aucune référence de parcelle cadastrale.
+    """Signale les adresses d'arrêtés sans voie.
 
-    Certains arrêtés ne contiennent pas de référence cadastrale, auquel
-    cas cette information doit être recherchée puis renseignée manuellement.
-    D'autres arrêtés contiennent une ou plusieurs références cadastrales
-    que les scripts échouent à repérer.
+    Certains arrêtés ne contiennent pas d'adresse (ex: certaines mainlevées
+    ou abrogations), auquel cas cette information doit être recherchée puis
+    renseignée manuellement.
+    D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
+    échouent à repérer ou à analyser correctement.
 
     Ignore les valeurs manquantes.
 
@@ -233,7 +256,109 @@ def warn_par_ref_cad_empty(
     err: string
         Description de l'erreur
     df_err: pd.DataFrame
-        DataFrame contenant les entrées dont le code INSEE vaut 13055.
+        DataFrame contenant les adresses sans voie.
+    """
+    df_adr_no_voie = df_adr[df_adr["voie"].isna()]
+    return ("Adresses sans voie", df_adr_no_voie)
+
+
+def error_ville_manquante(
+    df_arr: pd.DataFrame, df_adr: pd.DataFrame
+) -> "tuple[str, pd.DataFrame]":
+    """Signale les adresses d'arrêtés sans ville.
+
+    Certains arrêtés ne contiennent pas d'adresse (ex: certaines mainlevées
+    ou abrogations), ou pas d'adresse incluant la ville, auquel cas la
+    ville est déterminée selon d'autres indices (ex: lieu de signature),
+    sinon recherchée puis renseignée manuellement.
+    D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
+    échouent à repérer ou à analyser correctement.
+
+    Ignore les valeurs manquantes.
+
+    Parameters
+    ----------
+    df_arr: pd.DataFrame
+        DataFrame contenant les arrêtés.
+    df_par: pd.DataFrame
+        DataFrame contenant les parcelles.
+
+    Returns
+    -------
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les adresses sans ville.
+    """
+    df_adr_no_voie = df_adr[df_adr["ville"].isna()]
+    return ("Adresses sans ville", df_adr_no_voie)
+
+
+def warn_adresse_empty(
+    df_arr: pd.DataFrame, df_adr: pd.DataFrame
+) -> "tuple[str, pd.DataFrame]":
+    """Signale les arrêtés sans aucune adresse.
+
+    Certains arrêtés ne contiennent pas d'adresse (ex: mainlevée,
+    abrogation), auquel cas cette information doit être recherchée
+    puis renseignée manuellement.
+    D'autres arrêtés contiennent une ou plusieurs adresses
+    que les scripts échouent à repérer.
+
+    Ignore les valeurs manquantes.
+
+    C'est une erreur pour l'utilisateur final mais un warning du point de vue
+    du script, car la probabilité que l'adresse ne soit pas dans l'arrêté,
+    sachant qu'aucune adresse n'a été extraite, est relativement élevée.
+
+    Parameters
+    ----------
+    df_arr: pd.DataFrame
+        DataFrame contenant les arrêtés.
+    df_adr: pd.DataFrame
+        DataFrame contenant les adresses.
+
+    Returns
+    -------
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les entrées sans parcelle.
+    """
+    df_adr_idus = set(df_adr["idu"])
+    df_arr_no_adr = df_arr[~df_arr["idu"].isin(df_adr_idus)]
+    return ("Aucune référence cadastrale", df_arr_no_adr)
+
+
+def warn_par_ref_cad_empty(
+    df_arr: pd.DataFrame, df_par: pd.DataFrame
+) -> "tuple[str, pd.DataFrame]":
+    """Signale les arrêtés sans aucune référence de parcelle cadastrale.
+
+    Certains arrêtés ne contiennent pas de référence cadastrale, auquel
+    cas cette information doit être recherchée puis renseignée manuellement.
+    D'autres arrêtés contiennent une ou plusieurs références cadastrales
+    que les scripts échouent à repérer.
+
+    Ignore les valeurs manquantes.
+
+    C'est une erreur pour l'utilisateur final mais un warning du point de vue
+    du script, car la probabilité que la référence ne soit pas dans l'arrêté,
+    sachant qu'aucune référence n'a été extraite, est élevée.
+
+    Parameters
+    ----------
+    df_arr: pd.DataFrame
+        DataFrame contenant les arrêtés.
+    df_par: pd.DataFrame
+        DataFrame contenant les parcelles.
+
+    Returns
+    -------
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les entrées sans parcelle.
     """
     df_par_idus = set(df_par["idu"])
     df_arr_no_par = df_arr[~df_arr["idu"].isin(df_par_idus)]
@@ -282,12 +407,20 @@ def generate_html_report(
     res.append(f"Nombre d'arrêtés analysés: {nb_arretes}")
     res.append("</div>")
 
-    # code INSEE 13055
-    res.append(f"<h2>Code INSEE 13055</h2>")
-    _, df_err = error_codeinsee_13055(df_arr)
-    res.append(f"{df_err.shape[0]} / {nb_arretes}")
-    if not df_err.empty:
-        res.append(df_err.to_html(render_links=render_links))
+    ## erreurs graves
+    # aucune adresse
+    res.append(f"<h2>Aucune adresse</h2>")
+    _, df_war = warn_adresse_empty(df_arr, df_adr)
+    res.append(f"{df_war.shape[0]} / {nb_arretes}")
+    if not df_war.empty:
+        res.append(df_war.to_html(render_links=render_links))
+
+    # aucune parcelle
+    res.append(f"<h2>Aucune parcelle</h2>")
+    _, df_war = warn_par_ref_cad_empty(df_arr, df_par)
+    res.append(f"{df_war.shape[0]} / {nb_arretes}")
+    if not df_war.empty:
+        res.append(df_war.to_html(render_links=render_links))
 
     # pas de date
     res.append(f"<h2>Date manquante</h2>")
@@ -298,17 +431,54 @@ def generate_html_report(
 
     # pas de classe
     res.append(f"<h2>Classe manquante</h2>")
-    _, df_err = error_date_manquante(df_arr)
+    _, df_err = error_classe_manquante(df_arr)
     res.append(f"{df_err.shape[0]} / {nb_arretes}")
     if not df_err.empty:
         res.append(df_err.to_html(render_links=render_links))
 
-    # aucune parcelle
-    res.append(f"<h2>Aucune parcelle</h2>")
-    _, df_war = warn_par_ref_cad_empty(df_arr, df_par)
-    res.append(f"{df_war.shape[0]} / {nb_arretes}")
-    if not df_war.empty:
-        res.append(df_war.to_html(render_links=render_links))
+    # pas de nom de rue
+    res.append(f"<h2>Aucun nom de voie</h2>")
+    _, df_err = error_voie_manquante(df_arr, df_adr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
+
+    # pas de ville
+    res.append(f"<h2>Aucun nom de ville</h2>")
+    _, df_err = error_ville_manquante(df_arr, df_adr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
+
+    # + code INSEE 13055
+    res.append(f"<h2>Code INSEE manquant</h2>")
+    _, df_err = error_codeinsee_manquant(df_arr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
+
+    # + code INSEE 13055
+    res.append(f"<h2>Code INSEE 13055</h2>")
+    _, df_err = error_codeinsee_13055(df_arr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
+
+    ## points d'attention
+    # plusieurs parcelles
+    # FL: 2023-06-29: inutile?
+
+    # plusieurs adresses
+    # FL: 2023-06-29: inutile?
+
+    # pas de numéro de voie
+    res.append(f"<h2>Aucun numéro de voie</h2>")
+    _, df_err = error_num_voie_manquant(df_arr, df_adr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
+
+    # pas de procédure urgente?
 
     # fin du document
     res.append("</html>")

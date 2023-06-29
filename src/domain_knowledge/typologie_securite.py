@@ -378,10 +378,12 @@ P_CLASS_PERIM = re.compile(RE_CLASS_PERIM, re.MULTILINE | re.IGNORECASE)
 
 def get_classe(page_txt: str) -> bool:
     """Récupère la classification de l'arrêté.
+
     Parameters
     ----------
     page_txt: str
         Texte d'une page de document
+
     Returns
     -------
     doc_class: str
@@ -438,10 +440,12 @@ def get_classe(page_txt: str) -> bool:
 # anomalies: csvcut -c arr_nom_arr,arr_urgence data/interim/arretes_peril_compil_data_enr_struct.csv |grep -i urgen |grep ",$"
 def get_urgence(page_txt: str) -> bool:
     """Récupère le caractère d'urgence de l'arrêté.
+
     Parameters
     ----------
     page_txt: str
         Texte d'une page de document
+
     Returns
     -------
     doc_class: str
@@ -472,9 +476,11 @@ def get_urgence(page_txt: str) -> bool:
         or P_CLASS_INT.search(page_txt)
     ):
         # FIXME ajouter la prise en compte des articles cités pour déterminer l'urgence
-        return None  # "oui ou non"
+        # (pas pour le moment car l'info n'est pas fiable, les articles peuvent être cités
+        # en paquet)
+        return None
     elif M_CLASS_ML.search(page_txt) or M_CLASS_ABRO_INT.search(page_txt):
-        return None  # "/"
+        return None
     else:
         return None
 

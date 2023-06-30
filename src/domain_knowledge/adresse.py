@@ -98,6 +98,7 @@ RE_TYP_VOIE = (
     + r"|impasse"
     + r"|all[ée]e[s]?"
     + r"|quai"
+    + r"|passage"
     + r"|ancien\s+chemin"
     + r"|chemin|che|ch"
     + r"|mont[ée]e"

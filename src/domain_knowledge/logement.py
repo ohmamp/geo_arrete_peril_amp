@@ -17,6 +17,7 @@ RE_INFOS_JOUR = r"\s*,\s+selon\s+nos\s+informations\s+à\s+ce\s+jour\s*(?:[:,])"
 
 # préfixes de noms de personnes morales ou physiques
 RE_MONSIEUR_MADAME = r"(?:M\s*[.]|Mr(\s*[.])?|Mme|Monsieur|Madame)"
+P_MONSIEUR_MADAME = re.compile(RE_MONSIEUR_MADAME, re.IGNORECASE | re.MULTILINE)
 
 # expression générique "sis <ADRESSE>", "domicilié (au)? <ADRESSE>"
 RE_SIS_ADR = (

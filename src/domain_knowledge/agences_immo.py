@@ -9,6 +9,7 @@
 import re
 
 RE_CABINET = r"(?:cabinet|groupe|agence(?:\s+immobili[èe]re)?)"
+P_CABINET = re.compile(RE_CABINET, re.IGNORECASE | re.MULTILINE)
 
 # liste non exhaustive, à compléter par un motif générique "attrape-tout"
 # expression régulière => forme canonique du nom
@@ -82,3 +83,32 @@ LISTE_NOMS_CABINETS = {
 
 RE_NOMS_CABINETS = r"(?:" + r"|".join(LISTE_NOMS_CABINETS.keys()) + r")"
 P_NOMS_CABINETS = re.compile(RE_NOMS_CABINETS, re.IGNORECASE | re.MULTILINE)
+
+
+def normalize_nom_cabinet(nom_cab: str) -> str:
+    """Normalise un nom de cabinet.
+
+    La version actuelle requiert une déclaration explicite dans
+    LISTE_NOMS_CABINETS, mais des traitements de normalisation
+    standard pourraient être définis en complément.
+
+    Parameters
+    ----------
+    nom_cab: str
+        Nom du cabinet ou de l'agence.
+
+    Returns
+    -------
+    nom_nor: str
+        Nom normalisé.
+    """
+    if nom_cab is None:
+        return None
+    #
+    for re_nom, norm in LISTE_NOMS_CABINETS.items():
+        # dès qu'on a un match sur un nom de cabinet, on renvoie la forme normalisée
+        if re.search(re_nom, nom_cab, flags=(re.IGNORECASE | re.MULTILINE)):
+            return norm
+    else:
+        # si aucun match, on renvoie le nom en entrée tel quel
+        return nom_cab

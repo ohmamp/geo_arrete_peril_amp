@@ -20,13 +20,24 @@ from src.domain_knowledge.adresse import (
     create_adresse_normalisee,
     normalize_adresse,
 )
+from src.domain_knowledge.agences_immo import (
+    P_CABINET,
+    P_NOMS_CABINETS,
+    normalize_nom_cabinet,
+)
 from src.domain_knowledge.cadastre import generate_refcadastrale_norm, get_parcelles
 from src.domain_knowledge.codes_geo import (
     get_codeinsee,
     get_codepostal,
     normalize_ville,
 )
-from src.domain_knowledge.logement import get_adr_doc, get_gest, get_proprio, get_syndic
+from src.domain_knowledge.logement import (
+    P_MONSIEUR_MADAME,
+    get_adr_doc,
+    get_gest,
+    get_proprio,
+    get_syndic,
+)
 from src.domain_knowledge.typologie_securite import (
     get_classe,
     get_demo,
@@ -517,21 +528,44 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
             f"URL temporaire (sans code commune ni année): {arretes['url']}"
         )
 
+    # notifies
+    # formes brutes puis normalisées
+    # * propriétaires
+    id_proprio = list(notifies["proprios"])[0] if notifies["proprios"] else None
+    proprio = id_proprio  # TODO appliquer une normalisation?
+    # * syndic
+    id_syndic = list(notifies["syndics"])[0] if notifies["syndics"] else None
+    if (
+        id_syndic is not None
+        and (P_NOMS_CABINETS.search(id_syndic) is None)
+        and (P_CABINET.search(id_syndic) is None)
+        and (P_MONSIEUR_MADAME.search(id_syndic) is not None)
+    ):
+        # si le champ "id_syndic" ne contient pas de mention de cabinet ou d'agence,
+        # et contient une référence à une personne physique,
+        # alors la valeur normalisée est "syndic bénévole"
+        # TODO si on observe trop de faux positifs, mettre en place une condition
+        # plus restrictive sur la chaîne "bénévole"
+        syndic = "Syndic bénévole"
+    else:
+        # sinon, valeur normalisée (fallback: id_syndic)
+        syndic = normalize_nom_cabinet(id_syndic)
+    # * gestionnaire
+    id_gest = list(notifies["gests"])[0] if notifies["gests"] else None
+    # valeur normalisée (fallback: id_syndic)
+    gest = normalize_nom_cabinet(id_gest)
+    #
     doc_data = {
         "adresses": adresses,
         "arretes": [arretes],  # a priori un seul par fichier
         "notifies": [
             {
-                "id_proprio": list(notifies["proprios"])[0]
-                if notifies["proprios"]
-                else None,
-                "proprio": "",  # TODO liste des noms des propriétaires (canoniques?)
-                "id_syndic": list(notifies["syndics"])[0]
-                if notifies["syndics"]
-                else None,
-                "syndic": "",  # TODO syndic (canonique?)
-                "id_gest": list(notifies["gests"])[0] if notifies["gests"] else None,
-                "gest": "",  # TODO gestionnaire (canonique?)
+                "id_proprio": id_proprio,
+                "proprio": proprio,  # forme normalisée
+                "id_syndic": id_syndic,
+                "syndic": syndic,  # forme normalisée
+                "id_gest": id_gest,
+                "gest": gest,  # forme normalisée
                 "codeinsee": codeinsee,
             }
         ],  # a priori un seul par fichier (pour le moment)

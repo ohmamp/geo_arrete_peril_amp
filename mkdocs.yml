@@ -1,0 +1,8 @@
+site_name: "Geo Arrêtés"
+
+theme:
+  name: "readthedocs"
+
+plugins:
+- search
+- mkdocstrings

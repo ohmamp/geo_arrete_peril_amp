@@ -157,7 +157,9 @@ def process_files(
     retcode_ocr = []
     fullpath_pdfa = []
     fullpath_txt = []
-    for df_row in df_meta.itertuples():
+    for i, df_row in enumerate(df_meta.itertuples()):
+        if i != 0 and i % 10 == 0:
+            print(f"{i}/{len(df_meta)} pdf traités")
         # fichier d'origine
         fp_pdf_in = Path(df_row.fullpath)
         # fichiers à produire

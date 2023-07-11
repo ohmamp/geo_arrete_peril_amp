@@ -183,7 +183,10 @@ def error_codeinsee_13055(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
     df_err: pd.DataFrame
         DataFrame contenant les entrées dont le code INSEE vaut 13055.
     """
-    return ("Code INSEE 13055", df_arr[df_arr["codeinsee"].dropna() == "13055"])
+    return (
+        "Code INSEE 13055",
+        df_arr[df_arr["codeinsee"] == "13055"],
+    )
 
 
 def error_date_manquante(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
@@ -491,6 +494,12 @@ def generate_html_report(
     res.append("<div>")
     res.append(f"Nombre d'arrêtés analysés: {nb_arretes}")
     res.append("</div>")
+
+    print(df_adr)
+    print(df_arr)
+    print(df_not)
+    print(df_par)
+    print()
 
     ## erreurs graves
     # aucune adresse

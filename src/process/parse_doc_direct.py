@@ -704,6 +704,7 @@ def process_files(
         # déplacer les fichiers déjà traités dans doublons/
         # (plus prudent que de les supprimer d'emblée)
         out_dups = out_dir / "doublons"
+        out_dups.mkdir(exist_ok=True)
         #
         df_dups = df_in[s_dups]
         for df_row in df_dups.itertuples():

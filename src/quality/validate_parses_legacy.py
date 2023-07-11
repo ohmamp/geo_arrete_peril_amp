@@ -59,22 +59,6 @@ import logging
 
 import pandas as pd
 
-import re
-
-ERROR_KEYS = [
-    "aucune_adresse",
-    "aucune_parcelle",
-    "aucune_date",
-    "aucune_classe",
-    "aucune_voie",
-    "aucun_cpostal",
-    "aucune_ville",
-    "aucun_codeinsee",
-    "codeinsee_13055",
-    "aucun_num_voie",
-    "manque_urgence",
-]
-
 
 def expect_header_beg_zero(df: pd.DataFrame) -> bool:
     """Vérifie que les en-têtes commencent tous à 0.
@@ -157,7 +141,7 @@ def examine_doc_content(fn_pdf: str, doc_content: "list[dict]"):
         # l'ordre relatif (vu | considérant)+ < arrête < (article)+ est vérifié au niveau des transitions admissibles
 
 
-def error_codeinsee_manquant(df: pd.DataFrame) -> pd.DataFrame:
+def error_codeinsee_manquant(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
     """Signale les arrêtés dont le code INSEE est manquant.
 
     Le code INSEE est déterminé sur base du nom de la commune, croisé avec
@@ -166,21 +150,20 @@ def error_codeinsee_manquant(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
+    df_arr: pd.DataFrame
+        DataFrame des arrêtés, contenant les codes INSEE.
 
     Returns
     -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les entrées dont le code INSEE est vide.
     """
-    df["aucun_codeinsee"] = df.apply(
-        lambda row: 1 if pd.isnull(row.codeinsee) else 0, axis=1
-    )
-    return df
+    return ("Code INSEE manquant", df_arr[df_arr["codeinsee"].isna()])
 
 
-def error_codeinsee_13055(df: pd.DataFrame) -> pd.DataFrame:
+def error_codeinsee_13055(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
     """Signale les arrêtés dont le code INSEE est 13055.
 
     13055 est le code pour tout Marseille, alors que l'on devrait
@@ -190,24 +173,23 @@ def error_codeinsee_13055(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
+    df_arr: pd.DataFrame
+        DataFrame des arrêtés, contenant les codes INSEE.
 
     Returns
     -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les entrées dont le code INSEE vaut 13055.
     """
-    df["codeinsee_13055"] = df.apply(
-        lambda row: 1
-        if not pd.isnull(row.codeinsee) and row.codeinsee == "13055"
-        else 0,
-        axis=1,
+    return (
+        "Code INSEE 13055",
+        df_arr[df_arr["codeinsee"] == "13055"],
     )
-    return df
 
 
-def error_date_manquante(df: pd.DataFrame) -> pd.DataFrame:
+def error_date_manquante(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
     """Signale les arrêtés dont la date n'a pu être déterminée.
 
     La cause la plus fréquente est une erreur d'OCR sur une date manuscrite
@@ -216,19 +198,20 @@ def error_date_manquante(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
+    df_arr: pd.DataFrame
+        DataFrame des arrêtés.
 
     Returns
     -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les entrées dont la date n'a pu être déterminée.
     """
-    df["aucune_date"] = df.apply(lambda row: 1 if pd.isnull(row.date) else 0, axis=1)
-    return df
+    return ("Date manquante", df_arr[df_arr["date"].isna()])
 
 
-def error_classe_manquante(df: pd.DataFrame) -> pd.DataFrame:
+def error_classe_manquante(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
     """Signale les arrêtés dont la classe n'a pu être déterminée.
 
     Les causes les plus fréquentes sont une erreur d'OCR sur un document mal
@@ -238,21 +221,20 @@ def error_classe_manquante(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
+    df_arr: pd.DataFrame
+        DataFrame des arrêtés.
 
     Returns
     -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les entrées dont la classe n'a pu être déterminée.
     """
-    df["aucune_classe"] = df.apply(
-        lambda row: 1 if pd.isnull(row.classe) else 0, axis=1
-    )
-    return df
+    return ("Classe manquante", df_arr[df_arr["classe"].isna()])
 
 
-def error_urgence_manquante(df: pd.DataFrame) -> pd.DataFrame:
+def error_urgence_manquante(df_arr: pd.DataFrame) -> "tuple[str, pd.DataFrame]":
     """Signale les arrêtés dont l'urgence n'a pu être déterminée.
 
     La cause la plus fréquente est une classe d'arrêté qui ne donne pas
@@ -260,21 +242,22 @@ def error_urgence_manquante(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
+    df_arr: pd.DataFrame
+        DataFrame des arrêtés.
 
     Returns
     -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les entrées dont l'urgence n'a pu être déterminée.
     """
-    df["manque_urgence"] = df.apply(
-        lambda row: 1 if pd.isnull(row.urgence) else 0, axis=1
-    )
-    return df
+    return ("Urgence manquante", df_arr[df_arr["urgence"].isna()])
 
 
-def error_voie_manquante(df: pd.DataFrame) -> pd.DataFrame:
+def error_voie_manquante(
+    df_arr: pd.DataFrame, df_adr: pd.DataFrame
+) -> "tuple[str, pd.DataFrame]":
     """Signale les adresses d'arrêtés sans voie.
 
     Certains arrêtés ne contiennent pas d'adresse (ex: certaines mainlevées
@@ -287,19 +270,25 @@ def error_voie_manquante(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df: pd.DataFrame
+    df_arr: pd.DataFrame
         DataFrame contenant les arrêtés.
+    df_par: pd.DataFrame
+        DataFrame contenant les parcelles.
 
     Returns
     -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les adresses sans voie.
     """
-    df["aucune_voie"] = df.apply(lambda row: 1 if pd.isnull(row.voie) else 0, axis=1)
-    return df
+    df_adr_no_voie = df_adr[df_adr["voie"].isna()]
+    return ("Adresses sans voie", df_adr_no_voie)
 
 
-def error_num_voie_manquant(df: pd.DataFrame) -> pd.DataFrame:
+def error_num_voie_manquant(
+    df_arr: pd.DataFrame, df_adr: pd.DataFrame
+) -> "tuple[str, pd.DataFrame]":
     """Signale les adresses d'arrêtés sans numéro de voie.
 
     Certains arrêtés ne contiennent pas d'adresse (ex: certaines mainlevées
@@ -312,19 +301,25 @@ def error_num_voie_manquant(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df: pd.DataFrame
+    df_arr: pd.DataFrame
         DataFrame contenant les arrêtés.
+    df_adr: pd.DataFrame
+        DataFrame contenant les adresses.
 
     Returns
     -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les adresses sans numéro de voie.
     """
-    df["aucun_num_voie"] = df.apply(lambda row: 1 if pd.isnull(row.num) else 0, axis=1)
-    return df
+    df_adr_no_num = df_adr[df_adr["num"].isna()]
+    return ("Adresses sans numéro de voie", df_adr_no_num)
 
 
-def error_cpostal_manquant(df: pd.DataFrame) -> pd.DataFrame:
+def error_cpostal_manquant(
+    df_arr: pd.DataFrame, df_adr: pd.DataFrame
+) -> "tuple[str, pd.DataFrame]":
     """Signale les adresses d'arrêtés sans ville.
 
     Certains arrêtés ne contiennent pas d'adresse (ex: certaines mainlevées
@@ -338,21 +333,25 @@ def error_cpostal_manquant(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df: pd.DataFrame
+    df_arr: pd.DataFrame
         DataFrame contenant les arrêtés.
+    df_par: pd.DataFrame
+        DataFrame contenant les parcelles.
 
     Returns
     -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les adresses sans ville.
     """
-    df["aucun_cpostal"] = df.apply(
-        lambda row: 1 if pd.isnull(row.cpostal) else 0, axis=1
-    )
-    return df
+    df_adr_no_voie = df_adr[df_adr["cpostal"].isna()]
+    return ("Adresses sans code postal", df_adr_no_voie)
 
 
-def error_ville_manquante(df: pd.DataFrame) -> pd.DataFrame:
+def error_ville_manquante(
+    df_arr: pd.DataFrame, df_adr: pd.DataFrame
+) -> "tuple[str, pd.DataFrame]":
     """Signale les adresses d'arrêtés sans ville.
 
     Certains arrêtés ne contiennent pas d'adresse (ex: certaines mainlevées
@@ -366,19 +365,25 @@ def error_ville_manquante(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df: pd.DataFrame
+    df_arr: pd.DataFrame
         DataFrame contenant les arrêtés.
+    df_par: pd.DataFrame
+        DataFrame contenant les parcelles.
 
     Returns
     -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les adresses sans ville.
     """
-    df["aucune_ville"] = df.apply(lambda row: 1 if pd.isnull(row.ville) else 0, axis=1)
-    return df
+    df_adr_no_voie = df_adr[df_adr["ville"].isna()]
+    return ("Adresses sans ville", df_adr_no_voie)
 
 
-def warn_adresse_empty(df: pd.DataFrame) -> pd.DataFrame:
+def warn_adresse_empty(
+    df_arr: pd.DataFrame, df_adr: pd.DataFrame
+) -> "tuple[str, pd.DataFrame]":
     """Signale les arrêtés sans aucune adresse.
 
     Certains arrêtés ne contiennent pas d'adresse (ex: mainlevée,
@@ -395,22 +400,27 @@ def warn_adresse_empty(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df: pd.DataFrame
+    df_arr: pd.DataFrame
         DataFrame contenant les arrêtés.
+    df_adr: pd.DataFrame
+        DataFrame contenant les adresses.
 
     Returns
     -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les entrées sans adresse.
     """
     # récupérer toutes les adresses
-    df["aucune_adresse"] = df.apply(
-        lambda row: 1 if pd.isnull(row.ad_brute) else 0, axis=1
-    )
-    return df
+    df_adr_noadr_idus = set(df_adr[df_adr["ad_brute"].fillna("") == ""]["idu"])
+    df_arr_no_adr = df_arr[df_arr["idu"].isin(df_adr_noadr_idus)]
+    return ("Aucune adresse", df_arr_no_adr)
 
 
-def warn_par_ref_cad_empty(df: pd.DataFrame) -> pd.DataFrame:
+def warn_par_ref_cad_empty(
+    df_arr: pd.DataFrame, df_par: pd.DataFrame
+) -> "tuple[str, pd.DataFrame]":
     """Signale les arrêtés sans aucune référence de parcelle cadastrale.
 
     Certains arrêtés ne contiennent pas de référence cadastrale, auquel
@@ -426,47 +436,21 @@ def warn_par_ref_cad_empty(df: pd.DataFrame) -> pd.DataFrame:
 
     Parameters
     ----------
-    df: pd.DataFrame
+    df_arr: pd.DataFrame
         DataFrame contenant les arrêtés.
+    df_par: pd.DataFrame
+        DataFrame contenant les parcelles.
 
     Returns
     -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
+    err: string
+        Description de l'erreur
+    df_err: pd.DataFrame
+        DataFrame contenant les entrées sans parcelle.
     """
-    df["aucune_parcelle"] = df.apply(
-        lambda row: 1 if pd.isnull(row.ref_cad) else 0, axis=1
-    )
-    return df
-
-
-def drop_no_errors_arr(df_arr: pd.DataFrame) -> pd.DataFrame:
-    """Supprime les arrêtés sans erreur.
-
-    Parameters
-    ----------
-    df_arr: pd.DataFrame
-        DataFrame contenant les arrêtés.
-
-    Returns
-    -------
-    df_arr: pd.DataFrame
-        DataFrame contenant les arrêtés sans erreurs.
-    """
-
-    df_arr = df_arr.copy()
-    # if none of the keys is equal to 1, then the row has no error
-    df_arr["has_error"] = df_arr[ERROR_KEYS].sum(axis=1) > 0
-    # delete all the row without error
-    df_arr = df_arr[df_arr["has_error"]]
-    return df_arr
-
-
-# Define a function to apply the desired styling
-def highlight_value_red(value):
-    if value == 1:
-        return f'<b><span style="color: red">{value}</span></b>'
-    return value
+    df_par_idus = set(df_par["idu"])
+    df_arr_no_par = df_arr[~df_arr["idu"].isin(df_par_idus)]
+    return ("Aucune référence cadastrale", df_arr_no_par)
 
 
 def generate_html_report(
@@ -496,47 +480,7 @@ def generate_html_report(
     html_report: string
         Rapport HTML
     """
-
-    # --- TODO bricolage pour fusionner en aval --- #
-    # Merge dataframes based on 'idu' column
-    merged_df = (
-        df_adr.merge(df_arr, on="idu", how="outer", suffixes=("_df1", "_df2"))
-        .merge(df_not, on="idu", how="outer", suffixes=("_df12", "_df3"))
-        .merge(df_par, on="idu", how="outer", suffixes=("_df123", "_df4"))
-    )
-
-    # fuse duplicate columns
-    for index, row in merged_df.iterrows():
-        for col in merged_df.columns:
-            # Check if the column matches the pattern r".*_df.*"
-            if re.match(r".*_df\d+", col):
-                # Extract the column name excluding the "df" number
-                col_name = re.sub(r"_df\d+", "", col)
-
-                # Check if there are other columns with the same name excluding the "df" number
-                matching_cols = [
-                    c for c in merged_df.columns if re.match(col_name + r"_df\d+", c)
-                ]
-
-                # Find the first non-null value among the matching columns
-                non_null_cell = next(
-                    (c for c in matching_cols if row[c] is not None), None
-                )
-
-                # Assign the value from the first non-null column to the corresponding col_name column
-                merged_df.at[index, col_name] = row[non_null_cell]
-
-                # Drop the other matching columns
-                merged_df.drop(
-                    [c for c in matching_cols if c != non_null_cell],
-                    axis=1,
-                    inplace=True,
-                )
-
-    # drop row with duplicate idu
-    merged_df.drop_duplicates(subset="idu", keep="first", inplace=True)
-
-    nb_arretes = len(merged_df)
+    nb_arretes = len(df_arr)
     # options de mise en forme
     render_links = True
     #
@@ -551,67 +495,98 @@ def generate_html_report(
     res.append(f"Nombre d'arrêtés analysés: {nb_arretes}")
     res.append("</div>")
 
-    # erreurs graves
-    # adding error columns to the dataframe, 1 = there is an error, 0 = no error
-    # --- aucune adresse --- #
-    merged_df = warn_adresse_empty(merged_df)
+    print(df_adr)
+    print(df_arr)
+    print(df_not)
+    print(df_par)
+    print()
 
-    # --- aucune parcelle --- #
-    merged_df = warn_par_ref_cad_empty(merged_df)
+    ## erreurs graves
+    # aucune adresse
+    res.append(f"<h2>Aucune adresse</h2>")
+    _, df_war = warn_adresse_empty(df_arr, df_adr)
+    res.append(f"{df_war.shape[0]} / {nb_arretes}")
+    if not df_war.empty:
+        res.append(df_war.to_html(render_links=render_links))
 
-    # --- aucune date --- #
-    merged_df = error_date_manquante(merged_df)
+    # aucune parcelle
+    res.append(f"<h2>Aucune parcelle</h2>")
+    _, df_war = warn_par_ref_cad_empty(df_arr, df_par)
+    res.append(f"{df_war.shape[0]} / {nb_arretes}")
+    if not df_war.empty:
+        res.append(df_war.to_html(render_links=render_links))
 
-    # --- aucune classe --- #
-    merged_df = error_classe_manquante(merged_df)
+    # pas de date
+    res.append(f"<h2>Date manquante</h2>")
+    _, df_err = error_date_manquante(df_arr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
 
-    # --- aucune voie --- #
-    merged_df = error_voie_manquante(merged_df)
+    # pas de classe
+    res.append(f"<h2>Classe manquante</h2>")
+    _, df_err = error_classe_manquante(df_arr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
 
-    # --- aucun code postal --- #
-    merged_df = error_cpostal_manquant(merged_df)
+    # pas de nom de rue
+    res.append(f"<h2>Aucun nom de voie</h2>")
+    _, df_err = error_voie_manquante(df_arr, df_adr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
 
-    # --- aucune ville --- #
-    merged_df = error_ville_manquante(merged_df)
+    # pas de code postal
+    res.append(f"<h2>Aucun code postal</h2>")
+    _, df_err = error_cpostal_manquant(df_arr, df_adr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
 
-    # --- aucun code INSEE --- #
-    merged_df = error_codeinsee_manquant(merged_df)
+    # pas de ville
+    res.append(f"<h2>Aucun nom de ville</h2>")
+    _, df_err = error_ville_manquante(df_arr, df_adr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
 
-    # --- code INSEE 13055 --- #
-    merged_df = error_codeinsee_13055(merged_df)
+    # + code INSEE manquant
+    res.append(f"<h2>Code INSEE manquant</h2>")
+    _, df_err = error_codeinsee_manquant(df_arr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
 
-    # --- aucun numéro de voie --- #
-    merged_df = error_num_voie_manquant(merged_df)
+    # + code INSEE 13055
+    res.append(f"<h2>Code INSEE 13055</h2>")
+    _, df_err = error_codeinsee_13055(df_arr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
 
-    # --- manquance_urgence --- #
-    merged_df = error_urgence_manquante(merged_df)
-
-    # drop rows without errors
-    merged_df = drop_no_errors_arr(merged_df)
-
-    # only keep the columns we want to display
-    merged_df = merged_df[["idu", *ERROR_KEYS]]
-
-    res.append("<h1>Infos manquantes</h1>")
-
-    """
     ## points d'attention
     # plusieurs parcelles
     # FL: 2023-06-29: inutile?
 
     # plusieurs adresses
     # FL: 2023-06-29: inutile?
-    """
 
-    # --- adding red to errors --- #
-    # Apply the styling to the DataFrame
-    styled_df = merged_df.applymap(highlight_value_red)
+    # pas de numéro de voie
+    res.append(f"<h2>Aucun numéro de voie</h2>")
+    _, df_err = error_num_voie_manquant(df_arr, df_adr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
 
-    # Convert the styled DataFrame to HTML with red highlighting
-    html_table = styled_df.to_html(escape=False, render_links=render_links)
-
-    res.append(html_table)
+    # pas de procédure urgente
+    res.append(f"<h2>Statut inconnu: urgence de la procédure</h2>")
+    _, df_err = error_urgence_manquante(df_arr)
+    res.append(f"{df_err.shape[0]} / {nb_arretes}")
+    if not df_err.empty:
+        res.append(df_err.to_html(render_links=render_links))
 
     # fin du document
     res.append("</html>")
-    return "\n".join(res)
+    html_report = "\n".join(res)
+    return html_report

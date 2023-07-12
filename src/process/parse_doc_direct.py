@@ -71,12 +71,10 @@ FS_URL = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_analyses/{co
 # URLs partielles pour les PDF qui n'ont pu être analysés complètement, à compléter manuellement après
 # déplacement du fichier
 # TODO forcer la cohérence entre le bout d'URL "pdf_a_reclasser" et les chemins de dossiers dans "process.sh"
-FS_URL_NO_YEAR = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_a_reclasser/{commune}/{pdf}"
+FS_URL_NO_YEAR = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_analyses/pdf_a_reclasser/{commune}/{pdf}"
 # URL de dernier recours, à mettre à jour manuellement
 # TODO forcer la cohérence entre le bout d'URL "pdf_a_reclasser" et les chemins de dossiers dans "process.sh"
-FS_URL_FALLBACK = (
-    "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_a_reclasser/{pdf}"
-)
+FS_URL_FALLBACK = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_analyses/pdf_a_reclasser/{pdf}"
 
 
 # 4 fichiers CSV seront générés
@@ -606,7 +604,7 @@ def process_files(
     )
     out_dir_csv.mkdir(parents=True, exist_ok=True)
     # - les fichiers PDF à reclasser sont stockés dans un sous-dossier (temporaire) "pdf_a_reclasser"
-    out_dir_pdf_areclass = out_dir / "pdf_a_reclasser"
+    out_dir_pdf_areclass = out_dir / "pdf_analyses/pdf_a_reclasser"
     logging.info(
         f"Sous-dossier de sortie: {out_dir_pdf_areclass} {'existe déjà' if out_dir_pdf_areclass.is_dir() else 'va être créé'}."
     )
@@ -801,9 +799,9 @@ def process_files(
                 year = df_row.date.rsplit("/", 1)[1]
                 dest_dir = out_dir / "pdf_analyses" / commune / year
             else:
-                dest_dir = out_dir / "pdf_a_reclasser" / commune
+                dest_dir = out_dir / "pdf_analyses/pdf_a_reclasser" / commune
         else:
-            dest_dir = out_dir / "pdf_a_reclasser"
+            dest_dir = out_dir / "pdf_analyses/pdf_a_reclasser"
         # créer le dossier destination si besoin
         dest_dir.mkdir(parents=True, exist_ok=True)
         # retrouver l'entrée correspondance dans df_in, pour avoir le

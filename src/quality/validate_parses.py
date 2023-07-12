@@ -175,7 +175,7 @@ def error_codeinsee_manquant(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame contenant avec une colonne indiquant si cette erreur est présente.
     """
     df["aucun_codeinsee"] = df.apply(
-        lambda row: 1 if pd.isnull(row.codeinsee) else "", axis=1
+        lambda row: 1 if pd.isnull(row.codeinsee) else 0, axis=1
     )
     return df
 
@@ -201,7 +201,7 @@ def error_codeinsee_13055(df: pd.DataFrame) -> pd.DataFrame:
     df["codeinsee_13055"] = df.apply(
         lambda row: 1
         if not pd.isnull(row.codeinsee) and row.codeinsee == "13055"
-        else "",
+        else 0,
         axis=1,
     )
     return df
@@ -224,7 +224,7 @@ def error_date_manquante(df: pd.DataFrame) -> pd.DataFrame:
     df: pd.DataFrame
         DataFrame contenant avec une colonne indiquant si cette erreur est présente.
     """
-    df["aucune_date"] = df.apply(lambda row: 1 if pd.isnull(row.date) else "", axis=1)
+    df["aucune_date"] = df.apply(lambda row: 1 if pd.isnull(row.date) else 0, axis=1)
     return df
 
 
@@ -247,7 +247,7 @@ def error_classe_manquante(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame contenant avec une colonne indiquant si cette erreur est présente.
     """
     df["aucune_classe"] = df.apply(
-        lambda row: 1 if pd.isnull(row.classe) else "", axis=1
+        lambda row: 1 if pd.isnull(row.classe) else 0, axis=1
     )
     return df
 
@@ -269,7 +269,7 @@ def error_urgence_manquante(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame contenant avec une colonne indiquant si cette erreur est présente.
     """
     df["manque_urgence"] = df.apply(
-        lambda row: 1 if pd.isnull(row.urgence) else "", axis=1
+        lambda row: 1 if pd.isnull(row.urgence) else 0, axis=1
     )
     return df
 
@@ -295,7 +295,7 @@ def error_voie_manquante(df: pd.DataFrame) -> pd.DataFrame:
     df: pd.DataFrame
         DataFrame contenant avec une colonne indiquant si cette erreur est présente.
     """
-    df["aucune_voie"] = df.apply(lambda row: 1 if pd.isnull(row.voie) else "", axis=1)
+    df["aucune_voie"] = df.apply(lambda row: 1 if pd.isnull(row.voie) else 0, axis=1)
     return df
 
 
@@ -320,7 +320,7 @@ def error_num_voie_manquant(df: pd.DataFrame) -> pd.DataFrame:
     df: pd.DataFrame
         DataFrame contenant avec une colonne indiquant si cette erreur est présente.
     """
-    df["aucun_num_voie"] = df.apply(lambda row: 1 if pd.isnull(row.num) else "", axis=1)
+    df["aucun_num_voie"] = df.apply(lambda row: 1 if pd.isnull(row.num) else 0, axis=1)
     return df
 
 
@@ -347,7 +347,7 @@ def error_cpostal_manquant(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame contenant avec une colonne indiquant si cette erreur est présente.
     """
     df["aucun_cpostal"] = df.apply(
-        lambda row: 1 if pd.isnull(row.cpostal) else "", axis=1
+        lambda row: 1 if pd.isnull(row.cpostal) else 0, axis=1
     )
     return df
 
@@ -374,7 +374,7 @@ def error_ville_manquante(df: pd.DataFrame) -> pd.DataFrame:
     df: pd.DataFrame
         DataFrame contenant avec une colonne indiquant si cette erreur est présente.
     """
-    df["aucune_ville"] = df.apply(lambda row: 1 if pd.isnull(row.ville) else "", axis=1)
+    df["aucune_ville"] = df.apply(lambda row: 1 if pd.isnull(row.ville) else 0, axis=1)
     return df
 
 
@@ -405,7 +405,7 @@ def warn_adresse_empty(df: pd.DataFrame) -> pd.DataFrame:
     """
     # récupérer toutes les adresses
     df["aucune_adresse"] = df.apply(
-        lambda row: 1 if pd.isnull(row.ad_brute) else "", axis=1
+        lambda row: 1 if pd.isnull(row.ad_brute) else 0, axis=1
     )
     return df
 
@@ -435,7 +435,7 @@ def warn_par_ref_cad_empty(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame contenant avec une colonne indiquant si cette erreur est présente.
     """
     df["aucune_parcelle"] = df.apply(
-        lambda row: 1 if pd.isnull(row.ref_cad) else "", axis=1
+        lambda row: 1 if pd.isnull(row.ref_cad) else 0, axis=1
     )
     return df
 
@@ -536,10 +536,13 @@ def generate_html_report(
     # drop row with duplicate idu
     merged_df.drop_duplicates(subset="idu", keep="first", inplace=True)
 
+    # reset ID
+    merged_df.reset_index(drop=True, inplace=True)
+
     nb_arretes = len(merged_df)
     # options de mise en forme
     render_links = True
-    #
+
     res = []
     # début et bloc de titre
     res.append("<html>")
@@ -551,7 +554,6 @@ def generate_html_report(
     res.append(f"Nombre d'arrêtés analysés: {nb_arretes}")
     res.append("</div>")
 
-    # erreurs graves
     # adding error columns to the dataframe, 1 = there is an error, 0 = no error
     # --- aucune adresse --- #
     merged_df = warn_adresse_empty(merged_df)
@@ -606,6 +608,9 @@ def generate_html_report(
     # --- adding red to errors --- #
     # Apply the styling to the DataFrame
     styled_df = merged_df.applymap(highlight_value_red)
+
+    # remove any 0 and make the cell empty instead
+    styled_df = styled_df.replace(0, "")
 
     # Convert the styled DataFrame to HTML with red highlighting
     html_table = styled_df.to_html(escape=False, render_links=render_links)

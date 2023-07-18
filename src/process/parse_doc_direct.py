@@ -14,6 +14,7 @@ import shutil
 from typing import Dict, List
 
 import pandas as pd
+import numpy as np
 
 from src.domain_knowledge.actes import P_ACCUSE
 from src.domain_knowledge.adresse import (
@@ -776,7 +777,10 @@ def process_files(
         ("parcelle", rows_parcelle, DTYPE_PARCELLE),
     ]:
         out_file = out_files[key]
-        df = pd.DataFrame.from_records(rows).astype(dtype=dtype)
+        df = pd.DataFrame.from_records(rows)
+        if "num_arr" not in df.columns:
+            df = df.assign(num_arr=np.nan)
+        df = df.astype(dtype=dtype)
         df.to_csv(out_file, index=False)
 
     # déplacer les fichiers PDF traités ;

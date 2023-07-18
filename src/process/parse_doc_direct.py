@@ -778,8 +778,11 @@ def process_files(
     ]:
         out_file = out_files[key]
         df = pd.DataFrame.from_records(rows)
-        if "num_arr" not in df.columns:
-            df = df.assign(num_arr=np.nan)
+
+        for dtype_key, _ in dtype.items():
+            if dtype_key not in df.columns:
+                df[dtype_key] = np.nan
+
         df = df.astype(dtype=dtype)
         df.to_csv(out_file, index=False)
 

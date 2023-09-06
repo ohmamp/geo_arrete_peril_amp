@@ -626,7 +626,7 @@ def process_files(
     )
     pdfs_old = []
     for fp_paquet_arrete in fps_paquet_arrete:
-        df_arr_old = pd.read_csv(fp_paquet_arrete, dtype=DTYPE_ARRETE)
+        df_arr_old = pd.read_csv(fp_paquet_arrete, dtype=DTYPE_ARRETE, sep=";")
         pdfs_old.extend(df_arr_old["pdf"])
     pdfs_old = set(pdfs_old)
 
@@ -660,9 +660,9 @@ def process_files(
     i_idu = 0  # init
     for fp_prevrun in out_prevruns:
         # ouvrir le fichier, lire les idus, prendre le dernier, extraire l'index
-        s_idus = pd.read_csv(fp_prevrun, usecols=["idu"], dtype={"idu": "string"})[
-            "idu"
-        ]
+        s_idus = pd.read_csv(
+            fp_prevrun, usecols=["idu"], dtype={"idu": "string"}, sep=";"
+        )["idu"]
         max_idx = s_idus.str.rsplit("-", n=1, expand=True)[1].astype("int32").max()
         i_idu = max(i_idu, max_idx)
     i_idu += 1  # on prend le numéro d'arrêté suivant
@@ -784,14 +784,14 @@ def process_files(
                 df[dtype_key] = np.nan
 
         df = df.astype(dtype=dtype)
-        df.to_csv(out_file, index=False)
+        df.to_csv(out_file, index=False, sep=";")
 
     # déplacer les fichiers PDF traités ;
     # le code est redondant avec celui utilisé pour remplir le champ d'URL
     # mais on fait les déplacements de fichiers après l'écriture du dataframe
     # pour éviter de déplacer le fichier si les CSV ne sont finalement pas
     # produits (eg. à cause d'un échec sur un autre document)
-    df_arr = pd.read_csv(out_files["arrete"], dtype=DTYPE_ARRETE)
+    df_arr = pd.read_csv(out_files["arrete"], dtype=DTYPE_ARRETE, sep=";")
     for df_row in df_arr.itertuples():
         # nom du PDF (incluant hash)
         fn = df_row.pdf
@@ -898,7 +898,7 @@ if __name__ == "__main__":
     # générer le rapport d'erreurs
     run = out_files["adresse"].stem.split("_", 2)[2]
     dfs = {
-        x: pd.read_csv(out_files[x], dtype=x_dtype)
+        x: pd.read_csv(out_files[x], dtype=x_dtype, sep=";")
         for (x, x_dtype) in (
             ("adresse", DTYPE_ADRESSE),
             ("arrete", DTYPE_ARRETE),

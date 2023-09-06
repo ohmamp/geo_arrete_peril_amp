@@ -554,9 +554,12 @@ def process_adresse_brute(adr_ad_brute: str) -> List[Dict]:
     try:
         assert adr_lists[0].group(0) == m_adresse["num_ind_voie_list"]
     except AssertionError:
-        raise ValueError(
+        logging.warning(
             f"Problème sur {m_adresse.groupdict()}\nadr_list.group(0): {adr_lists[0].group(0)} ; {m_adresse['num_ind_voie_list']}"
         )
+        """raise ValueError(
+            f"Problème sur {m_adresse.groupdict()}\nadr_list.group(0): {adr_lists[0].group(0)} ; {m_adresse['num_ind_voie_list']}"
+        )"""
     for adr_list in adr_lists:
         # on ne peut pas complètement verrouiller avec adr_list.end(), car il manquerait à nouveau le contexte droit (grmpf)
         adrs = list(P_NUM_IND_VOIE_NG.finditer(adr_ad_brute, adr_list.start()))

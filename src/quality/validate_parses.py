@@ -592,7 +592,7 @@ def generate_html_report(
     merged_df = drop_no_errors_arr(merged_df)
 
     # only keep the columns we want to display
-    merged_df = merged_df[["idu", *ERROR_KEYS]]
+    merged_df = merged_df[["idu", *ERROR_KEYS, "url"]]
 
     res.append("<h1>Infos manquantes</h1>")
 

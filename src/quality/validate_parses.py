@@ -592,7 +592,7 @@ def generate_html_report(
     merged_df = drop_no_errors_arr(merged_df)
 
     # only keep the columns we want to display
-    merged_df = merged_df[["idu", *ERROR_KEYS]]
+    merged_df = merged_df[["idu", *ERROR_KEYS, "url"]]
 
     res.append("<h1>Infos manquantes</h1>")
 
@@ -613,6 +613,7 @@ def generate_html_report(
     styled_df = styled_df.replace(0, "")
 
     # Convert the styled DataFrame to HTML with red highlighting
+    styled_df = styled_df.rename_axis("id", axis=1)
     html_table = styled_df.to_html(escape=False, render_links=render_links)
 
     res.append(html_table)

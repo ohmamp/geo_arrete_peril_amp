@@ -1,5 +1,3 @@
-@echo off
-
 REM Create a folder named "batch-logs"
 mkdir "batch-logs" 2>nul
 
@@ -18,3 +16,5 @@ wsl -e bash -ic "conda activate geo-arretes; cd /mnt/c/Users/Anthony/Documents/G
 
 REM Write task completion entry to log
 echo "Task completed" >> %LOGFILE%
+
+timeout 5 > NUL

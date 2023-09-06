@@ -613,6 +613,7 @@ def generate_html_report(
     styled_df = styled_df.replace(0, "")
 
     # Convert the styled DataFrame to HTML with red highlighting
+    styled_df = styled_df.rename_axis("id", axis=1)
     html_table = styled_df.to_html(escape=False, render_links=render_links)
 
     res.append(html_table)

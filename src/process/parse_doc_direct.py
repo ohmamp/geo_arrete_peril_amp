@@ -12,6 +12,7 @@ import logging
 from pathlib import Path
 import shutil
 from typing import Dict, List
+import re
 
 import pandas as pd
 import numpy as np
@@ -82,6 +83,48 @@ FS_URL_FALLBACK = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_ana
 OUT_BASENAMES = {
     x: f"paquet_{x}.csv" for x in ["arrete", "adresse", "parcelle", "notifie"]
 }
+
+
+def create_file_name_url(file_name: str, allowance: int = 155):
+    """
+    Creates a url-compliant filename by removing all bad characters
+    and maintaining the windows path length limit (which by default is 255)
+    155 to take into account the path length
+
+    Parameters
+    ----------
+    file_name: str
+        Nom du fichier
+    allowance: int
+        Longueur maximale du chemin complet (chemin + nom de fichier)
+    """
+
+    bad_characters = re.compile(r"[\\/<>,:\"|?*^$&{}\[\]`\x00-\x1F\x7F]+")
+
+    if allowance > 255:
+        allowance = 255  # on most common filesystems, including NTFS a file_name can not exceed 255 characters
+    # assign allowance for things that must be in the file name
+
+    # make sure that user input doesn't contain bad characters
+    file_name = bad_characters.sub("", file_name)
+    file_name = file_name.replace("'", "_").replace(" ", "_")
+
+    ret = ""
+    for string in [file_name]:
+        length = len(string)
+        if allowance - length < 0:
+            string = string[:allowance]
+            length = len(string)
+        ret += string
+        allowance -= length
+
+    if allowance < 0:
+        raise ValueError(
+            """It is not possible to give a reasonable file name, due to length limitations.
+        Consider changing location to somewhere with a shorter path."""
+        )
+
+    return ret
 
 
 def enrich_adresse(fn_pdf: str, adresse: dict, commune_maire: str) -> Dict:
@@ -300,11 +343,12 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
         Données extraites du document.
     """
     fn_pdf = fp_pdf_in.name
+    fn_pdf_out = create_file_name_url(fn_pdf)
 
     pages = load_pages_text(fp_txt_in)
     if not any(pages):
         logging.warning(f"{fp_txt_in}: aucune page de texte")
-        arr_url = FS_URL_FALLBACK.format(pdf=fn_pdf)
+        arr_url = FS_URL_FALLBACK.format(pdf=fn_pdf_out)
         logging.warning(f"URL temporaire (sans code commune ni année): {arr_url}")
         return {
             "adresses": [],
@@ -512,17 +556,17 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
             arr_comm = arretes["codeinsee"]
 
             arretes["url"] = FS_URL.format(
-                commune=arretes["codeinsee"], yyyy=arr_year, pdf=fn_pdf
+                commune=arretes["codeinsee"], yyyy=arr_year, pdf=fn_pdf_out
             )
         else:
             arretes["url"] = FS_URL_NO_YEAR.format(
-                commune=arretes["codeinsee"], pdf=fn_pdf
+                commune=arretes["codeinsee"], pdf=fn_pdf_out
             )
             logging.warning(f"URL temporaire (sans année): {arretes['url']}")
     else:
         # ("codeinsee" not in arretes)
         # dans le pire cas: (arretes == {})
-        arretes = {"pdf": fn_pdf, "url": FS_URL_FALLBACK.format(pdf=fn_pdf)}
+        arretes = {"pdf": fn_pdf, "url": FS_URL_FALLBACK.format(pdf=fn_pdf_out)}
         logging.warning(
             f"URL temporaire (sans code commune ni année): {arretes['url']}"
         )
@@ -822,7 +866,11 @@ def process_files(
             # chemin du fichier d'origine (pour suppression après move)
             fp_orig = Path(df_row_in.origpath)
             # chemin destination du fichier traité
-            fp_dst = dest_dir / fp.name
+            print(fp.name)
+            fp_dst = dest_dir / create_file_name_url(fp.name)
+            print(fp_dst)
+            print()
+
             shutil.move(fp, fp_dst)
             # si le move a réussi, on peut supprimer le fichier dans le dossier d'entrée
             if fp_dst.is_file():

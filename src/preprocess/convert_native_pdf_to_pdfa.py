@@ -1,4 +1,5 @@
-"""Convertir les fichiers PDF natifs (texte natif) en PDF/A.
+"""
+# Convertir les fichiers PDF natifs en PDF/A.
 
 Utilise ocrmypdf sans appeler le moteur d'OCR.
 """

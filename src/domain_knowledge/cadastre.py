@@ -1,5 +1,7 @@
-"""Reconnaissance et analyse de références cadastrales.
+"""
+# Références cadastrales
 
+Reconnaissance et analyse de références cadastrales.
 """
 
 # TODO récupérer dans data/externe la liste des codes INSEE des quartiers (Marseille, voire Aix et Martigues?) pour vérif et complétion

@@ -1,4 +1,5 @@
-"""Exporte les données en fichiers CSV.
+"""
+# Exporte les données en fichiers CSV.
 
 4 tables:
 * arrêté,

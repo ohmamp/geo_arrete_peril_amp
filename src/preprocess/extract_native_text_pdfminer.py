@@ -1,4 +1,5 @@
-"""Extrait le texte natif des fichiers PDF avec pdfminer.six
+"""
+# Extrait le texte natif des fichiers PDF avec pdfminer.six
 
 Nécessite d'installer pdfminer.six.
 

@@ -1,4 +1,5 @@
-"""Extraire le texte natif des fichiers PDF.
+"""
+# Extraire le texte natif des fichiers PDF.
 
 Le texte natif est extrait avec le wrapper python de l'utilitaire "pdftotext" de poppler.
 

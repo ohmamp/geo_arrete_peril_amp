@@ -1,4 +1,5 @@
-"""Modèles de documents des arrêtés.
+"""
+# Modèles de documents des arrêtés.
 
 Motifs de reconnaissance des en-têtes, pieds-de-page et annexes.
 

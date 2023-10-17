@@ -1,4 +1,5 @@
-"""Fonctions utiles pour la gestion des fichiers.
+"""
+# Fonctions utiles pour la gestion des fichiers.
 
 """
 

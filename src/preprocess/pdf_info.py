@@ -1,4 +1,5 @@
-"""Extraire les métadonnées des fichiers PDF.
+"""
+# Extraire les métadonnées des fichiers PDF.
 
 Ce module utilise pikepdf.
 """

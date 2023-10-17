@@ -1,4 +1,5 @@
-"""Analyse le document dans son ensemble.
+"""
+# Analyse le document dans son ensemble.
 
 Extrait des empans de texte correspondant aux en-têtes, pieds-de-page,
 autorité, vus, correspondants, articles, signature...

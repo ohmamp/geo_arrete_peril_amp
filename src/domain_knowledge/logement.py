@@ -1,4 +1,7 @@
-"""Repérage et extraction de données propres aux arrêtés sur le logement.
+"""
+# Logement
+
+Repérage et extraction de données propres aux arrêtés sur le logement.
 
 Propriétaire, gestionnaire, syndic ou administrateur, adresse de l'immeuble concerné.
 """
@@ -79,6 +82,7 @@ P_GEST = re.compile(RE_GEST, re.MULTILINE | re.IGNORECASE)
 
 def get_gest(page_txt: str) -> str:
     """Détecte si une page contient un nom de gestionnaire immobilier.
+
     Parameters
     ----------
     page_txt: str
@@ -150,6 +154,7 @@ P_PROPRIO = re.compile(RE_PROPRIO, re.MULTILINE | re.IGNORECASE)
 
 def get_proprio(page_txt: str) -> bool:
     """Extrait le nom et l'adresse du propriétaire.
+
     Parameters
     ----------
     page_txt: str
@@ -304,6 +309,7 @@ P_SYNDIC = re.compile(RE_SYNDIC_LONG, re.MULTILINE | re.IGNORECASE)
 
 def get_syndic(page_txt: str) -> bool:
     """Détecte si une page contient un nom de syndic.
+
     Parameters
     ----------
     page_txt: str

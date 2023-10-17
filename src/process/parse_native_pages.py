@@ -1,4 +1,5 @@
-"""Extrait la structure des documents.
+"""
+# Extrait la structure des documents.
 
 Découpe chaque arrêté en zones:
 * préambule (?),

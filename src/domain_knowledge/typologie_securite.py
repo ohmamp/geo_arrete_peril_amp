@@ -1,5 +1,7 @@
-"""Typologie des arrêtés de mise en sécurité.
+"""
+# Typologie
 
+Typologie des arrêtés de mise en sécurité.
 """
 
 # 2023-03-14: 53 arrêtés avec un nom mais pas de classe
@@ -487,6 +489,7 @@ def get_urgence(page_txt: str) -> bool:
 
 def get_int_hab(page_txt: str) -> bool:
     """Détermine si l'arrêté porte interdiction d'habiter et d'occuper.
+
     Parameters
     ----------
     page_txt: str
@@ -509,6 +512,7 @@ def get_int_hab(page_txt: str) -> bool:
 
 def get_demo(page_txt: str) -> bool:
     """Détermine si l'arrêté porte une démolition ou déconstruction.
+
     Parameters
     ----------
     page_txt: str
@@ -531,6 +535,7 @@ def get_demo(page_txt: str) -> bool:
 
 def get_equ_com(page_txt: str) -> bool:
     """Détermine si l'arrêté porte sur la sécurité des équipements communs.
+
     Parameters
     ----------
     page_txt: str

@@ -1,4 +1,5 @@
-"""Fonctions utilitaires génériques pour le texte.
+"""
+# Fonctions utilitaires génériques pour le texte.
 
 """
 

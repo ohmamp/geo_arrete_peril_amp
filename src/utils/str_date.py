@@ -1,4 +1,5 @@
-"""Reconnaissance et mise en forme des dates.
+"""
+# Reconnaissance et mise en forme des dates.
 
 """
 

@@ -1,4 +1,5 @@
-"""Enrichit les données avec des données supplémentaires.
+"""
+# Enrichit les données avec des données supplémentaires.
 
 Ajoute le code INSEE de la commune.
 """

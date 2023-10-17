@@ -1,6 +1,6 @@
 # Utils
 
-Description TODO
+Diverses fonctions utilitaires.
 
 ::: src.utils.file_utils
 

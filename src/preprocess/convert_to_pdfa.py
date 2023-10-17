@@ -1,4 +1,5 @@
-"""Convertir un fichier PDF en PDF/A (archivable).
+"""
+# Convertir un fichier PDF en PDF/A (archivable).
 
 Utilise ocrmypdf.
 

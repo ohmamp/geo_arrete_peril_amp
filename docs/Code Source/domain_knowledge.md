@@ -1,6 +1,6 @@
 # Domain Knowledge
 
-Définit les champs regex afin d'extraire les différents type de données.
+Definit les expressions régulières et les dictionnaires utilisés pour l'extraction des données.
 
 ::: src.domain_knowledge.actes
 

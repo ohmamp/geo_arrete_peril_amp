@@ -1,6 +1,6 @@
 # Preprocess
 
-TODO description
+Fonctions de prétraitements des fichiers PDFs.
 
 ::: src.preprocess.convert_native_pdf_to_pdfa
 

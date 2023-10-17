@@ -1,4 +1,7 @@
-"""Traces de télétransmission de documents par @ctes.
+"""
+# Actes
+
+Traces de télétransmission de documents par @ctes.
 
 Tampon et page d'accusé de réception.
 """
@@ -90,6 +93,7 @@ P_ACCUSE = re.compile(RE_ACCUSE, re.MULTILINE)
 # TODO test: "2 rue Gasquet Trets 01.02.21.txt": les 3 pages
 def is_stamped_page(page_txt: str) -> bool:
     """Détecte si une page contient un tampon (encadré) de transmission @actes.
+
     Parameters
     ----------
     page_txt: str
@@ -104,7 +108,8 @@ def is_stamped_page(page_txt: str) -> bool:
 
 # TODO test: 12 rue Parmentier Gardanne - MS.txt : dernière page (4)
 def is_accusedereception_page(page_txt: str) -> bool:
-    """Détecte si une page contient un tampon (encadré) de transmission @actes.
+    """Détecte si une page contient un accusé de réception.
+
     Parameters
     ----------
     page_txt: str

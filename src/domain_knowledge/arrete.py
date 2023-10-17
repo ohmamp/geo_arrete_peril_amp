@@ -1,5 +1,7 @@
-"""Structure d'un arrêté de collectivité territoriale.
+"""
+# Arrétés de collectivité territoriale
 
+Structure d'un arrêté de collectivité territoriale.
 """
 
 # TODO garder la date de signature ou d'affichage ? (ex: Peyrolles)

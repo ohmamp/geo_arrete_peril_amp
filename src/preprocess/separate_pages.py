@@ -1,4 +1,5 @@
-"""Charge le texte des documents dans un DataFrame.
+"""
+# Charge le texte des documents dans un DataFrame.
 
 Chaque ligne correspond à une page d'un document.
 """

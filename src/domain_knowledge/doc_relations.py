@@ -1,4 +1,5 @@
-"""Relations entre documents.
+"""
+# Relations entre documents.
 
 Les référence à des documents précédents sont énoncées dans les "Vu".
 """

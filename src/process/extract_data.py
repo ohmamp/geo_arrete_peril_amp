@@ -1,4 +1,5 @@
-"""Extraire les données des documents.
+"""
+# Extraire les données des documents.
 
 Les données sont extraites des empans de texte repérés au préalable,
 et normalisées.

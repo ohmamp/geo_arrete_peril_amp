@@ -1,4 +1,5 @@
-"""Extrait le texte natif des fichiers PDF avec pdftotext
+"""
+# Extrait le texte natif des fichiers PDF avec pdftotext
 
 <https://github.com/jalan/pdftotext>
 

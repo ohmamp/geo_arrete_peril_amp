@@ -1,4 +1,6 @@
-"""Reconnaissance des noms d'agences immobilières.
+"""
+# Agence immobilière
+Reconnaissance des noms d'agences immobilières.
 
 - Certains noms de syndics incluent "syndic", les capturer explicitement avant le motif général permet d'éviter les conflits.
 - Lister les syndics connus peut accélérer et mieux focaliser la capture.

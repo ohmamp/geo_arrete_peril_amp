@@ -1,4 +1,5 @@
-"""Extraire le texte de fichiers PDF par OCR.
+"""
+# Extraire le texte de fichiers PDF par OCR.
 
 Utilise ocrmypdf.
 """

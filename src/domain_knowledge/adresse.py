@@ -1,5 +1,7 @@
-"""Reconnaissance et traitement des adresses.
+"""
+# Adresse
 
+Reconnaissance et traitement des adresses.
 """
 
 import logging

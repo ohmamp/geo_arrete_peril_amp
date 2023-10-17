@@ -1,5 +1,7 @@
-"""Références au cadre réglementaire.
+"""
+# Cadre réglementaire
 
+Références au cadre réglementaire.
 """
 
 import re
@@ -93,6 +95,7 @@ def parse_refs_reglement(txt_body: str, span_beg: int, span_end: int) -> list:
 
 def contains_cgct(page_txt: str) -> bool:
     """Détecte si une page contient une référence au Code Général des Collectivités Territoriales.
+
     Parameters
     ----------
     page_txt: str
@@ -107,6 +110,7 @@ def contains_cgct(page_txt: str) -> bool:
 
 def contains_cgct_art(page_txt: str) -> bool:
     """Détecte si une page contient une référence à des articles du Code Général des Collectivités Territoriales.
+
     Parameters
     ----------
     page_txt: str
@@ -121,6 +125,7 @@ def contains_cgct_art(page_txt: str) -> bool:
 
 def contains_cch(page_txt: str) -> bool:
     """Détecte si une page contient une référence au Code de la Construction et de l'Habitation.
+
     Parameters
     ----------
     page_txt: str
@@ -135,6 +140,7 @@ def contains_cch(page_txt: str) -> bool:
 
 def contains_cch_L111(page_txt: str) -> bool:
     """Détecte si une page contient une référence à l'article L111 du Code de la Construction et de l'Habitation.
+
     Parameters
     ----------
     page_txt: str
@@ -149,6 +155,7 @@ def contains_cch_L111(page_txt: str) -> bool:
 
 def contains_cch_L511(page_txt: str) -> bool:
     """Détecte si une page contient une référence à l'article L511 du Code de la Construction et de l'Habitation.
+
     Parameters
     ----------
     page_txt: str
@@ -163,6 +170,7 @@ def contains_cch_L511(page_txt: str) -> bool:
 
 def contains_cch_L521(page_txt: str) -> bool:
     """Détecte si une page contient une référence à l'article L521 du Code de la Construction et de l'Habitation.
+
     Parameters
     ----------
     page_txt: str
@@ -177,6 +185,7 @@ def contains_cch_L521(page_txt: str) -> bool:
 
 def contains_cch_L541(page_txt: str) -> bool:
     """Détecte si une page contient une référence à l'article L541 du Code de la Construction et de l'Habitation.
+
     Parameters
     ----------
     page_txt: str
@@ -191,6 +200,7 @@ def contains_cch_L541(page_txt: str) -> bool:
 
 def contains_cch_R511(page_txt: str) -> bool:
     """Détecte si une page contient une référence à l'article R511 du Code de la Construction et de l'Habitation.
+
     Parameters
     ----------
     page_txt: str
@@ -205,6 +215,7 @@ def contains_cch_R511(page_txt: str) -> bool:
 
 def contains_cc(page_txt: str) -> bool:
     """Détecte si une page contient une référence au Code Civil.
+
     Parameters
     ----------
     page_txt: str
@@ -219,6 +230,7 @@ def contains_cc(page_txt: str) -> bool:
 
 def contains_cc_art(page_txt: str) -> bool:
     """Détecte si une page contient une référence à des articles du Code Civil.
+
     Parameters
     ----------
     page_txt: str

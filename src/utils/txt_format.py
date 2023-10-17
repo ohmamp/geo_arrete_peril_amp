@@ -1,4 +1,5 @@
-"""Charger les fichiers de texte extraits des PDF, natifs ou non.
+"""
+# Charger les fichiers de texte extraits des PDF, natifs ou non.
 
 """
 

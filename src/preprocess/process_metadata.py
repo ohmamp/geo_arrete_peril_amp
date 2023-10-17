@@ -1,4 +1,5 @@
-"""Traiter les métadonnées des fichiers PDF.
+"""
+# Traiter les métadonnées des fichiers PDF.
 
 Les traitements permettent de:
 * détecter les fichiers doublons,

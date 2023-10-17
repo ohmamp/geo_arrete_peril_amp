@@ -1,6 +1,6 @@
 # Process
 
-Description TODO
+Fonctions d'extractions des données des fichiers prétraités.
 
 ::: src.process.aggregate_pages
 

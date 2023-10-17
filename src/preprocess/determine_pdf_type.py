@@ -1,4 +1,5 @@
-"""Déterminer le type des fichiers PDF.
+"""
+# Déterminer le type des fichiers PDF.
 
 Un fichier peut être considéré PDF natif ("texte")
 ou non ("image").

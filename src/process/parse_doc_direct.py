@@ -14,6 +14,7 @@ from pathlib import Path
 import shutil
 from typing import Dict, List
 import re
+from unidecode import unidecode
 
 import pandas as pd
 import numpy as np
@@ -88,9 +89,8 @@ OUT_BASENAMES = {
 
 def create_file_name_url(file_name: str, allowance: int = 155):
     """
-    Creates a url-compliant filename by removing all bad characters
-    and maintaining the windows path length limit (which by default is 255)
-    155 to take into account the path length
+    Creates a URL-compliant filename by removing non-alphanumeric characters,
+    accentuated letters, and maintaining the Windows path length limit.
 
     Parameters
     ----------
@@ -100,32 +100,28 @@ def create_file_name_url(file_name: str, allowance: int = 155):
         Longueur maximale du chemin complet (chemin + nom de fichier)
     """
 
-    bad_characters = re.compile(r"[\\/<>,:\"|?*^$&{}\[\]`\x00-\x1F\x7F]+")
-
     if allowance > 255:
-        allowance = 255  # on most common filesystems, including NTFS a file_name can not exceed 255 characters
-    # assign allowance for things that must be in the file name
+        allowance = 255  # on most common filesystems, including NTFS, a file_name cannot exceed 255 characters
 
-    # make sure that user input doesn't contain bad characters
-    file_name = bad_characters.sub("", file_name)
-    file_name = file_name.replace("'", "_").replace(" ", "_")
+    # Transliterate accentuated letters to their non-accent form
+    file_name = unidecode(file_name)
 
-    ret = ""
-    for string in [file_name]:
-        length = len(string)
-        if allowance - length < 0:
-            string = string[:allowance]
-            length = len(string)
-        ret += string
-        allowance -= length
+    file_name_path = Path(file_name).parent
+    file_name = Path(file_name)
+    file_suffix = file_name.suffix
 
-    if allowance < 0:
+    # remove non-alphanumeric characters
+    file_name = re.sub(r"[^a-zA-Z0-9]+", "_", file_name.with_suffix("").name)
+
+    output_path = file_name_path / Path(file_name).with_suffix(file_suffix)
+
+    if len(str(output_path)) > allowance:
         raise ValueError(
             """It is not possible to give a reasonable file name, due to length limitations.
-        Consider changing location to somewhere with a shorter path."""
+        Consider changing the location to somewhere with a shorter path."""
         )
 
-    return ret
+    return str(output_path)
 
 
 def enrich_adresse(fn_pdf: str, adresse: dict, commune_maire: str) -> Dict:
@@ -599,8 +595,23 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
     # valeur normalisée (fallback: id_syndic)
     gest = normalize_nom_cabinet(id_gest)
     #
+
     doc_data = {
-        "adresses": adresses,
+        "adresses": adresses
+        if adresses
+        else [
+            {
+                "ad_brute": None,
+                "num": None,
+                "ind": None,
+                "voie": None,
+                "compl": None,
+                "cpostal": None,
+                "ville": None,
+                "adresse": None,
+                "codeinsee": None,
+            }
+        ],
         "arretes": [arretes],  # a priori un seul par fichier
         "notifies": [
             {
@@ -613,7 +624,9 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                 "codeinsee": codeinsee,
             }
         ],  # a priori un seul par fichier (pour le moment)
-        "parcelles": [{"ref_cad": x, "codeinsee": codeinsee} for x in parcelles],
+        "parcelles": [{"ref_cad": x, "codeinsee": codeinsee} for x in parcelles]
+        if parcelles
+        else [{"ref_cad": None, "codeinsee": None}],
     }
     return doc_data
 

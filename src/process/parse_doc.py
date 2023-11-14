@@ -677,7 +677,6 @@ def parse_page_content(
                     print(
                         f"Transition inattendue: ({cur_typ}, {nxt_typ})\n{latest_span}\n{txt_body}"
                     )
-                    raise
 
     # 2. pour chaque début de paragraphe, créer un empan allant jusqu'au prochain début
     for (cur_beg, cur_typ), (nxt_beg, nxt_typ) in zip(par_begs[:-1], par_begs[1:]):

@@ -5,6 +5,8 @@
 
 import re
 import unicodedata
+from unidecode import unidecode
+from pathlib import Path
 
 
 # graphies de "n°"
@@ -137,3 +139,40 @@ def normalize_string(
         # remplacer toutes les suites d'espaces (de tous types) par une espace simple
         nor_str = re.sub(r"\s+", " ", nor_str, flags=re.MULTILINE).strip()
     return nor_str
+
+
+def create_file_name_url(file_name: str, allowance: int = 155):
+    """
+    Creates a URL-compliant filename by removing non-alphanumeric characters,
+    accentuated letters, and maintaining the Windows path length limit.
+
+    Parameters
+    ----------
+    file_name: str
+        Nom du fichier
+    allowance: int
+        Longueur maximale du chemin complet (chemin + nom de fichier)
+    """
+
+    if allowance > 255:
+        allowance = 255  # on most common filesystems, including NTFS, a file_name cannot exceed 255 characters
+
+    # Transliterate accentuated letters to their non-accent form
+    file_name = unidecode(file_name)
+
+    file_name_path = Path(file_name).parent
+    file_name = Path(file_name)
+    file_suffix = file_name.suffix
+
+    # remove non-alphanumeric characters
+    file_name = re.sub(r"[^a-zA-Z0-9]+", "_", file_name.with_suffix("").name)
+
+    output_path = file_name_path / Path(file_name).with_suffix(file_suffix)
+
+    if len(str(output_path)) > allowance:
+        raise ValueError(
+            """It is not possible to give a reasonable file name, due to length limitations.
+        Consider changing the location to somewhere with a shorter path."""
+        )
+
+    return str(output_path)

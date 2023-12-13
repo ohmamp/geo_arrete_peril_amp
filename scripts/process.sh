@@ -12,7 +12,7 @@ DATA_PRO=data/processed
 #
 # serveur  # TODO dotenv
 # dossier contenant les PDF à analyser
-DIR_IN=${DATA_RAW}/pdf
+DIR_IN=${DATA_RAW}
 # dossier de sortie:
 # - les 4 fichiers paquet_*.csv sont stockés à la racine, et écrasés à chaque exécution,
 # - les 4 fichiers paquet avec la date d'exécution sont stockés dans un sous-dossier csv/,
@@ -23,6 +23,9 @@ DIR_OUT=${DATA_PRO}/
 
 #
 RUN=`date +%FT%T`  # date au format "Y-m-dTH:M:S" (ex: "2023-06-17T12:31:44")
+
+# remove interim folder
+rm -rf ${DATA_INT}
 
 # 1. indexer les fichiers PDF dans le dossier d'entrée:
 # calculer le hash de chaque fichier et en faire une copie dans data/interim/pdf-index ,

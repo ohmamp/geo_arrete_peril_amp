@@ -13,8 +13,8 @@ import logging
 from pathlib import Path
 import shutil
 from typing import Dict, List
-import re
-from unidecode import unidecode
+from src.utils.text_utils import create_file_name_url
+
 
 import pandas as pd
 import numpy as np
@@ -79,49 +79,14 @@ FS_URL_NO_YEAR = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_anal
 # URL de dernier recours, à mettre à jour manuellement
 # TODO forcer la cohérence entre le bout d'URL "pdf_a_reclasser" et les chemins de dossiers dans "process.sh"
 FS_URL_FALLBACK = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_analyses/pdf_a_reclasser/{pdf}"
+# 13055 with date
+FS_URL_13055 = "https://sig.ampmetropole.fr/geodata/geo_arretes_peril/pdf_analyses/pdf_a_reclasser/13055/{yyyy}/{pdf}"
 
 
 # 4 fichiers CSV seront générés
 OUT_BASENAMES = {
     x: f"paquet_{x}.csv" for x in ["arrete", "adresse", "parcelle", "notifie"]
 }
-
-
-def create_file_name_url(file_name: str, allowance: int = 155):
-    """
-    Creates a URL-compliant filename by removing non-alphanumeric characters,
-    accentuated letters, and maintaining the Windows path length limit.
-
-    Parameters
-    ----------
-    file_name: str
-        Nom du fichier
-    allowance: int
-        Longueur maximale du chemin complet (chemin + nom de fichier)
-    """
-
-    if allowance > 255:
-        allowance = 255  # on most common filesystems, including NTFS, a file_name cannot exceed 255 characters
-
-    # Transliterate accentuated letters to their non-accent form
-    file_name = unidecode(file_name)
-
-    file_name_path = Path(file_name).parent
-    file_name = Path(file_name)
-    file_suffix = file_name.suffix
-
-    # remove non-alphanumeric characters
-    file_name = re.sub(r"[^a-zA-Z0-9]+", "_", file_name.with_suffix("").name)
-
-    output_path = file_name_path / Path(file_name).with_suffix(file_suffix)
-
-    if len(str(output_path)) > allowance:
-        raise ValueError(
-            """It is not possible to give a reasonable file name, due to length limitations.
-        Consider changing the location to somewhere with a shorter path."""
-        )
-
-    return str(output_path)
 
 
 def enrich_adresse(fn_pdf: str, adresse: dict, commune_maire: str) -> Dict:
@@ -552,9 +517,14 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
             arr_year = arretes["date"].rsplit("/", 1)[1]
             arr_comm = arretes["codeinsee"]
 
-            arretes["url"] = FS_URL.format(
-                commune=arretes["codeinsee"], yyyy=arr_year, pdf=fn_pdf_out
-            )
+            if arretes["codeinsee"] != "13055":
+                arretes["url"] = FS_URL.format(
+                    commune=arretes["codeinsee"], yyyy=arr_year, pdf=fn_pdf_out
+                )
+            else:
+                # cas particulier de marseille 13055 => besoin de reclasser manuellement même si on a l'année
+                arretes["url"] = FS_URL_13055.format(yyyy=arr_year, pdf=fn_pdf_out)
+                logging.warning(f"URL temporaraire (13055): {arretes['url']}")
         else:
             arretes["url"] = FS_URL_NO_YEAR.format(
                 commune=arretes["codeinsee"], pdf=fn_pdf_out
@@ -733,18 +703,30 @@ def process_files(
     # - filtrer les fichiers déjà traités: ne garder que les PDF qui ne
     # sont pas déjà présents dans un "paquet_arrete_*.csv"
     pdfs_in_old = set(df_in["pdf"].tolist()).intersection(pdfs_old)
+
     # vérifier que le fichier PDF existe bien dans les dossiers destination,
     # pdf_a_reclasser ou un dossier de commune,
     # sinon il faut le traiter comme s'il était complètement nouveau
     already_proc = []
     # sous-dossiers par code commune (INSEE), sur 5 chiffres
-    out_dir_pdf_communes = out_dir / "[0-9][0-9][0-9][0-9][0-9]"
+    out_dir_analyses = out_dir / "pdf_analyses"
+    out_dir_pdf_communes = [
+        d for d in out_dir_analyses.glob("[0-9][0-9][0-9][0-9][0-9]") if d.is_dir()
+    ]
+
     for fn in pdfs_in_old:
-        areclass = sorted(out_dir_pdf_areclass.rglob(fn))
-        bienclas = sorted(out_dir_pdf_communes.rglob(fn))
+        fn_url = create_file_name_url(fn)
+        areclass = sorted(out_dir_pdf_areclass.rglob(fn_url))
+        bienclas = []
+        for directory in out_dir_pdf_communes:
+            bienclas += sorted(directory.rglob(fn_url))
+
         if areclass or bienclas:
             logging.warning(
                 f"Fichier à ignorer car déjà traité: {areclass[0] if areclass else bienclas[0]}"
+            )
+            print(
+                f"\n/!\ Fichier à ignorer car déjà traité: {areclass[0] if areclass else bienclas[0]}"
             )
             already_proc.append(fn)
     already_proc = set(already_proc)
@@ -862,7 +844,12 @@ def process_files(
                 # mais ne fonctionne pas sur des dates mal reconnues (OCR) ex: "00/02/2022"
                 # alors qu'on peut extraire l'année
                 year = df_row.date.rsplit("/", 1)[1]
-                dest_dir = out_dir / "pdf_analyses" / commune / year
+
+                if commune != "13055":
+                    dest_dir = out_dir / "pdf_analyses" / commune / year
+                else:
+                    # cas particulier de marseille 13055 => besoin de reclasser manuellement même si on a l'année
+                    dest_dir = out_dir / "pdf_analyses/pdf_a_reclasser/13055" / year
             else:
                 dest_dir = out_dir / "pdf_analyses/pdf_a_reclasser" / commune
         else:

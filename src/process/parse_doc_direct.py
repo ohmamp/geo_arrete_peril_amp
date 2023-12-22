@@ -566,6 +566,7 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
     gest = normalize_nom_cabinet(id_gest)
     #
 
+    code_insee = arretes["codeinsee"] if "codeinsee" in arretes else None
     doc_data = {
         "adresses": adresses
         if adresses
@@ -579,7 +580,7 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                 "cpostal": None,
                 "ville": None,
                 "adresse": None,
-                "codeinsee": None,
+                "codeinsee": code_insee,
             }
         ],
         "arretes": [arretes],  # a priori un seul par fichier
@@ -596,7 +597,7 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
         ],  # a priori un seul par fichier (pour le moment)
         "parcelles": [{"ref_cad": x, "codeinsee": codeinsee} for x in parcelles]
         if parcelles
-        else [{"ref_cad": None, "codeinsee": None}],
+        else [{"ref_cad": None, "codeinsee": code_insee}],
     }
     return doc_data
 
@@ -742,7 +743,7 @@ def process_files(
         )
         # déplacer les fichiers déjà traités dans doublons/
         # (plus prudent que de les supprimer d'emblée)
-        out_dups = out_dir / "doublons"
+        out_dups = out_dir_analyses / "doublons"
         out_dups.mkdir(exist_ok=True)
         #
         df_dups = df_in[s_dups]
@@ -944,6 +945,13 @@ if __name__ == "__main__":
         out_dir,
         date_exec=date_exec,
     )
+
+    # update arrete pdf column with create_name to match the url
+    df_arrete = pd.read_csv(out_files["arrete"], dtype=DTYPE_ARRETE, sep=";")
+    df_arrete["pdf"] = df_arrete["pdf"].apply(lambda x: create_file_name_url(x))
+    df_arrete.to_csv(out_files["arrete"], index=False, sep=";")
+    df_arrete.to_csv(out_dir / "paquet_arrete.csv", index=False, sep=";")
+
     # générer le rapport d'erreurs
     run = out_files["adresse"].stem.split("_", 2)[2]
     dfs = {

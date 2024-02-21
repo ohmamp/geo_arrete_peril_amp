@@ -44,18 +44,26 @@
                 <li class="toctree-l1 current"><a class="reference internal current" href=".">Index</a>
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#installation-commune-ubuntu-natif-ou-windows-subsystem-for-linux">Installation commune: Ubuntu (natif ou Windows Subsystem for Linux)</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#resolution-de-problemes">Résolution de problèmes</a>
+    <li class="toctree-l2"><a class="reference internal" href="#utilisation">Utilisation</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#lancement-du-script">Lancement du script</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#planification-de-taches">Planification de tâches</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#logs">Logs</a>
     </li>
         </ul>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#utilisation">Utilisation</a>
+    <li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#project-layout">Project layout</a>
     </li>
     </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="install/">Guide d'installation</a>
                 </li>
               </ul>
               <p class="caption"><span class="caption-text">Code Source</span></p>
@@ -107,65 +115,36 @@
                 <h1 id="index">Index</h1>
 <p>Analyse et géolocalisation des arrêtés de périls sur le territoire de la métropole Aix-Marseille Provence.</p>
 <h2 id="installation">Installation</h2>
-<h3 id="installation-commune-ubuntu-natif-ou-windows-subsystem-for-linux">Installation commune: Ubuntu (natif ou Windows Subsystem for Linux)</h3>
-<p>Dans le terminal WSL (ou l'invite de commande Ubuntu):</p>
-<ol>
-<li>
-<p>Installer le modèle de Tesseract pour le français</p>
-<ul>
-<li><code>sudo apt update</code></li>
-<li><code>sudo apt install tesseract-ocr-fra</code></li>
-</ul>
-</li>
-<li>
-<p><a href="https://github.com/conda-forge/miniforge#mambaforge">Installer Mambaforge</a>:</p>
-<ul>
-<li><code>curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"</code></li>
-<li><code>bash Mambaforge-$(uname)-$(uname -m).sh</code></li>
-</ul>
-</li>
-<li>
-<p>Créer un environnement virtuel conda à partir du fichier de spécifications <code>environment-prod.yml</code></p>
-<p><code>sh
-mamba env create --file environment-prod.yml</code></p>
-</li>
-<li>
-<p>Installer ocrmypdf (maintenant que ses dépendances ont été installées à la
-création de l'environnement).</p>
-</li>
-</ol>
-<pre><code class="language-sh">conda activate geo-arretes
-# installer ocrmypdf qui ne pouvait pas être installé en même temps que ses dépendances...
-mamba install ocrmypdf
-# depuis le dossier où se trouve le code source du projet
-pip install -e .
-# désactiver et réactiver l'environnement virtuel car tesseract, installé par ocrmypdf,
-# a déposé ses fichiers de langage dans un sous-dossier
-# `$HOME/mambaforge/envs/geo-arretes/share/tessdata`
-# (sinon ils ne seront visibles...)
-conda deactivate
-</code></pre>
-<h3 id="resolution-de-problemes">Résolution de problèmes</h3>
-<p>A la création de l'environnement conda, si l'installation d'un paquet échoue avec une erreur étrange, eg. le paquet <code>vs2015_runtime</code>, suivre la procédure dans <a href="https://stackoverflow.com/a/65728405">https://stackoverflow.com/a/65728405</a></p>
-<p>Sur des serveurs Windows 2019 ou plus anciens, il peut être nécessaire d'installer le WSL via une procédure manuelle décrite <a href="https://learn.microsoft.com/en-us/windows/wsl/install-manual">ici</a>.</p>
-<p>En résumé il faut :</p>
-<ul>
-<li>Activer la fonctionnalité Windows "Windows Subsystem for Linux" via la commande <code>Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux</code>. Un redémarrage du système est nécessaire.</li>
-<li>Télécharger la distribution <a href="https://learn.microsoft.com/en-us/windows/wsl/install-manual#downloading-distributions">Ubuntu 20.04</a></li>
-<li>Renommer le fichier <code>.AppxBundle</code> téléchargé en <code>.zip</code> : <code>Rename-Item .\CanonicalGroupLimited.UbunutuonWindows_2004.2021.825.0.AppxBundle .\ubuntu.zip</code></li>
-<li>Extraire le fichier zip dans un dossier <code>ubuntu</code> : <code>Expand-Archive .\ubuntu.zip .\ubuntu</code></li>
-<li>Se déplacer dans le dossier <code>ubuntu</code> : <code>cd .\ubuntu</code></li>
-<li>Lancer l'archive correspondant à votre architecture (par exemple, x64) : <code>Expand-Archive .\Ubuntu_2004.2021.825.0_x64.zip .\ubuntu</code></li>
-<li>Ajouter le dossier <code>Ubuntu</code> à la variable d'environnement <code>PATH</code> : <code>$userenv = [System.Environment]::GetEnvironmentVariable("Path", "User")</code> puis <code>[System.Environment]::SetEnvironmentVariable("PATH", $userenv + ";D:\Logiciels\Ubuntu\Ubuntu", "User")</code></li>
-<li>Redémarrer le terminal PowerShell, l'ouvrir en tant qu'administrateur</li>
-<li>Lancer le fichier <code>ubuntu.exe</code> contenu dans le dossier <code>Ubuntu</code> : <code>.\ubuntu\ubuntu\ubuntu.exe</code></li>
-</ul>
+<p>Veuillez suivre les instructions du <a href="install">guide d'installation</a>.</p>
 <h2 id="utilisation">Utilisation</h2>
+<h3 id="lancement-du-script">Lancement du script</h3>
 <p>Dans le terminal WSL (ou l'invite de commande Ubuntu):</p>
 <p>Les dossier d'entrées et de sorties sont configurables dans le fichier <code>scripts/process.sh</code>.</p>
 <pre><code class="language-sh">conda activate geo-arretes
 scripts/process.sh
 </code></pre>
+<p>Plusieurs scripts sont définis pour faciliter certaines actions : <a href="Scripts/scripts">scripts</a>.</p>
+<h3 id="planification-de-taches">Planification de tâches</h3>
+<p>Le script <a href="https://github.com/ohmamp/geo_arrete_peril_amp/blob/main/runner.bat">runner.bat</a> est un exemple de script permettant de lancer le script <code>process.sh</code> (présent dans le WSL) depuis le Task Scheduler de Windows.</p>
+<h3 id="logs">Logs</h3>
+<p>Deux types de logs sont disponibles :</p>
+<ul>
+<li><code>batch-logs</code> : dans le dossier <code>batch-logs</code> sont stockés un court état des lieux de chaque lancé de script.</li>
+<li><code>logs</code> : dans le dossier <code>logs</code> sont stockés les logs détaillés de chaque traitement dans le pipeline du script <code>process.sh</code>.</li>
+</ul>
+<h2 id="documentation">Documentation</h2>
+<p>La documentation générée à partir du code source est disponible à l'adresse suivante : <a href="https://ohmamp.github.io/geo_arrete_peril_amp/">https://geo-arretes.github.io/geo-arretes/</a>.</p>
+<p>Elle utilise <a href="https://www.mkdocs.org/">mkdocs</a> et <a href="https://mkdocstrings.github.io/">mkdocstrings</a> pour automatiquement générer la documentation à partir des docstrings des fonctions et des classes du code source.</p>
+<pre><code class="language-sh">pip install mkdocs==1.5.3 mkdocstrings==0.23.0 mkdocs-material==9.5.10
+</code></pre>
+<p>Pour prévisualiser la documentation localement, il suffit d'utiliser la commande suivante :</p>
+<pre><code class="language-sh">mkdocs serve
+</code></pre>
+<p>La documentation est alors accessible par défaut à l'adresse suivante : <a href="http://127.0.0.1:8000/">http://127.0.0.1:8000/</a></p>
+<p>Pour déployer la documentation sur une branche, il suffit d'utiliser la commande suivante :</p>
+<pre><code class="language-sh">mkdocs gh-deploy
+</code></pre>
+<p>Cela déploiera la documentation sur la branche <code>gh-pages</code> du dépôt, qui est automatiquement servie par GitHub Pages.</p>
 <h2 id="project-layout">Project layout</h2>
 <pre><code class="language-sh">data/                   # Datasets
     raw/                    # The original, immutable data dump.
@@ -176,9 +155,9 @@ docs/                   # Documentation
     index.md                # The documentation homepage.
     ...                     # Other markdown pages, images and other files .
     ...                     # that follow the same structure as the project.
-notebooks/              # Jupyter notebooks
-    explore_actes.ipynb     # TODO
-    test_pds_image.ipynb    # TODO
+notebooks/              # Jupyter notebooks to explore the data and the code.
+    explore_actes.ipynb
+    test_pds_image.ipynb
 src/                    # Source code of this project.
     domain_knowledge/       # Regex pattern and dictionaries used for data extraction.
     preprocess/             # Functions for preprocessing PDF files.
@@ -196,7 +175,7 @@ setup.py                # Make this project pip installable with `pip install -e
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="Code%20Source/domain_knowledge/" class="btn btn-neutral float-right" title="Domain Knowledge">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="install/" class="btn btn-neutral float-right" title="Guide d'installation">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -220,7 +199,7 @@ setup.py                # Make this project pip installable with `pip install -e
     
     
     
-      <span><a href="Code%20Source/domain_knowledge/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="install/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>
@@ -240,5 +219,5 @@ setup.py                # Make this project pip installable with `pip install -e
 
 <!--
 MkDocs version : 1.5.3
-Build Date UTC : 2023-10-17 13:51:06.755593+00:00
+Build Date UTC : 2024-02-21 10:53:11.982000+00:00
 -->

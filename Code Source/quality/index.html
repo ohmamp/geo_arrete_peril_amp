@@ -44,6 +44,10 @@
                 <li class="toctree-l1"><a class="reference internal" href="../..">Index</a>
                 </li>
               </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../install/">Guide d'installation</a>
+                </li>
+              </ul>
               <p class="caption"><span class="caption-text">Code Source</span></p>
               <ul class="current">
                   <li class="toctree-l1"><a class="reference internal" href="../domain_knowledge/">Domain Knowledge</a>
@@ -54,133 +58,41 @@
                   </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="./">Quality</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses">validate_parses</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses--valide-les-zones-reperees">Valide les zones repérées.</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.drop_no_errors_arr">drop_no_errors_arr()</a>
+    <li class="toctree-l2"><a class="reference internal" href="#valider-les-zones-reperees">Valider les zones repérées</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.drop_no_errors_arr--parameters">Parameters</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses">validate_parses</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.drop_no_errors_arr--returns">Returns</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.drop_no_errors_arr">drop_no_errors_arr()</a>
     </li>
-        </ul>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_classe_manquante">error_classe_manquante()</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.error_classe_manquante">error_classe_manquante()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_classe_manquante--parameters">Parameters</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_codeinsee_13055">error_codeinsee_13055()</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_classe_manquante--returns">Returns</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_codeinsee_manquant">error_codeinsee_manquant()</a>
     </li>
-        </ul>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_cpostal_manquant">error_cpostal_manquant()</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.error_codeinsee_13055">error_codeinsee_13055()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_codeinsee_13055--parameters">Parameters</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_date_manquante">error_date_manquante()</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_codeinsee_13055--returns">Returns</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_num_voie_manquant">error_num_voie_manquant()</a>
     </li>
-        </ul>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_urgence_manquante">error_urgence_manquante()</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.error_codeinsee_manquant">error_codeinsee_manquant()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_codeinsee_manquant--parameters">Parameters</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_ville_manquante">error_ville_manquante()</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_codeinsee_manquant--returns">Returns</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_voie_manquante">error_voie_manquante()</a>
     </li>
-        </ul>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.examine_doc_content">examine_doc_content()</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.error_cpostal_manquant">error_cpostal_manquant()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_cpostal_manquant--parameters">Parameters</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.expect_footer_end_len">expect_footer_end_len()</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_cpostal_manquant--returns">Returns</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.expect_header_beg_zero">expect_header_beg_zero()</a>
     </li>
-        </ul>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.generate_html_report">generate_html_report()</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.error_date_manquante">error_date_manquante()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_date_manquante--parameters">Parameters</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.warn_adresse_empty">warn_adresse_empty()</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_date_manquante--returns">Returns</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.error_num_voie_manquant">error_num_voie_manquant()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_num_voie_manquant--parameters">Parameters</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_num_voie_manquant--returns">Returns</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.error_urgence_manquante">error_urgence_manquante()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_urgence_manquante--parameters">Parameters</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_urgence_manquante--returns">Returns</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.error_ville_manquante">error_ville_manquante()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_ville_manquante--parameters">Parameters</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_ville_manquante--returns">Returns</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.error_voie_manquante">error_voie_manquante()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_voie_manquante--parameters">Parameters</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.error_voie_manquante--returns">Returns</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.examine_doc_content">examine_doc_content()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.examine_doc_content--parameters">Parameters</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.expect_footer_end_len">expect_footer_end_len()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.expect_footer_end_len--parameters">Parameters</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.expect_footer_end_len--returns">Returns</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.expect_header_beg_zero">expect_header_beg_zero()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.expect_header_beg_zero--parameters">Parameters</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.expect_header_beg_zero--returns">Returns</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.generate_html_report">generate_html_report()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.generate_html_report--parameters">Parameters</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.generate_html_report--returns">Returns</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.warn_adresse_empty">warn_adresse_empty()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.warn_adresse_empty--parameters">Parameters</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.warn_adresse_empty--returns">Returns</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#src.quality.validate_parses.warn_par_ref_cad_empty">warn_par_ref_cad_empty()</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.warn_par_ref_cad_empty--parameters">Parameters</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.warn_par_ref_cad_empty--returns">Returns</a>
+    <li class="toctree-l3"><a class="reference internal" href="#src.quality.validate_parses.warn_par_ref_cad_empty">warn_par_ref_cad_empty()</a>
     </li>
         </ul>
     </li>
@@ -225,6 +137,7 @@
               
                 <h1 id="quality">Quality</h1>
 <p>Fonctions de validation des données extraites.</p>
+<h2 id="valider-les-zones-reperees">Valider les zones repérées</h2>
 
 
 <div class="doc doc-object doc-module">
@@ -234,8 +147,7 @@
 <a id="src.quality.validate_parses"></a>
   <div class="doc doc-contents first">
   
-      <h2 id="src.quality.validate_parses--valide-les-zones-reperees">Valide les zones repérées.</h2>
-<ul>
+      <ul>
 <li>Tous les en-têtes commencent à 0 ;</li>
 <li>Tous les pieds-de-pages terminent à la longueur du document ;</li>
 <li>En-tête et pied-de-page sont disjoints ;</li>
@@ -259,45 +171,65 @@
 
 
 
-<h2 id="src.quality.validate_parses.drop_no_errors_arr" class="doc doc-heading">
-          <code class="highlight language-python">drop_no_errors_arr(df_arr)</code>
+<h3 id="src.quality.validate_parses.drop_no_errors_arr" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">drop_no_errors_arr</span><span class="p">(</span><span class="n">df_arr</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
   
       <p>Supprime les arrêtés sans erreur.</p>
-<h4 id="src.quality.validate_parses.drop_no_errors_arr--parameters">Parameters</h4>
-<p>df_arr: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.drop_no_errors_arr--returns">Returns</h4>
-<p>df_arr: pd.DataFrame
-    DataFrame contenant les arrêtés sans erreurs.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def drop_no_errors_arr(df_arr: pd.DataFrame) -&gt; pd.DataFrame:
-    """Supprime les arrêtés sans erreur.
 
-    Parameters
-    ----------
-    df_arr: pd.DataFrame
-        DataFrame contenant les arrêtés.
 
-    Returns
-    -------
-    df_arr: pd.DataFrame
-        DataFrame contenant les arrêtés sans erreurs.
-    """
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df_arr</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    df_arr = df_arr.copy()
-    # if none of the keys is equal to 1, then the row has no error
-    df_arr["has_error"] = df_arr[ERROR_KEYS].sum(axis=1) &gt; 0
-    # delete all the row without error
-    df_arr = df_arr[df_arr["has_error"]]
-    return df_arr</code></pre>
-          </details>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df_arr</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant les arrêtés sans erreurs.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -308,10 +240,10 @@
 
 
 
-<h2 id="src.quality.validate_parses.error_classe_manquante" class="doc doc-heading">
-          <code class="highlight language-python">error_classe_manquante(df)</code>
+<h3 id="src.quality.validate_parses.error_classe_manquante" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">error_classe_manquante</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
@@ -321,38 +253,56 @@
 numérisé, ou une mise en page du document sur plusieurs colonnes qui
 n'est pas explicitement gérée par les scripts actuels, et dont le
 résultat ne permet pas la reconnaissance des motifs recherchés.</p>
-<h4 id="src.quality.validate_parses.error_classe_manquante--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.error_classe_manquante--returns">Returns</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def error_classe_manquante(df: pd.DataFrame) -&gt; pd.DataFrame:
-    """Signale les arrêtés dont la classe n'a pu être déterminée.
 
-    Les causes les plus fréquentes sont une erreur d'OCR sur un document mal
-    numérisé, ou une mise en page du document sur plusieurs colonnes qui
-    n'est pas explicitement gérée par les scripts actuels, et dont le
-    résultat ne permet pas la reconnaissance des motifs recherchés.
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    Returns
-    -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
-    """
-    df["aucune_classe"] = df.apply(
-        lambda row: 1 if pd.isnull(row.classe) else 0, axis=1
-    )
-    return df</code></pre>
-          </details>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -363,10 +313,10 @@ résultat ne permet pas la reconnaissance des motifs recherchés.</p>
 
 
 
-<h2 id="src.quality.validate_parses.error_codeinsee_13055" class="doc doc-heading">
-          <code class="highlight language-python">error_codeinsee_13055(df)</code>
+<h3 id="src.quality.validate_parses.error_codeinsee_13055" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">error_codeinsee_13055</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
@@ -375,41 +325,56 @@ résultat ne permet pas la reconnaissance des motifs recherchés.</p>
 <p>13055 est le code pour tout Marseille, alors que l'on devrait
 avoir le code propre à l'arrondissement (13201 à 13216).</p>
 <p>Ignore les valeurs manquantes.</p>
-<h4 id="src.quality.validate_parses.error_codeinsee_13055--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.error_codeinsee_13055--returns">Returns</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def error_codeinsee_13055(df: pd.DataFrame) -&gt; pd.DataFrame:
-    """Signale les arrêtés dont le code INSEE est 13055.
 
-    13055 est le code pour tout Marseille, alors que l'on devrait
-    avoir le code propre à l'arrondissement (13201 à 13216).
 
-    Ignore les valeurs manquantes.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
 
-    Returns
-    -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
-    """
-    df["codeinsee_13055"] = df.apply(
-        lambda row: 1
-        if not pd.isnull(row.codeinsee) and row.codeinsee == "13055"
-        else 0,
-        axis=1,
-    )
-    return df</code></pre>
-          </details>
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -420,10 +385,10 @@ avoir le code propre à l'arrondissement (13201 à 13216).</p>
 
 
 
-<h2 id="src.quality.validate_parses.error_codeinsee_manquant" class="doc doc-heading">
-          <code class="highlight language-python">error_codeinsee_manquant(df)</code>
+<h3 id="src.quality.validate_parses.error_codeinsee_manquant" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">error_codeinsee_manquant</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
@@ -432,37 +397,56 @@ avoir le code propre à l'arrondissement (13201 à 13216).</p>
 <p>Le code INSEE est déterminé sur base du nom de la commune, croisé avec
 la table des codes communes dans data/external/ (actuellement restreint
 au périmètre de la métropole Aix-Marseille Provence).</p>
-<h4 id="src.quality.validate_parses.error_codeinsee_manquant--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.error_codeinsee_manquant--returns">Returns</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def error_codeinsee_manquant(df: pd.DataFrame) -&gt; pd.DataFrame:
-    """Signale les arrêtés dont le code INSEE est manquant.
 
-    Le code INSEE est déterminé sur base du nom de la commune, croisé avec
-    la table des codes communes dans data/external/ (actuellement restreint
-    au périmètre de la métropole Aix-Marseille Provence).
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    Returns
-    -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
-    """
-    df["aucun_codeinsee"] = df.apply(
-        lambda row: 1 if pd.isnull(row.codeinsee) else 0, axis=1
-    )
-    return df</code></pre>
-          </details>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -473,10 +457,10 @@ au périmètre de la métropole Aix-Marseille Provence).</p>
 
 
 
-<h2 id="src.quality.validate_parses.error_cpostal_manquant" class="doc doc-heading">
-          <code class="highlight language-python">error_cpostal_manquant(df)</code>
+<h3 id="src.quality.validate_parses.error_cpostal_manquant" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">error_cpostal_manquant</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
@@ -489,42 +473,56 @@ sinon recherchée puis renseignée manuellement.
 D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 échouent à repérer ou à analyser correctement.</p>
 <p>Ignore les valeurs manquantes.</p>
-<h4 id="src.quality.validate_parses.error_cpostal_manquant--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.error_cpostal_manquant--returns">Returns</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def error_cpostal_manquant(df: pd.DataFrame) -&gt; pd.DataFrame:
-    """Signale les adresses d'arrêtés sans ville.
 
-    Certains arrêtés ne contiennent pas d'adresse (ex: certaines mainlevées
-    ou abrogations), ou pas d'adresse incluant la ville, auquel cas la
-    ville est déterminée selon d'autres indices (ex: lieu de signature),
-    sinon recherchée puis renseignée manuellement.
-    D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
-    échouent à repérer ou à analyser correctement.
 
-    Ignore les valeurs manquantes.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
 
-    Returns
-    -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
-    """
-    df["aucun_cpostal"] = df.apply(
-        lambda row: 1 if pd.isnull(row.cpostal) else 0, axis=1
-    )
-    return df</code></pre>
-          </details>
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -535,10 +533,10 @@ D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 
 
 
-<h2 id="src.quality.validate_parses.error_date_manquante" class="doc doc-heading">
-          <code class="highlight language-python">error_date_manquante(df)</code>
+<h3 id="src.quality.validate_parses.error_date_manquante" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">error_date_manquante</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
@@ -547,35 +545,56 @@ D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 <p>La cause la plus fréquente est une erreur d'OCR sur une date manuscrite
 ou tamponnée, ou un document mal numérisé ; il est possible que le script
 échoue à extraire la date dans certaines tournures de rédaction.</p>
-<h4 id="src.quality.validate_parses.error_date_manquante--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.error_date_manquante--returns">Returns</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def error_date_manquante(df: pd.DataFrame) -&gt; pd.DataFrame:
-    """Signale les arrêtés dont la date n'a pu être déterminée.
 
-    La cause la plus fréquente est une erreur d'OCR sur une date manuscrite
-    ou tamponnée, ou un document mal numérisé ; il est possible que le script
-    échoue à extraire la date dans certaines tournures de rédaction.
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    Returns
-    -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
-    """
-    df["aucune_date"] = df.apply(lambda row: 1 if pd.isnull(row.date) else 0, axis=1)
-    return df</code></pre>
-          </details>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -586,10 +605,10 @@ ou tamponnée, ou un document mal numérisé ; il est possible que le script
 
 
 
-<h2 id="src.quality.validate_parses.error_num_voie_manquant" class="doc doc-heading">
-          <code class="highlight language-python">error_num_voie_manquant(df)</code>
+<h3 id="src.quality.validate_parses.error_num_voie_manquant" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">error_num_voie_manquant</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
@@ -601,39 +620,56 @@ renseignée manuellement.
 D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 échouent à repérer ou à analyser correctement ou totalement.</p>
 <p>Ignore les valeurs manquantes.</p>
-<h4 id="src.quality.validate_parses.error_num_voie_manquant--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.error_num_voie_manquant--returns">Returns</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def error_num_voie_manquant(df: pd.DataFrame) -&gt; pd.DataFrame:
-    """Signale les adresses d'arrêtés sans numéro de voie.
 
-    Certains arrêtés ne contiennent pas d'adresse (ex: certaines mainlevées
-    ou abrogations), auquel cas cette information doit être recherchée puis
-    renseignée manuellement.
-    D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
-    échouent à repérer ou à analyser correctement ou totalement.
 
-    Ignore les valeurs manquantes.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
 
-    Returns
-    -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
-    """
-    df["aucun_num_voie"] = df.apply(lambda row: 1 if pd.isnull(row.num) else 0, axis=1)
-    return df</code></pre>
-          </details>
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -644,10 +680,10 @@ D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 
 
 
-<h2 id="src.quality.validate_parses.error_urgence_manquante" class="doc doc-heading">
-          <code class="highlight language-python">error_urgence_manquante(df)</code>
+<h3 id="src.quality.validate_parses.error_urgence_manquante" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">error_urgence_manquante</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
@@ -655,36 +691,56 @@ D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
       <p>Signale les arrêtés dont l'urgence n'a pu être déterminée.</p>
 <p>La cause la plus fréquente est une classe d'arrêté qui ne donne pas
 explicitement cette information.</p>
-<h4 id="src.quality.validate_parses.error_urgence_manquante--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.error_urgence_manquante--returns">Returns</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def error_urgence_manquante(df: pd.DataFrame) -&gt; pd.DataFrame:
-    """Signale les arrêtés dont l'urgence n'a pu être déterminée.
 
-    La cause la plus fréquente est une classe d'arrêté qui ne donne pas
-    explicitement cette information.
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    Returns
-    -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
-    """
-    df["manque_urgence"] = df.apply(
-        lambda row: 1 if pd.isnull(row.urgence) else 0, axis=1
-    )
-    return df</code></pre>
-          </details>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -695,10 +751,10 @@ explicitement cette information.</p>
 
 
 
-<h2 id="src.quality.validate_parses.error_ville_manquante" class="doc doc-heading">
-          <code class="highlight language-python">error_ville_manquante(df)</code>
+<h3 id="src.quality.validate_parses.error_ville_manquante" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">error_ville_manquante</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
@@ -711,40 +767,56 @@ sinon recherchée puis renseignée manuellement.
 D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 échouent à repérer ou à analyser correctement.</p>
 <p>Ignore les valeurs manquantes.</p>
-<h4 id="src.quality.validate_parses.error_ville_manquante--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.error_ville_manquante--returns">Returns</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def error_ville_manquante(df: pd.DataFrame) -&gt; pd.DataFrame:
-    """Signale les adresses d'arrêtés sans ville.
 
-    Certains arrêtés ne contiennent pas d'adresse (ex: certaines mainlevées
-    ou abrogations), ou pas d'adresse incluant la ville, auquel cas la
-    ville est déterminée selon d'autres indices (ex: lieu de signature),
-    sinon recherchée puis renseignée manuellement.
-    D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
-    échouent à repérer ou à analyser correctement.
 
-    Ignore les valeurs manquantes.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
 
-    Returns
-    -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
-    """
-    df["aucune_ville"] = df.apply(lambda row: 1 if pd.isnull(row.ville) else 0, axis=1)
-    return df</code></pre>
-          </details>
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -755,10 +827,10 @@ D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 
 
 
-<h2 id="src.quality.validate_parses.error_voie_manquante" class="doc doc-heading">
-          <code class="highlight language-python">error_voie_manquante(df)</code>
+<h3 id="src.quality.validate_parses.error_voie_manquante" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">error_voie_manquante</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
@@ -770,39 +842,56 @@ renseignée manuellement.
 D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 échouent à repérer ou à analyser correctement.</p>
 <p>Ignore les valeurs manquantes.</p>
-<h4 id="src.quality.validate_parses.error_voie_manquante--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.error_voie_manquante--returns">Returns</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def error_voie_manquante(df: pd.DataFrame) -&gt; pd.DataFrame:
-    """Signale les adresses d'arrêtés sans voie.
 
-    Certains arrêtés ne contiennent pas d'adresse (ex: certaines mainlevées
-    ou abrogations), auquel cas cette information doit être recherchée puis
-    renseignée manuellement.
-    D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
-    échouent à repérer ou à analyser correctement.
 
-    Ignore les valeurs manquantes.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
 
-    Returns
-    -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
-    """
-    df["aucune_voie"] = df.apply(lambda row: 1 if pd.isnull(row.voie) else 0, axis=1)
-    return df</code></pre>
-          </details>
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -813,63 +902,41 @@ D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 
 
 
-<h2 id="src.quality.validate_parses.examine_doc_content" class="doc doc-heading">
-          <code class="highlight language-python">examine_doc_content(fn_pdf, doc_content)</code>
+<h3 id="src.quality.validate_parses.examine_doc_content" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">examine_doc_content</span><span class="p">(</span><span class="n">fn_pdf</span><span class="p">,</span> <span class="n">doc_content</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
   
       <p>Vérifie des hypothèses de bonne formation sur le contenu extrait du document.</p>
-<h4 id="src.quality.validate_parses.examine_doc_content--parameters">Parameters</h4>
-<p>doc_content: list[dict]
-    Empans de contenu extraits du document</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def examine_doc_content(fn_pdf: str, doc_content: "list[dict]"):
-    """Vérifie des hypothèses de bonne formation sur le contenu extrait du document.
 
-    Parameters
-    ----------
-    doc_content: list[dict]
-        Empans de contenu extraits du document
-    """
-    # filtrer les pages absentes
-    pg_conts = [x for x in doc_content if (pd.notna(x) and x["content"] is not None)]
-    # paragraphes
-    pars = [
-        x
-        for pg_content in pg_conts
-        for x in pg_content["content"]
-        if (pd.notna(x) and x["span_typ"].startswith("par_"))
-    ]
-    par_typs = [x["span_typ"] for x in pars]
-    # "considérant" obligatoire sauf pour certains arrêtés?
-    # TODO déterminer si les assertions ne s'appliquent qu'à certaines classes d'arrêtés
-    if par_typs:
-        # chaque arrêté contient au moins un "vu"
-        if "par_vu" not in par_typs:
-            logging.warning(
-                f"{fn_pdf}: pas de 'vu' trouvé (vérifier la nature du document ?)"
-            )
 
-        # chaque arrêté contient au moins un "considérant"
-        # * sauf dans les mainlevées et abrogations où dans la pratique ce n'est pas le cas
-        if "par_considerant" not in par_typs:
-            # FIXME détecter la classe =&gt; ne pas appliquer pour abrogations et mainlevées
-            logging.warning(
-                f"{fn_pdf}: pas de 'considérant' trouvé (vérifier la nature du document ?)"
-            )
-        # chaque arrêté contient exactement 1 "Arrête"
-        try:
-            assert len([x for x in par_typs if x == "par_arrete"]) == 1
-        except AssertionError:
-            logging.warning(
-                f"{fn_pdf}: pas de 'Arrête' trouvé (vérifier la qualité de l'OCR ?)"
-            )</code></pre>
-          </details>
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>doc_content</code></b>
+                  (<code>list[dict]</code>)
+              –
+              <div class="doc-md-description">
+                <p>Empans de contenu extraits du document</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -880,42 +947,66 @@ D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 
 
 
-<h2 id="src.quality.validate_parses.expect_footer_end_len" class="doc doc-heading">
-          <code class="highlight language-python">expect_footer_end_len(df)</code>
+<h3 id="src.quality.validate_parses.expect_footer_end_len" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">expect_footer_end_len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
   
       <p>Vérifie que les en-têtes commencent tous à 0.</p>
 <p>Ignore les valeurs manquantes (aucun en-tête détecté).</p>
-<h4 id="src.quality.validate_parses.expect_footer_end_len--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les zones repérées dans les documents.</p>
-<h4 id="src.quality.validate_parses.expect_footer_end_len--returns">Returns</h4>
-<p>success: bool
-    True si tous les en-têtes détectés commencent à 0.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def expect_footer_end_len(df: pd.DataFrame) -&gt; bool:
-    """Vérifie que les en-têtes commencent tous à 0.
 
-    Ignore les valeurs manquantes (aucun en-tête détecté).
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les zones repérées dans les documents.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les zones repérées dans les documents.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    Returns
-    -------
-    success: bool
-        True si tous les en-têtes détectés commencent à 0.
-    """
-    return (df["footer_end"].dropna() == len()).all()</code></pre>
-          </details>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>success</code></b>(                <code>bool</code>
+)            –
+            <div class="doc-md-description">
+              <p>True si tous les en-têtes détectés commencent à 0.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -926,42 +1017,66 @@ D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 
 
 
-<h2 id="src.quality.validate_parses.expect_header_beg_zero" class="doc doc-heading">
-          <code class="highlight language-python">expect_header_beg_zero(df)</code>
+<h3 id="src.quality.validate_parses.expect_header_beg_zero" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">expect_header_beg_zero</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
   
       <p>Vérifie que les en-têtes commencent tous à 0.</p>
 <p>Ignore les valeurs manquantes (aucun en-tête détecté).</p>
-<h4 id="src.quality.validate_parses.expect_header_beg_zero--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les zones repérées dans les documents.</p>
-<h4 id="src.quality.validate_parses.expect_header_beg_zero--returns">Returns</h4>
-<p>success: bool
-    True si tous les en-têtes détectés commencent à 0.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def expect_header_beg_zero(df: pd.DataFrame) -&gt; bool:
-    """Vérifie que les en-têtes commencent tous à 0.
 
-    Ignore les valeurs manquantes (aucun en-tête détecté).
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les zones repérées dans les documents.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les zones repérées dans les documents.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    Returns
-    -------
-    success: bool
-        True si tous les en-têtes détectés commencent à 0.
-    """
-    return (df["header_beg"].dropna() == 0).all()</code></pre>
-          </details>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>success</code></b>(                <code>bool</code>
+)            –
+            <div class="doc-md-description">
+              <p>True si tous les en-têtes détectés commencent à 0.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -972,185 +1087,97 @@ D'autres arrêtés contiennent une ou plusieurs adresses que les scripts
 
 
 
-<h2 id="src.quality.validate_parses.generate_html_report" class="doc doc-heading">
-          <code class="highlight language-python">generate_html_report(run, df_adr, df_arr, df_not, df_par)</code>
+<h3 id="src.quality.validate_parses.generate_html_report" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">generate_html_report</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="n">df_adr</span><span class="p">,</span> <span class="n">df_arr</span><span class="p">,</span> <span class="n">df_not</span><span class="p">,</span> <span class="n">df_par</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
   
       <p>Générer un rapport d'erreurs en HTML</p>
-<h4 id="src.quality.validate_parses.generate_html_report--parameters">Parameters</h4>
-<p>run: string
-    Identifiant de l'exécution
-df_adr: pd.DataFrame
-    Adresses
-df_arr: pd.DataFrame
-    Arrêtés
-df_not: pd.DataFrame
-    Notifiés
-df_par: pd.DataFrame
-    Parcelles</p>
-<h4 id="src.quality.validate_parses.generate_html_report--returns">Returns</h4>
-<p>html_report: string
-    Rapport HTML</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def generate_html_report(
-    run: str,
-    df_adr: pd.DataFrame,
-    df_arr: pd.DataFrame,
-    df_not: pd.DataFrame,
-    df_par: pd.DataFrame,
-) -&gt; str:
-    """Générer un rapport d'erreurs en HTML
 
-    Parameters
-    ----------
-    run: string
-        Identifiant de l'exécution
-    df_adr: pd.DataFrame
-        Adresses
-    df_arr: pd.DataFrame
-        Arrêtés
-    df_not: pd.DataFrame
-        Notifiés
-    df_par: pd.DataFrame
-        Parcelles
 
-    Returns
-    -------
-    html_report: string
-        Rapport HTML
-    """
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>run</code></b>
+                  (<code>str</code>)
+              –
+              <div class="doc-md-description">
+                <p>Identifiant de l'exécution</p>
+              </div>
+            </li>
+            <li>
+              <b><code>df_adr</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Adresses</p>
+              </div>
+            </li>
+            <li>
+              <b><code>df_arr</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Arrêtés</p>
+              </div>
+            </li>
+            <li>
+              <b><code>df_not</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Notifiés</p>
+              </div>
+            </li>
+            <li>
+              <b><code>df_par</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Parcelles</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    # --- TODO bricolage pour fusionner en aval --- #
-    # Merge dataframes based on 'idu' column
-    merged_df = (
-        df_adr.merge(df_arr, on="idu", how="outer", suffixes=("_df1", "_df2"))
-        .merge(df_not, on="idu", how="outer", suffixes=("_df12", "_df3"))
-        .merge(df_par, on="idu", how="outer", suffixes=("_df123", "_df4"))
-    )
 
-    # fuse duplicate columns
-    for index, row in merged_df.iterrows():
-        for col in merged_df.columns:
-            # Check if the column matches the pattern r".*_df.*"
-            if re.match(r".*_df\d+", col):
-                # Extract the column name excluding the "df" number
-                col_name = re.sub(r"_df\d+", "", col)
-
-                # Check if there are other columns with the same name excluding the "df" number
-                matching_cols = [
-                    c for c in merged_df.columns if re.match(col_name + r"_df\d+", c)
-                ]
-
-                # Find the first non-null value among the matching columns
-                non_null_cell = next(
-                    (c for c in matching_cols if row[c] is not None), None
-                )
-
-                # Assign the value from the first non-null column to the corresponding col_name column
-                merged_df.at[index, col_name] = row[non_null_cell]
-
-                # Drop the other matching columns
-                merged_df.drop(
-                    [c for c in matching_cols if c != non_null_cell],
-                    axis=1,
-                    inplace=True,
-                )
-
-    # drop row with duplicate idu
-    merged_df.drop_duplicates(subset="idu", keep="first", inplace=True)
-
-    # reset ID
-    merged_df.reset_index(drop=True, inplace=True)
-
-    nb_arretes = len(merged_df)
-    # options de mise en forme
-    render_links = True
-
-    res = []
-    # début et bloc de titre
-    res.append("&lt;html&gt;")
-    res.append(f"&lt;title&gt;Rapport d'erreurs {run}&lt;/title&gt;")
-    res.append(f"&lt;h1&gt;Rapport d'erreurs {run}&lt;/h1&gt;")
-
-    # informations générales sur le lot analysé
-    res.append("&lt;div&gt;")
-    res.append(f"Nombre d'arrêtés analysés: {nb_arretes}")
-    res.append("&lt;/div&gt;")
-
-    # adding error columns to the dataframe, 1 = there is an error, 0 = no error
-    # --- aucune adresse --- #
-    merged_df = warn_adresse_empty(merged_df)
-
-    # --- aucune parcelle --- #
-    merged_df = warn_par_ref_cad_empty(merged_df)
-
-    # --- aucune date --- #
-    merged_df = error_date_manquante(merged_df)
-
-    # --- aucune classe --- #
-    merged_df = error_classe_manquante(merged_df)
-
-    # --- aucune voie --- #
-    merged_df = error_voie_manquante(merged_df)
-
-    # --- aucun code postal --- #
-    merged_df = error_cpostal_manquant(merged_df)
-
-    # --- aucune ville --- #
-    merged_df = error_ville_manquante(merged_df)
-
-    # --- aucun code INSEE --- #
-    merged_df = error_codeinsee_manquant(merged_df)
-
-    # --- code INSEE 13055 --- #
-    merged_df = error_codeinsee_13055(merged_df)
-
-    # --- aucun numéro de voie --- #
-    merged_df = error_num_voie_manquant(merged_df)
-
-    # --- manquance_urgence --- #
-    merged_df = error_urgence_manquante(merged_df)
-
-    # drop rows without errors
-    merged_df = drop_no_errors_arr(merged_df)
-
-    # only keep the columns we want to display
-    merged_df = merged_df[["idu", *ERROR_KEYS, "url"]]
-
-    res.append("&lt;h1&gt;Infos manquantes&lt;/h1&gt;")
-
-    """
-    ## points d'attention
-    # plusieurs parcelles
-    # FL: 2023-06-29: inutile?
-
-    # plusieurs adresses
-    # FL: 2023-06-29: inutile?
-    """
-
-    # --- adding red to errors --- #
-    # Apply the styling to the DataFrame
-    styled_df = merged_df.applymap(highlight_value_red)
-
-    # remove any 0 and make the cell empty instead
-    styled_df = styled_df.replace(0, "")
-
-    # Convert the styled DataFrame to HTML with red highlighting
-    styled_df = styled_df.rename_axis("id", axis=1)
-    html_table = styled_df.to_html(escape=False, render_links=render_links)
-
-    res.append(html_table)
-
-    # fin du document
-    res.append("&lt;/html&gt;")
-    return "\n".join(res)</code></pre>
-          </details>
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>html_report</code></b>(                <code>string</code>
+)            –
+            <div class="doc-md-description">
+              <p>Rapport HTML</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -1161,10 +1188,10 @@ df_par: pd.DataFrame
 
 
 
-<h2 id="src.quality.validate_parses.warn_adresse_empty" class="doc doc-heading">
-          <code class="highlight language-python">warn_adresse_empty(df)</code>
+<h3 id="src.quality.validate_parses.warn_adresse_empty" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">warn_adresse_empty</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
@@ -1179,46 +1206,56 @@ que les scripts échouent à repérer.</p>
 <p>C'est une erreur pour l'utilisateur final mais un warning du point de vue
 du script, car la probabilité que l'adresse ne soit pas dans l'arrêté,
 sachant qu'aucune adresse n'a été extraite, est relativement élevée.</p>
-<h4 id="src.quality.validate_parses.warn_adresse_empty--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.warn_adresse_empty--returns">Returns</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def warn_adresse_empty(df: pd.DataFrame) -&gt; pd.DataFrame:
-    """Signale les arrêtés sans aucune adresse.
 
-    Certains arrêtés ne contiennent pas d'adresse (ex: mainlevée,
-    abrogation), auquel cas cette information doit être recherchée
-    puis renseignée manuellement.
-    D'autres arrêtés contiennent une ou plusieurs adresses
-    que les scripts échouent à repérer.
 
-    Ignore les valeurs manquantes.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    C'est une erreur pour l'utilisateur final mais un warning du point de vue
-    du script, car la probabilité que l'adresse ne soit pas dans l'arrêté,
-    sachant qu'aucune adresse n'a été extraite, est relativement élevée.
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
-
-    Returns
-    -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
-    """
-    # récupérer toutes les adresses
-    df["aucune_adresse"] = df.apply(
-        lambda row: 1 if pd.isnull(row.ad_brute) else 0, axis=1
-    )
-    return df</code></pre>
-          </details>
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>
@@ -1229,10 +1266,10 @@ sachant qu'aucune adresse n'a été extraite, est relativement élevée.</p>
 
 
 
-<h2 id="src.quality.validate_parses.warn_par_ref_cad_empty" class="doc doc-heading">
-          <code class="highlight language-python">warn_par_ref_cad_empty(df)</code>
+<h3 id="src.quality.validate_parses.warn_par_ref_cad_empty" class="doc doc-heading">
+          <code class="highlight language-python"><span class="n">warn_par_ref_cad_empty</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code>
 
-</h2>
+</h3>
 
 
   <div class="doc doc-contents ">
@@ -1246,44 +1283,56 @@ que les scripts échouent à repérer.</p>
 <p>C'est une erreur pour l'utilisateur final mais un warning du point de vue
 du script, car la probabilité que la référence ne soit pas dans l'arrêté,
 sachant qu'aucune référence n'a été extraite, est élevée.</p>
-<h4 id="src.quality.validate_parses.warn_par_ref_cad_empty--parameters">Parameters</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant les arrêtés.</p>
-<h4 id="src.quality.validate_parses.warn_par_ref_cad_empty--returns">Returns</h4>
-<p>df: pd.DataFrame
-    DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
 
-          <details class="quote">
-            <summary> <code>src\quality\validate_parses.py</code></summary>
-            <pre class="highlight"><code class="language-python">def warn_par_ref_cad_empty(df: pd.DataFrame) -&gt; pd.DataFrame:
-    """Signale les arrêtés sans aucune référence de parcelle cadastrale.
 
-    Certains arrêtés ne contiennent pas de référence cadastrale, auquel
-    cas cette information doit être recherchée puis renseignée manuellement.
-    D'autres arrêtés contiennent une ou plusieurs références cadastrales
-    que les scripts échouent à repérer.
 
-    Ignore les valeurs manquantes.
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>df</code></b>
+                  (<code><span title="pandas.DataFrame">DataFrame</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>DataFrame contenant les arrêtés.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-    C'est une erreur pour l'utilisateur final mais un warning du point de vue
-    du script, car la probabilité que la référence ne soit pas dans l'arrêté,
-    sachant qu'aucune référence n'a été extraite, est élevée.
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame contenant les arrêtés.
-
-    Returns
-    -------
-    df: pd.DataFrame
-        DataFrame contenant avec une colonne indiquant si cette erreur est présente.
-    """
-    df["aucune_parcelle"] = df.apply(
-        lambda row: 1 if pd.isnull(row.ref_cad) else 0, axis=1
-    )
-    return df</code></pre>
-          </details>
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+    <th class="field-name">Returns:</th>
+    <td class="field-body">
+      <ul class="first simple">
+          <li>
+<b><code>df</code></b>(                <code><span title="pandas.DataFrame">DataFrame</span></code>
+)            –
+            <div class="doc-md-description">
+              <p>DataFrame contenant avec une colonne indiquant si cette erreur est présente.</p>
+            </div>
+          </li>
+      </ul>
+    </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 
 </div>

@@ -1,7 +1,4 @@
-"""
-# Fonctions utilitaires génériques pour le texte.
-
-"""
+""""""
 
 import re
 import unicodedata

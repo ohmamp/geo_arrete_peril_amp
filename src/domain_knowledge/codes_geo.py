@@ -1,7 +1,4 @@
-"""
-# Code géographiques
-
-Accès aux codes géographiques (codes INSEE, codes postaux) des communes.
+"""Accès aux codes géographiques (codes INSEE, codes postaux) des communes.
 
 TODO créer des modules similaires pour les autres bases de connaissances:
 * les variantes de graphies des communes (TODO),

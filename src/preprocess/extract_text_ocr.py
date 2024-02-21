@@ -1,7 +1,4 @@
-"""
-# Extraire le texte des fichiers PDF par OCR.
-
-Le texte des PDF non-natifs ("PDF image") est extrait avec ocrmypdf.
+"""Le texte des PDF non-natifs ("PDF image") est extrait avec ocrmypdf.
 
 ocrmypdf produit un fichier PDF/A incluant une couche de texte extrait par OCR,
 et un fichier "sidecar" contenant le texte extrait par l'OCR uniquement.

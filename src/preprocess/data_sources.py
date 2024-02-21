@@ -1,6 +1,4 @@
-"""
-# Sources de données.
-"""
+""""""
 
 from pathlib import Path
 

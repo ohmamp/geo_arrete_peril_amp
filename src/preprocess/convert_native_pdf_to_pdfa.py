@@ -1,7 +1,4 @@
-"""
-# Convertir les fichiers PDF natifs en PDF/A.
-
-Utilise ocrmypdf sans appeler le moteur d'OCR.
+"""Utilise ocrmypdf sans appeler le moteur d'OCR.
 """
 
 # 2023-03-19: 2029 fichiers pdf convertis en 1h01

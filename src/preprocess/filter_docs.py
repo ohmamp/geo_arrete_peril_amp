@@ -1,7 +1,4 @@
-"""
-# Filtrer les fichiers PDF hors du champ de la base de données.
-
-Annexes des arrêtés: plan de périmètre de sécurité, rapports d'expertise etc.
+"""Annexes des arrêtés: plan de périmètre de sécurité, rapports d'expertise etc.
 
 TODO filtrer automatiquement à partir du texte
 """

@@ -1,7 +1,4 @@
-"""
-# Logement
-
-Repérage et extraction de données propres aux arrêtés sur le logement.
+"""Repérage et extraction de données propres aux arrêtés sur le logement.
 
 Propriétaire, gestionnaire, syndic ou administrateur, adresse de l'immeuble concerné.
 """

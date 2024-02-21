@@ -5,4 +5,10 @@ theme:
 
 plugins:
 - search
-- mkdocstrings
+- mkdocstrings:
+    handlers:
+      python:
+        options:
+          docstring_style: numpy
+          heading_level: 3
+          show_source: false

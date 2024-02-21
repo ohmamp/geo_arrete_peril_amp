@@ -1,7 +1,4 @@
-"""
-# Analyse le document dans son ensemble.
-
-Extrait des empans de texte correspondant aux en-têtes, pieds-de-page,
+"""Extrait des empans de texte correspondant aux en-têtes, pieds-de-page,
 autorité, vus, correspondants, articles, signature...
 """
 
@@ -1147,36 +1144,36 @@ def process_files(
                 "has_article": has_one(pg_content, "par_article"),
                 # arrêtés spécifiques
                 # - réglementaires
-                "has_cgct": contains_cgct(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO
-                "has_cgct_art": contains_cgct_art(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO
-                "has_cch": contains_cch(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO
-                "has_cch_L111": contains_cch_L111(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO
-                "has_cch_L511": contains_cch_L511(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO
-                "has_cch_L521": contains_cch_L521(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO
-                "has_cch_L541": contains_cch_L541(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO
-                "has_cch_R511": contains_cch_R511(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO
-                "has_cc": contains_cc(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO
-                "has_cc_art": contains_cc_art(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO
+                "has_cgct": (
+                    contains_cgct(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO
+                "has_cgct_art": (
+                    contains_cgct_art(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO
+                "has_cch": (
+                    contains_cch(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO
+                "has_cch_L111": (
+                    contains_cch_L111(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO
+                "has_cch_L511": (
+                    contains_cch_L511(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO
+                "has_cch_L521": (
+                    contains_cch_L521(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO
+                "has_cch_L541": (
+                    contains_cch_L541(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO
+                "has_cch_R511": (
+                    contains_cch_R511(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO
+                "has_cc": (
+                    contains_cc(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO
+                "has_cc_art": (
+                    contains_cc_art(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO
                 # - données
                 "adresse": pg_adr_doc,  # TODO urgent
                 # refactor 2023-03-31: remonter l'extraction de l'adresse précise
@@ -1188,34 +1185,34 @@ def process_files(
                 "adr_ville": adr_fields["adr_ville"],  # ville
                 # end refactor 2023-03-31
                 "parcelle": pg_parcelle,  # TODO urgent
-                "proprio": get_proprio(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # WIP
-                "syndic": get_syndic(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO urgent-
-                "gest": get_gest(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO urgent-
+                "proprio": (
+                    get_proprio(pg_txt_body) if pg_txt_body is not None else None
+                ),  # WIP
+                "syndic": (
+                    get_syndic(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO urgent-
+                "gest": (
+                    get_gest(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO urgent-
                 "date": unique_txt(pg_content, "arr_date"),
                 #   * arrêté
                 "num_arr": unique_txt(pg_content, "num_arr"),
                 "nom_arr": unique_txt(pg_content, "nom_arr"),
-                "classe": get_classe(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO improve
-                "urgence": get_urgence(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO improve
-                "demo": get_demo(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO improve
-                "int_hab": get_int_hab(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO improve
-                "equ_com": get_equ_com(pg_txt_body)
-                if pg_txt_body is not None
-                else None,  # TODO improve
+                "classe": (
+                    get_classe(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO improve
+                "urgence": (
+                    get_urgence(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO improve
+                "demo": (
+                    get_demo(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO improve
+                "int_hab": (
+                    get_int_hab(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO improve
+                "equ_com": (
+                    get_equ_com(pg_txt_body) if pg_txt_body is not None else None
+                ),  # TODO improve
             }
             indics_struct.append(
                 {

@@ -1,7 +1,4 @@
-"""
-# Cadre réglementaire
-
-Références au cadre réglementaire.
+"""Références au cadre réglementaire.
 """
 
 import re

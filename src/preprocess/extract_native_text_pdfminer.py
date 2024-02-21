@@ -1,7 +1,4 @@
-"""
-# Extrait le texte natif des fichiers PDF avec pdfminer.six
-
-Nécessite d'installer pdfminer.six.
+"""Nécessite d'installer pdfminer.six.
 
 Non utilisé pour le moment, faute d'avoir identifié les bonnes valeurs des paramètres
 utilisés pour l'analyse du layout, mais pourrait être utile pour ré-analyser les

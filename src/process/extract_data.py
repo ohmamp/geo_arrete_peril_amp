@@ -1,7 +1,4 @@
-"""
-# Extraire les données des documents.
-
-Les données sont extraites des empans de texte repérés au préalable,
+"""Les données sont extraites des empans de texte repérés au préalable,
 et normalisées.
 Lorsque plusieurs empans de texte sont susceptibles de renseigner sur
 la même donnée, les différentes valeurs extraites sont accumulées pour

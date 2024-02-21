@@ -1,7 +1,4 @@
-"""
-# Charge le texte des documents dans un DataFrame.
-
-Chaque ligne correspond à une page d'un document.
+"""Chaque ligne correspond à une page d'un document.
 """
 
 import argparse

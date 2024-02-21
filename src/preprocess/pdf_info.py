@@ -1,7 +1,4 @@
-"""
-# Extraire les métadonnées des fichiers PDF.
-
-Ce module utilise pikepdf.
+"""Ce module utilise pikepdf.
 """
 
 from datetime import datetime

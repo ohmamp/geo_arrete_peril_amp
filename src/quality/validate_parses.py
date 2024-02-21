@@ -1,10 +1,6 @@
-"""
-# Valide les zones repérées.
-
-* Tous les en-têtes commencent à 0 ;
+"""* Tous les en-têtes commencent à 0 ;
 * Tous les pieds-de-pages terminent à la longueur du document ;
 * En-tête et pied-de-page sont disjoints ;
-
 """
 
 # TODO ajouter expectations:
@@ -200,9 +196,9 @@ def error_codeinsee_13055(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame contenant avec une colonne indiquant si cette erreur est présente.
     """
     df["codeinsee_13055"] = df.apply(
-        lambda row: 1
-        if not pd.isnull(row.codeinsee) and row.codeinsee == "13055"
-        else 0,
+        lambda row: (
+            1 if not pd.isnull(row.codeinsee) and row.codeinsee == "13055" else 0
+        ),
         axis=1,
     )
     return df

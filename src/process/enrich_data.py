@@ -1,7 +1,4 @@
-"""
-# Enrichit les données avec des données supplémentaires.
-
-Ajoute le code INSEE de la commune.
+"""Ajoute le code INSEE de la commune.
 """
 
 import argparse

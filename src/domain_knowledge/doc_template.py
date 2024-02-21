@@ -1,7 +1,4 @@
-"""
-# Modèles de documents des arrêtés.
-
-Motifs de reconnaissance des en-têtes, pieds-de-page et annexes.
+"""Motifs de reconnaissance des en-têtes, pieds-de-page et annexes.
 
 TODO
 - [ ] exploiter les éléments de template (discriminants) pour déterminer la ville (en complément des autres emplacements: autorité, signature)

@@ -1,9 +1,4 @@
-"""
-# Actes
-
-Traces de télétransmission de documents par @ctes.
-
-Tampon et page d'accusé de réception.
+"""Traces de télétransmission de documents par @ctes.
 """
 
 import re
@@ -96,7 +91,7 @@ def is_stamped_page(page_txt: str) -> bool:
 
     Parameters
     ----------
-    page_txt: str
+    page_txt : str
         Texte d'une page de document
     Returns
     -------
@@ -114,6 +109,7 @@ def is_accusedereception_page(page_txt: str) -> bool:
     ----------
     page_txt: str
         Texte d'une page de document
+
     Returns
     -------
     has_stamp: bool

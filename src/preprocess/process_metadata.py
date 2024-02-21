@@ -1,7 +1,4 @@
-"""
-# Traiter les métadonnées des fichiers PDF.
-
-Les traitements permettent de:
+"""Les traitements permettent de:
 * détecter les fichiers doublons,
 * déterminer si le PDF est du texte ou image,
 * déterminer si le PDF contient des tampons de télétransmission en haut des pages,

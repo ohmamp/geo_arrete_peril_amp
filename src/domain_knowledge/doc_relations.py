@@ -1,7 +1,4 @@
-"""
-# Relations entre documents.
-
-Les référence à des documents précédents sont énoncées dans les "Vu".
+"""Les référence à des documents précédents sont énoncées dans les "Vu".
 """
 
 from src.utils.text_utils import RE_NO

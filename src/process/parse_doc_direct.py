@@ -1,7 +1,4 @@
-"""
-# Analyse un arrêté et en extrait les données.
-
-"""
+""""""
 
 # TODO remplacer les listes de documents à exclure, dressées manuellement, par une procédure de détection automatique
 
@@ -568,21 +565,23 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
 
     code_insee = arretes["codeinsee"] if "codeinsee" in arretes else None
     doc_data = {
-        "adresses": adresses
-        if adresses
-        else [
-            {
-                "ad_brute": None,
-                "num": None,
-                "ind": None,
-                "voie": None,
-                "compl": None,
-                "cpostal": None,
-                "ville": None,
-                "adresse": None,
-                "codeinsee": code_insee,
-            }
-        ],
+        "adresses": (
+            adresses
+            if adresses
+            else [
+                {
+                    "ad_brute": None,
+                    "num": None,
+                    "ind": None,
+                    "voie": None,
+                    "compl": None,
+                    "cpostal": None,
+                    "ville": None,
+                    "adresse": None,
+                    "codeinsee": code_insee,
+                }
+            ]
+        ),
         "arretes": [arretes],  # a priori un seul par fichier
         "notifies": [
             {
@@ -595,9 +594,11 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
                 "codeinsee": codeinsee,
             }
         ],  # a priori un seul par fichier (pour le moment)
-        "parcelles": [{"ref_cad": x, "codeinsee": codeinsee} for x in parcelles]
-        if parcelles
-        else [{"ref_cad": None, "codeinsee": code_insee}],
+        "parcelles": (
+            [{"ref_cad": x, "codeinsee": codeinsee} for x in parcelles]
+            if parcelles
+            else [{"ref_cad": None, "codeinsee": code_insee}]
+        ),
     }
     return doc_data
 
@@ -727,7 +728,7 @@ def process_files(
                 f"Fichier à ignorer car déjà traité: {areclass[0] if areclass else bienclas[0]}"
             )
             print(
-                f"\n/!\ Fichier à ignorer car déjà traité: {areclass[0] if areclass else bienclas[0]}"
+                f"\n/!\\ Fichier à ignorer car déjà traité: {areclass[0] if areclass else bienclas[0]}"
             )
             already_proc.append(fn)
     already_proc = set(already_proc)

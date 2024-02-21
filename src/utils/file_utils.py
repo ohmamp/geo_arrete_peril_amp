@@ -1,7 +1,4 @@
-"""
-# Fonctions utiles pour la gestion des fichiers.
-
-"""
+""""""
 
 import hashlib
 from pathlib import Path

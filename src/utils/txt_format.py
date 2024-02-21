@@ -1,7 +1,4 @@
-"""
-# Charger les fichiers de texte extraits des PDF, natifs ou non.
-
-"""
+""""""
 
 from pathlib import Path
 from typing import List

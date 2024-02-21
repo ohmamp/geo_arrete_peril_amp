@@ -1,7 +1,4 @@
-"""
-# Typologie
-
-Typologie des arrêtés de mise en sécurité.
+"""Typologie des arrêtés de mise en sécurité.
 """
 
 # 2023-03-14: 53 arrêtés avec un nom mais pas de classe

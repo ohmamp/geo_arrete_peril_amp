@@ -1,13 +1,9 @@
-"""
-# Exporte les données en fichiers CSV.
-
-4 tables:
+"""4 tables:
 * arrêté,
 * adresse,
 * parcelle,
 * notifié
 """
-
 
 import argparse
 from datetime import datetime

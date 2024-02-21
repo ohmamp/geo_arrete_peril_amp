@@ -1,10 +1,7 @@
-"""
-# Convertir un fichier PDF en PDF/A (archivable).
-
-Utilise ocrmypdf.
+"""Utilise ocrmypdf.
 
 NB: Certaines métadonnées du PDF sont perdues
-<https://github.com/ocrmypdf/OCRmyPDF/issues/327> .
+<https://github.com/ocrmypdf/OCRmyPDF/issues/327>.
 """
 
 # TODO récupérer les métadonnées du PDF perdues par ocrmypdf

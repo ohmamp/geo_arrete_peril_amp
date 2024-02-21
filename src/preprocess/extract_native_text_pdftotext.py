@@ -1,7 +1,4 @@
-"""
-# Extrait le texte natif des fichiers PDF avec pdftotext
-
-<https://github.com/jalan/pdftotext>
+"""<https://github.com/jalan/pdftotext>
 
 Dépendances Windows (<https://github.com/jalan/pdftotext#os-dependencies>):
 * Microsoft Visual C++ Build Tools: <https://visualstudio.microsoft.com/fr/visual-cpp-build-tools/>

@@ -1,7 +1,4 @@
-"""
-# Reconnaissance et mise en forme des dates.
-
-"""
+""""""
 
 import re
 from typing import Dict

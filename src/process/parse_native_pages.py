@@ -1,7 +1,4 @@
-"""
-# Extrait la structure des documents.
-
-Découpe chaque arrêté en zones:
+"""Découpe chaque arrêté en zones:
 * préambule (?),
 * VUs,
 * CONSIDERANTs,
@@ -192,9 +189,9 @@ def spot_text_structure(
             "adr_cpostal": adr_fields["adr_cpostal"],  # code postal
             "adr_ville": adr_fields["adr_ville"],  # ville
             # end refactor 2023-03-31
-            "parcelle": parcelles[0]
-            if parcelles
-            else None,  # TODO si la page contient plusieurs empans désignant une ou plusieurs parcelles
+            "parcelle": (
+                parcelles[0] if parcelles else None
+            ),  # TODO si la page contient plusieurs empans désignant une ou plusieurs parcelles
             "proprio": get_proprio(df_row.pagetxt),  # WIP
             "syndic": get_syndic(df_row.pagetxt),
             "gest": get_gest(df_row.pagetxt),

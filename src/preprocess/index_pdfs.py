@@ -1,7 +1,4 @@
-"""
-# Indexer un ensemble de fichiers PDF.
-
-Calcule le hachage de chaque fichier et crée une copie
+"""Calcule le hachage de chaque fichier et crée une copie
 du fichier dans un dossier de travail, en faisant précéder
 le nom du fichier par son hachage.
 """

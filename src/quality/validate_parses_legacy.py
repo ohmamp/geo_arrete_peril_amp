@@ -1,6 +1,4 @@
-"""Valide les zones repérées.
-
-* Tous les en-têtes commencent à 0 ;
+"""* Tous les en-têtes commencent à 0 ;
 * Tous les pieds-de-pages terminent à la longueur du document ;
 * En-tête et pied-de-page sont disjoints ;
 

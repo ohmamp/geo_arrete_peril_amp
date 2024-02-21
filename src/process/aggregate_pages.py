@@ -1,7 +1,4 @@
-"""
-# Agrège les pages, et leurs données extraites, en documents.
-
-Chaque ligne correspond à un document.
+"""Chaque ligne correspond à un document.
 Les éventuelles incohérences entre valeurs extraites pour différentes pages
 d'un même document sont signalées.
 """

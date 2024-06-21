@@ -10,6 +10,7 @@ import argparse
 from datetime import datetime
 import logging
 from pathlib import Path
+import PyPDF2
 
 import pandas as pd
 
@@ -60,6 +61,42 @@ DTYPE_DATA = {
     "not_id_gest": "string",  # identification du gestionnaire
     "not_gest": "string",  # nom du gestionnaire
 }
+
+
+def transform_pdf_date(date_str):
+    """Transform PDF date string to a standard date format."""
+    if date_str.startswith("D:"):
+        date_str = date_str[2:]
+    date_str = date_str.replace("'", "")
+    dt_format = "%Y%m%d%H%M%S%z"
+    dt = datetime.strptime(date_str, dt_format)
+    return dt.strftime("%d/%m/%Y")
+
+
+def detect_digital_signature(file_path):
+    """Detect if the PDF has a digital signature and return the result.
+
+    Parameters
+    ----------
+    file_path: str
+        Path to the PDF file.
+
+    Returns
+    -------
+    signature_date: str
+        Date of the digital signature if it exists, None otherwise.
+    """
+    reader = PyPDF2.PdfReader(file_path)
+    fields = reader.get_fields()
+    if not fields:
+        return None
+
+    for field_name, field_value in fields.items():
+        if field_value.get("/FT") == "/Sig":
+            date = field_value.get("/V", {}).get("/M", None)
+            formatted_date = transform_pdf_date(date) if date else None
+            return formatted_date
+    return None
 
 
 # TODO déplacer dans arrete ? ou ailleurs ?

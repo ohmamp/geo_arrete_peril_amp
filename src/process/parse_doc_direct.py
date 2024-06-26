@@ -58,7 +58,7 @@ from src.process.export_data import (
     DTYPE_NOTIFIE,
     DTYPE_PARCELLE,
 )
-from src.process.extract_data import determine_commune
+from src.process.extract_data import determine_commune, detect_digital_signature
 from src.process.parse_doc import parse_arrete_pages
 from src.quality.validate_parses import generate_html_report
 from src.utils.str_date import process_date_brute
@@ -365,6 +365,14 @@ def parse_arrete(fp_pdf_in: Path, fp_txt_in: Path) -> dict:
         for x in pages_cont
         if x["span_typ"] == "arr_date"
     ]
+
+    if not arr_dates:
+        arr_date = detect_digital_signature(fp_pdf_in)
+        if arr_date:
+            arr_dates = [arr_date]
+        else:
+            logging.warning(f"{fn_pdf}: pas de date d'arrêté trouvée")
+
     if arr_dates:
         arretes["date"] = normalize_string(
             arr_dates[0], num=True, apos=True, hyph=True, spaces=True

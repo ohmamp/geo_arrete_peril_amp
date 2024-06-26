@@ -7,6 +7,7 @@ dependencies:
   # - distro  # dep(tabula-py)
   - ipykernel  # jupyter nb
   - ipywidgets  # jupyter nb
+  - PyPDF2 # digital signature detection
   - numpy >= 1.23.3
   - ocrmypdf >= 14.0.3
   - pandas >= 1.5.1
